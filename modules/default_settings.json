@@ -1,0 +1,31 @@
+{
+  "theme": "dark",
+  "accent_color": "#ff6f00",
+  "transparency": 80,
+  "contrast": "عادي",
+  "ui_settings": {
+    "font_size": 14,
+    "font_family": "النظام الافتراضي",
+    "font_weight": "عادي",
+    "text_direction": "تلقائي"
+  },
+  "custom_colors": {
+    "text_title": "افتراضي",
+    "text_body": "افتراضي",
+    "text_secondary": "افتراضي"
+  },
+  "security_settings": {
+    "enable_password_protection": false,
+    "privacy_mode": false
+  },
+  "performance_settings": {
+    "max_memory": 512,
+    "enable_multithreading": true
+  },
+  "app_settings": {
+    "auto_save": true,
+    "backup_enabled": true,
+    "check_updates": true,
+    "language": "ar"
+  }
+}

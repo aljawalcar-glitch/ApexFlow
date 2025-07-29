@@ -1,0 +1,146 @@
+# -*- coding: utf-8 -*-
+"""
+صفحة دمج وطباعة ملفات PDF
+"""
+
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QMessageBox, QComboBox, QLabel
+from .base_page import BasePageWidget
+from .ui_helpers import create_button
+from .theme_manager import apply_theme_style
+
+class MergePage(BasePageWidget):
+    """
+    واجهة المستخدم الخاصة بوظيفة دمج وطباعة ملفات PDF.
+    """
+    def __init__(self, file_manager, operations_manager, parent=None):
+        """
+        :param file_manager: مدير الملفات لاختيار الملفات.
+        :param operations_manager: مدير العمليات لتنفيذ الدمج والطباعة.
+        """
+        super().__init__(page_title="دمج وطباعة", theme_key="merge_page", parent=parent)
+
+        self.file_manager = file_manager
+        self.operations_manager = operations_manager
+
+        # --- إزالة الأزرار العلوية الافتراضية ---
+        for i in reversed(range(self.top_buttons_layout.count())): 
+            widget = self.top_buttons_layout.itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+
+        # --- حاوية عناصر التحكم العلوية ---
+        self.controls_widget = QWidget()
+        self.controls_layout = QVBoxLayout(self.controls_widget)
+        self.controls_layout.setSpacing(10)
+        self.controls_layout.setContentsMargins(0, 0, 0, 0)
+
+        # --- أزرار إضافة الملفات ---
+        add_files_layout = QHBoxLayout()
+        self.add_folder_button = create_button("إضافة مجلد")
+        self.add_folder_button.clicked.connect(self.add_folder)
+        self.add_file_button = create_button("إضافة ملف")
+        self.add_file_button.clicked.connect(self.select_files)
+        add_files_layout.addWidget(self.add_folder_button)
+        add_files_layout.addWidget(self.add_file_button)
+        self.controls_layout.addLayout(add_files_layout)
+
+        # --- أزرار وخيارات الإجراءات ---
+        self.action_widget = QWidget()
+        action_layout = QHBoxLayout(self.action_widget)
+        
+        self.printer_label = QLabel("اختر الطابعة:")
+        self.printer_combo = QComboBox()
+        self.merge_button = create_button("دمج الملفات", is_default=True)
+        self.print_button = create_button("طباعة الملفات")
+
+        apply_theme_style(self.merge_button, "transparent_button")
+        apply_theme_style(self.print_button, "transparent_button")
+        apply_theme_style(self.printer_label, "label")
+        apply_theme_style(self.printer_combo, "combo")
+
+        action_layout.addWidget(self.printer_label)
+        action_layout.addWidget(self.printer_combo)
+        action_layout.addStretch()
+        action_layout.addWidget(self.merge_button)
+        action_layout.addWidget(self.print_button)
+
+        self.merge_button.clicked.connect(self.execute_merge)
+        self.print_button.clicked.connect(self.execute_print)
+        
+        self.controls_layout.addWidget(self.action_widget)
+        self.action_widget.setVisible(False)
+
+        # --- إضافة الحاوية إلى التخطيط الرئيسي ---
+        self.main_layout.insertWidget(1, self.controls_widget)
+
+        # --- إخفاء إطار الملفات افتراضيًا ---
+        self.file_list_frame.setVisible(False)
+
+        self.load_printers()
+
+    def load_printers(self):
+        """تحميل قائمة الطابعات المتاحة في القائمة المنسدلة"""
+        printers = self.operations_manager.get_available_printers()
+        self.printer_combo.addItems(printers)
+
+    def select_files(self):
+        """فتح حوار لاختيار ملفات PDF وتحديث القائمة."""
+        files = self.file_manager.select_pdf_files(title="اختر ملفات PDF", multiple=True)
+        if files:
+            self.file_list_frame.add_files(files)
+            # استدعاء on_files_changed يدوياً لضمان تحديث الواجهة
+            self.on_files_changed(self.file_list_frame.get_valid_files())
+
+    def add_folder(self):
+        """فتح حوار لاختيار مجلد وإضافة كل ملفات PDF فيه."""
+        from modules.app_utils import browse_folder_simple
+
+        # استخدام نافذة اختيار المجلد البسيطة
+        folder = browse_folder_simple(title="اختر مجلدًا يحتوي على ملفات PDF")
+
+        # إذا تم اختيار مجلد، معالجته
+        if folder:
+            files = self.file_manager.get_pdf_files_from_folder(folder)
+            if files:
+                self.file_list_frame.add_files(files)
+                # استدعاء on_files_changed يدوياً لضمان تحديث الواجهة
+                self.on_files_changed(self.file_list_frame.get_valid_files())
+
+    def execute_merge(self):
+        """تنفيذ عملية الدمج بعد تأكيد المستخدم."""
+        files_to_merge = self.file_list_frame.get_valid_files()
+        reply = QMessageBox.question(self, 'تأكيد الدمج', 
+                                     f"هل أنت متأكد أنك تريد دمج {len(files_to_merge)} ملفات؟",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            # تمرير الويدجت الأصل (self) لإظهار حوار التقدم
+            self.operations_manager.merge_files(self)
+
+    def execute_print(self):
+        """تنفيذ عملية الطباعة بعد تأكيد المستخدم."""
+        selected_files = self.file_list_frame.get_valid_files()
+        if not selected_files:
+            QMessageBox.warning(self, "خطأ", "الرجاء تحديد ملف واحد على الأقل للطباعة.")
+            return
+
+        printer_name = self.printer_combo.currentText()
+        if not printer_name:
+            QMessageBox.warning(self, "خطأ", "الرجاء اختيار طابعة.")
+            return
+
+        reply = QMessageBox.question(self, 'تأكيد الطباعة', 
+                                     f"هل أنت متأكد أنك تريد طباعة {len(selected_files)} ملف/ملفات إلى الطابعة '{printer_name}'؟",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            # تمرير الويدجت الأصل (self) لإظهار حوار التقدم
+            self.operations_manager.print_files(selected_files, printer_name, self)
+
+    def on_files_changed(self, files):
+        """إظهار أو إخفاء العناصر بناءً على وجود الملفات."""
+        has_files = len(files) > 0
+        self.file_list_frame.setVisible(has_files)
+        self.action_widget.setVisible(has_files)
+        
+        self.merge_button.setEnabled(len(files) > 1)
+        self.print_button.setEnabled(has_files)

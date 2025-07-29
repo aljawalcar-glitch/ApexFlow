@@ -1,0 +1,4 @@
+# هذا الملف يضمن تضمين مجلد الأختام في الملف التنفيذي
+# This file ensures the stamps folder is included in the executable
+# يمكن حذف هذا الملف بعد إضافة أختام حقيقية
+# This file can be deleted after adding real stamps

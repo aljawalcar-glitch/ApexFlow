@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- مقبض الختم -->
+  <rect x="8" y="2" width="8" height="6" rx="2" ry="2" fill="none" stroke="currentColor"/>
+  
+  <!-- جسم الختم -->
+  <rect x="6" y="8" width="12" height="8" rx="1" ry="1" fill="none" stroke="currentColor"/>
+  
+  <!-- خطوط داخلية تمثل النص/التصميم -->
+  <line x1="8" y1="10" x2="16" y2="10" stroke="currentColor" stroke-width="1.5"/>
+  <line x1="8" y1="12" x2="14" y2="12" stroke="currentColor" stroke-width="1.5"/>
+  <line x1="8" y1="14" x2="16" y2="14" stroke="currentColor" stroke-width="1.5"/>
+  
+  <!-- قاعدة الختم -->
+  <line x1="4" y1="16" x2="20" y2="16" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- أثر الختم -->
+  <ellipse cx="12" cy="19" rx="6" ry="2" fill="none" stroke="currentColor" stroke-width="1" opacity="0.5" stroke-dasharray="2,2"/>
+</svg>
