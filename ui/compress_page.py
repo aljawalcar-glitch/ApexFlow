@@ -267,9 +267,40 @@ class CompressPage(BasePageWidget):
         # This function and its helpers can be simplified as they are mostly for display
         # and their logic is complex. We will focus on the UI styling.
         pass
-    
-    # ... (Rest of the methods like execute_compress, select_save_location, etc. remain the same) ...
-    # ... I will omit them here for brevity as they are not directly related to the UI styling task ...
+
+    def select_save_location(self):
+        """Opens a dialog to select a save directory for a single file."""
+        if not self.current_file_path:
+            return
+        
+        directory = self.file_manager.select_directory("اختر مجلد الحفظ")
+        if directory:
+            self.update_save_path(self.current_file_path, directory)
+
+    def select_batch_save_location(self):
+        """Opens a dialog to select a save directory for batch processing."""
+        directory = self.file_manager.select_directory("اختر مجلد الحفظ للمجموعة")
+        if directory:
+            self.batch_save_label.setText(f"المسار: {directory}")
+
+    def update_save_path(self, file_path, base_dir=None):
+        """Updates the save path label for a single file."""
+        if not base_dir:
+            base_dir = os.path.dirname(file_path)
+        
+        filename = os.path.basename(file_path)
+        name, ext = os.path.splitext(filename)
+        new_filename = f"{name}_compressed{ext}"
+        self.save_location_label.setText(f"المسار: {os.path.join(base_dir, new_filename)}")
+
+    def create_unique_folder(self, base_dir, folder_name):
+        """Creates a unique folder name to avoid overwriting."""
+        path = os.path.join(base_dir, folder_name)
+        count = 1
+        while os.path.exists(path):
+            path = os.path.join(base_dir, f"{folder_name}_{count}")
+            count += 1
+        return path
 
     def execute_compress(self):
         print("Executing compression...")

@@ -35,10 +35,9 @@ def get_widget_style(widget_type, colors, accent_color):
             QLabel {{ color: {colors["text_body"]}; background: transparent; border: none; outline: none; }}
         """
 
-    elif widget_type in ["dialog", "settings_window", "widget", "menu"]:
-        # Updated to include menu, dialog, and settings_window as they often share similar base styles
+    elif widget_type in ["dialog", "settings_window", "widget"]:
         return f"""
-            QDialog, QWidget, QMenu {{
+            QDialog, QWidget {{
                 background-color: {colors["bg"]};
                 color: {colors["text_body"]};
                 font-family: {font_settings['family']};
@@ -46,19 +45,30 @@ def get_widget_style(widget_type, colors, accent_color):
             QFrame {{ background-color: {colors["surface"]}; border: 1px solid {colors["border"]}; border-radius: 8px; }}
             QLabel {{ color: {colors["text_body"]}; background: transparent; border: none; outline: none; }}
             QFormLayout QLabel {{ color: {colors["text_body"]}; background: transparent; border: none; outline: none; }}
-
-            # Menu specific styling when it's part of a dialog/widget context
-            QMenu::item {{
+        """
+    
+    elif widget_type == "menu":
+        return f"""
+            QMenu, QListWidget {{
+                background-color: {colors["surface"]};
+                color: {colors["text_body"]};
+                font-family: {font_settings['family']};
+                font-size: {int(font_settings['size'] * 1.1)}px;
+                border: 1px solid {colors["border"]};
+                border-radius: 8px;
+            }}
+            QMenu::item, QListWidget::item {{
                 color: {colors['text_body']};
                 background-color: transparent;
-                padding: 5px 20px;
+                padding: 12px 20px;
             }}
-            QMenu::item:selected {{
-                background-color: {accent_color}66;
+            QMenu::item:selected, QListWidget::item:selected {{
+                background-color: {accent_color};
                 color: white;
+                font-weight: bold;
             }}
-            QMenu::item:hover {{
-                background-color: {accent_color}33;
+            QMenu::item:hover, QListWidget::item:hover {{
+                background-color: rgba(255, 255, 255, 0.1);
             }}
         """
 
@@ -70,7 +80,7 @@ def get_widget_style(widget_type, colors, accent_color):
                 border: none; border-radius: 6px; padding: 8px 16px;
                 font-size: {font_settings["size"]}px; font-family: {font_settings["family"]}; font-weight: bold;
             }}
-            QPushButton:hover {{ background-color: {darken_color(accent_color)}; }}
+            QPushButton:hover {{ background-color: {lighten_color(accent_color, 0.2)}; }}
         """
 
     elif widget_type == "icon_button":
@@ -82,7 +92,7 @@ def get_widget_style(widget_type, colors, accent_color):
 
     elif widget_type == "frame":
         return f"""
-            QFrame {{ background-color: {colors["surface"]}; border: 1px solid {colors["border"]}; border-radius: 8px; }}
+            QFrame {{ background-color: {colors["surface"]}; border: none; border-radius: 8px; }}
         """
 
     elif widget_type == "separator":
@@ -287,7 +297,18 @@ def darken_color(color, factor=0.2):
     color.setHsl(h, s, l, a)
     return color.name()
 
+def lighten_color(color, factor=0.2):
+    """تفتيح اللون"""
+    from PySide6.QtGui import QColor
+    color = QColor(color)
+    h, s, l, a = color.getHsl()
+    l = min(255, int(l * (1 + factor)))
+    color.setHsl(h, s, l, a)
+    return color.name()
+
 # Keep compatibility functions if they are used elsewhere
-def get_button_style(color): return get_widget_style("button", {}, color)
-def get_menu_style(): return get_widget_style("menu", {}, "#ff6f00") # Example accent
-def get_scroll_style(): return get_widget_style("scroll", {}, "#ff6f00")
+def get_button_style(colors, accent_color):
+    return get_widget_style("button", colors, accent_color)
+
+def get_scroll_style(colors, accent_color):
+    return get_widget_style("graphics_view", colors, accent_color)

@@ -33,10 +33,12 @@ class SecurityPage(BasePage):
 
         # إنشاء منطقة التمرير مباشرة بعد عنوان الصفحة
         scroll_area = QScrollArea()
-        scroll_area.setStyleSheet(get_scroll_style())
-        # تسجيل منطقة التمرير في مدير الثيمات العالمي
         from .theme_manager import global_theme_manager
-        global_theme_manager.register_widget(scroll_area, "scroll")
+        colors = global_theme_manager.get_current_colors()
+        accent_color = global_theme_manager.current_accent
+        scroll_area.setStyleSheet(get_scroll_style(colors, accent_color))
+        # تسجيل منطقة التمرير في مدير الثيمات العالمي
+        global_theme_manager.register_widget(scroll_area, "graphics_view")
 
         # 1. قسم اختيار الملف داخل المحتوى
         file_selection_layout = QHBoxLayout()
@@ -45,7 +47,7 @@ class SecurityPage(BasePage):
         self.file_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         # تطبيق نمط الثيمة على تسمية الملف
         from .theme_manager import apply_theme_style
-        apply_theme_style(self.file_label, "info_label", auto_register=True)
+        apply_theme_style(self.file_label, "label")
         file_selection_layout.addWidget(self.select_file_button)
         file_selection_layout.addWidget(self.file_label, 1)
         scroll_area.setWidgetResizable(True)  # السماح بتغيير حجم المحتوى
@@ -66,7 +68,7 @@ class SecurityPage(BasePage):
         password_container = QWidget()
         password_container.setLayoutDirection(Qt.RightToLeft)
         # تطبيق نمط الثيمة على الحاوية
-        apply_theme_style(password_container, "frame", auto_register=True)
+        apply_theme_style(password_container, "frame")
         password_layout = QGridLayout(password_container)
         password_layout.setSpacing(15)
         password_layout.addWidget(create_section_label("إدارة كلمة المرور"), 0, 0, 1, 2)
@@ -75,14 +77,14 @@ class SecurityPage(BasePage):
         user_password_label = QLabel("كلمة مرور المستخدم")
         # تطبيق نمط الثيمة على التسمية
         from .theme_manager import apply_theme_style
-        apply_theme_style(user_password_label, "label", auto_register=True)
+        apply_theme_style(user_password_label, "label")
 
         self.password_input = QLineEdit()
         self.password_input.setPlaceholderText("أدخل كلمة المرور الجديدة أو الحالية")
         self.password_input.setEchoMode(QLineEdit.Password)
         self.password_input.setMinimumHeight(35)
         # تطبيق نمط الثيمة على حقل الإدخال
-        apply_theme_style(self.password_input, "input", auto_register=True)
+        apply_theme_style(self.password_input, "text_edit")
 
         password_layout.addWidget(user_password_label, 1, 0)
         password_layout.addWidget(self.password_input, 2, 0)
@@ -90,31 +92,31 @@ class SecurityPage(BasePage):
         # حقل كلمة مرور المالك
         owner_password_label = QLabel("كلمة مرور المالك")
         # تطبيق نمط الثيمة على التسمية
-        apply_theme_style(owner_password_label, "label", auto_register=True)
+        apply_theme_style(owner_password_label, "label")
 
         self.owner_password_input = QLineEdit()
         self.owner_password_input.setPlaceholderText("كلمة مرور المالك (عند التشفير)")
         self.owner_password_input.setEchoMode(QLineEdit.Password)
         self.owner_password_input.setMinimumHeight(35)
         # تطبيق نمط الثيمة على حقل الإدخال
-        apply_theme_style(self.owner_password_input, "input", auto_register=True)
+        apply_theme_style(self.owner_password_input, "text_edit")
 
         password_layout.addWidget(owner_password_label, 1, 1)
         password_layout.addWidget(self.owner_password_input, 2, 1)
         
         permissions_label = QLabel("الأذونات (عند التشفير):")
         # تطبيق نمط الثيمة على التسمية
-        apply_theme_style(permissions_label, "label", auto_register=True)
+        apply_theme_style(permissions_label, "label")
 
         self.allow_printing_cb = QCheckBox("السماح بالطباعة")
         self.allow_printing_cb.setChecked(True)
         # تطبيق نمط الثيمة على مربع الاختيار
-        apply_theme_style(self.allow_printing_cb, "checkbox", auto_register=True)
+        apply_theme_style(self.allow_printing_cb, "checkbox")
 
         self.allow_copying_cb = QCheckBox("السماح بالنسخ")
         self.allow_copying_cb.setChecked(True)
         # تطبيق نمط الثيمة على مربع الاختيار
-        apply_theme_style(self.allow_copying_cb, "checkbox", auto_register=True)
+        apply_theme_style(self.allow_copying_cb, "checkbox")
 
         password_layout.addWidget(permissions_label, 3, 0)
         password_layout.addWidget(self.allow_printing_cb, 3, 1)
@@ -126,42 +128,42 @@ class SecurityPage(BasePage):
         properties_container = QWidget()
         properties_container.setLayoutDirection(Qt.RightToLeft)
         # تطبيق نمط الثيمة على الحاوية
-        apply_theme_style(properties_container, "frame", auto_register=True)
+        apply_theme_style(properties_container, "frame")
         properties_layout = QGridLayout(properties_container)
         properties_layout.setSpacing(15)
         properties_layout.addWidget(create_section_label("خصائص الملف (Metadata)"), 0, 0, 1, 2)
 
         # Title and Author
         title_label = QLabel("العنوان")
-        apply_theme_style(title_label, "label", auto_register=True)
+        apply_theme_style(title_label, "label")
         self.title_input = QLineEdit()
         self.title_input.setMinimumHeight(35)
-        apply_theme_style(self.title_input, "input", auto_register=True)
+        apply_theme_style(self.title_input, "text_edit")
         properties_layout.addWidget(title_label, 1, 0)
         properties_layout.addWidget(self.title_input, 2, 0)
 
         author_label = QLabel("المؤلف")
-        apply_theme_style(author_label, "label", auto_register=True)
+        apply_theme_style(author_label, "label")
         self.author_input = QLineEdit()
         self.author_input.setMinimumHeight(35)
-        apply_theme_style(self.author_input, "input", auto_register=True)
+        apply_theme_style(self.author_input, "text_edit")
         properties_layout.addWidget(author_label, 1, 1)
         properties_layout.addWidget(self.author_input, 2, 1)
 
         # Subject and Keywords
         subject_label = QLabel("الموضوع")
-        apply_theme_style(subject_label, "label", auto_register=True)
+        apply_theme_style(subject_label, "label")
         self.subject_input = QLineEdit()
         self.subject_input.setMinimumHeight(35)
-        apply_theme_style(self.subject_input, "input", auto_register=True)
+        apply_theme_style(self.subject_input, "text_edit")
         properties_layout.addWidget(subject_label, 3, 0)
         properties_layout.addWidget(self.subject_input, 4, 0)
 
         keywords_label = QLabel("الكلمات المفتاحية")
-        apply_theme_style(keywords_label, "label", auto_register=True)
+        apply_theme_style(keywords_label, "label")
         self.keywords_input = QLineEdit()
         self.keywords_input.setMinimumHeight(35)
-        apply_theme_style(self.keywords_input, "input", auto_register=True)
+        apply_theme_style(self.keywords_input, "text_edit")
         properties_layout.addWidget(keywords_label, 3, 1)
         properties_layout.addWidget(self.keywords_input, 4, 1)
         
@@ -179,13 +181,13 @@ class SecurityPage(BasePage):
         ])
         self.action_combo.setMinimumWidth(200)
         # تطبيق نمط الثيمة على القائمة المنسدلة
-        apply_theme_style(self.action_combo, "combo", auto_register=True)
+        apply_theme_style(self.action_combo, "combo")
 
         # زر حفظ واحد
         self.save_button = create_button("حفظ الملف", on_click=self.save_file_with_selected_action)
 
         action_label = QLabel("اختر الإجراء:")
-        apply_theme_style(action_label, "label", auto_register=True)
+        apply_theme_style(action_label, "label")
         action_buttons_layout.addWidget(action_label)
         action_buttons_layout.addWidget(self.action_combo)
         action_buttons_layout.addStretch(1)

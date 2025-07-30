@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, QRect, 
 from PySide6.QtGui import QFont, QPixmap, QPainter, QColor, QLinearGradient, QIcon
 from PySide6.QtSvg import QSvgRenderer
 import os
-from .global_styles import apply_global_style
+from .theme_manager import apply_theme
 
 # استيراد معلومات الإصدار
 try:
@@ -64,7 +64,7 @@ class WelcomePage(QWidget):
         self.setup_animations()
 
         # تطبيق التنسيق العام
-        apply_global_style(self)
+        # apply_theme_style(self, "main_window") # تم التعطيل بناءً على طلب المستخدم
 
         # تحميل الأيقونات بشكل مؤجل لتسريع البدء
         from PySide6.QtCore import QTimer
@@ -102,7 +102,6 @@ class WelcomePage(QWidget):
         # اسم التطبيق
         app_title = QLabel("ApexFlow")
         # استخدام نظام السمات الموحد
-        from .theme_manager import apply_theme
         apply_theme(app_title, "title_text")
         app_title.setAlignment(Qt.AlignCenter)
         title_layout.addWidget(app_title)
@@ -120,8 +119,7 @@ class WelcomePage(QWidget):
         features_frame = QFrame()
 
         # استخدام نظام السمات الموحد للفريم فقط
-        from .theme_manager import apply_theme_style
-        apply_theme_style(features_frame, "frame")
+        # apply_theme_style(features_frame, "frame") # تم التعطيل بناءً على طلب المستخدم
 
         features_layout = QVBoxLayout(features_frame)
 
@@ -168,7 +166,7 @@ class WelcomePage(QWidget):
         quick_start_frame = QFrame()
 
         # استخدام نظام السمات الموحد للفريم فقط
-        apply_theme_style(quick_start_frame, "frame")
+        # apply_theme_style(quick_start_frame, "frame") # تم التعطيل بناءً على طلب المستخدم
 
         quick_start_layout = QVBoxLayout(quick_start_frame)
 

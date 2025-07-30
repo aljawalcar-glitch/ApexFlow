@@ -190,7 +190,7 @@ class ApexFlow(QMainWindow):
         scroll.setWidget(self.welcome_page)
 
         # استخدام نظام السمات الموحد
-        apply_theme_style(scroll, "scroll")
+        apply_theme_style(scroll, "graphics_view")
 
         # إضافة صفحة الترحيب إلى المكدس
         self.stack.addWidget(scroll)  # الفهرس 0
@@ -473,44 +473,12 @@ class ApexFlow(QMainWindow):
     def refresh_all_loaded_pages(self):
         """إعادة تطبيق السمة على جميع الصفحات والعناصر المحملة"""
         try:
-            # تطبيق السمة على القائمة الجانبية
             apply_theme_style(self.menu_list, "menu")
-
-            # الأزرار بيضاء شفافة بالافتراض
-
-            # تطبيق السمة على جميع الصفحات المحملة في المكدس
-            for i in range(self.stack.count()):
-                widget = self.stack.widget(i)
-                if widget and (self.pages_loaded[i] if i < len(self.pages_loaded) else False):
-                    # الأزرار بيضاء شفافة بالافتراض - لا حاجة لتحديث
-
-                    # تحديد نوع الصفحة وتطبيق السمة المناسبة
-                    if i == 0:  # صفحة الترحيب
-                        # لا تطبق السمة على صفحة الترحيب - تبقى كما هي
-                        pass
-                    elif i == 1:  # صفحة الدمج
-                        # لا تطبق السمة - الأزرار شفافة بالافتراض
-                        pass
-                    elif i == 2:  # صفحة التقسيم
-                        # لا تطبق السمة - الأزرار شفافة بالافتراض
-                        pass
-                    elif i == 3:  # صفحة الضغط
-                        # لا تطبق السمة - الأزرار شفافة بالافتراض
-                        pass
-                    elif i == 4:  # صفحة التدوير
-                        # لا تطبق السمة - الأزرار شفافة بالافتراض
-                        pass
-                    elif i == 5:  # صفحة التحويل
-                        # لا تطبق السمة - الأزرار شفافة بالافتراض
-                        pass
-                    elif i == 6:  # صفحة الحماية
-                        # لا تطبق السمة - الأزرار شفافة بالافتراض
-                        pass
-                    elif i == 7:  # صفحة الإعدادات
-                        apply_theme_style(widget, "scroll")
-
+            for i in range(1, self.stack.count()):  # Start from 1 to skip welcome page
+                if self.pages_loaded[i]:
+                    widget = self.stack.widget(i)
+                    self._apply_current_theme_to_page(widget, i)
             info("تم إعادة تطبيق السمة على جميع الصفحات المحملة")
-
         except Exception as e:
             error(f"خطأ في إعادة تطبيق السمة على الصفحات: {e}")
 
@@ -575,36 +543,24 @@ class ApexFlow(QMainWindow):
 
     def _apply_current_theme_to_page(self, page, index):
         """تطبيق السمة الحالية على صفحة جديدة تم تحميلها"""
-        try:
-            # تحديد نوع الصفحة وتطبيق السمة المناسبة
-            if index == 0:  # صفحة الترحيب
-                # لا تطبق السمة على صفحة الترحيب - تبقى كما هي
-                pass
-            elif index == 1:  # صفحة الدمج
-                # لا تطبق السمة - الأزرار شفافة بالافتراض
-                pass
-            elif index == 2:  # صفحة التقسيم
-                # لا تطبق السمة - الأزرار شفافة بالافتراض
-                pass
-            elif index == 3:  # صفحة الضغط
-                # لا تطبق السمة - الأزرار شفافة بالافتراض
-                pass
-            elif index == 4:  # صفحة التدوير
-                # لا تطبق السمة - الأزرار شفافة بالافتراض
-                pass
-            elif index == 5:  # صفحة التحويل
-                # لا تطبق السمة - الأزرار شفافة بالافتراض
-                pass
-            elif index == 6:  # صفحة الحماية
-                # لا تطبق السمة - الأزرار شفافة بالافتراض
-                pass
-            elif index == 7:  # صفحة الإعدادات
-                apply_theme_style(page, "scroll")
-
-            debug(f"تم تطبيق السمة الحالية على الصفحة الجديدة {index}")
-
-        except Exception as e:
-            error(f"خطأ في تطبيق السمة على الصفحة الجديدة {index}: {e}")
+        page_theme_keys = {
+            1: "merge_page", 2: "split_page", 3: "compress_page",
+            4: "rotate_page", 5: "convert_page", 6: "security_page",
+            7: "settings_page"
+        }
+        theme_key = page_theme_keys.get(index)
+        if theme_key:
+            try:
+                # For pages within a QScrollArea, apply theme to the page widget itself
+                if isinstance(page, QScrollArea):
+                    content_widget = page.widget()
+                    if content_widget:
+                        apply_theme_style(content_widget, "dialog")
+                else:
+                    apply_theme_style(page, "dialog")
+                debug(f"تم تطبيق السمة الحالية على الصفحة الجديدة {index}")
+            except Exception as e:
+                error(f"خطأ في تطبيق السمة على الصفحة الجديدة {index}: {e}")
 
     def validate_settings(self, settings_data):
         """التحقق من صحة بيانات الإعدادات"""

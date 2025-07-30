@@ -207,6 +207,27 @@ class SettingsUI(ThemeAwareDialog):
     # دوال التهيئة والإعداد الأساسي
     # ===============================
 
+    def get_special_button_style(self, color_rgb="13, 110, 253"):
+        """Generate a special button style with a given color."""
+        return f"""
+            QPushButton {{
+                background: rgba({color_rgb}, 0.2);
+                border: 1px solid rgba({color_rgb}, 0.4);
+                border-radius: 8px;
+                color: white;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 12px 24px;
+            }}
+            QPushButton:hover {{
+                background: rgba({color_rgb}, 0.3);
+                border: 1px solid rgba({color_rgb}, 0.5);
+            }}
+            QPushButton:pressed {{
+                background: rgba({color_rgb}, 0.1);
+            }}
+        """
+
     def init_ui(self):
         """إنشاء واجهة المستخدم"""
         main_layout = QVBoxLayout(self)
@@ -379,7 +400,7 @@ class SettingsUI(ThemeAwareDialog):
         self.accent_color_input.textChanged.connect(self.on_accent_color_changed)
 
         self.accent_color_btn = QPushButton("اختر اللون")
-        apply_theme_style(self.accent_color_btn, "transparent_button")
+        self.accent_color_btn.setStyleSheet(self.get_special_button_style())
         self.accent_color_btn.clicked.connect(self.choose_accent_color)
 
         accent_layout.addWidget(self.accent_color_input, 2)
@@ -795,54 +816,20 @@ class SettingsUI(ThemeAwareDialog):
 
         # زر إرجاع الإعدادات الافتراضية
         self.reset_defaults_btn = QPushButton("إرجاع الإعدادات الافتراضية")
-        self.reset_defaults_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: rgba(108, 117, 125, 0.2);
-                border: 1px solid rgba(108, 117, 125, 0.4);
-                border-radius: 8px;
-                color: white;
-                font-size: 14px;
-                font-weight: bold;
-                padding: 12px 24px;
-            }}
-            QPushButton:hover {{
-                background: rgba(108, 117, 125, 0.3);
-                border: 1px solid rgba(108, 117, 125, 0.5);
-            }}
-            QPushButton:pressed {{
-                background: rgba(108, 117, 125, 0.1);
-            }}
-        """)
+        self.reset_defaults_btn.setStyleSheet(self.get_special_button_style("108, 117, 125"))
         self.reset_defaults_btn.clicked.connect(self.reset_to_defaults)
 
         # زر حفظ الإعدادات الحالية كافتراضية
         self.save_as_default_btn = QPushButton("حفظ كافتراضية")
-        self.save_as_default_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: rgba(13, 110, 253, 0.2);
-                border: 1px solid rgba(13, 110, 253, 0.4);
-                border-radius: 8px;
-                color: white;
-                font-size: 14px;
-                font-weight: bold;
-                padding: 12px 24px;
-            }}
-            QPushButton:hover {{
-                background: rgba(13, 110, 253, 0.3);
-                border: 1px solid rgba(13, 110, 253, 0.5);
-            }}
-            QPushButton:pressed {{
-                background: rgba(13, 110, 253, 0.1);
-            }}
-        """)
+        self.save_as_default_btn.setStyleSheet(self.get_special_button_style())
         self.save_as_default_btn.clicked.connect(self.save_current_as_default)
 
         self.save_all_btn = QPushButton("حفظ جميع التغييرات")
-        apply_theme_style(self.save_all_btn, "save_button")
+        self.save_all_btn.setStyleSheet(self.get_special_button_style())
         self.save_all_btn.clicked.connect(self.save_all_settings)
 
         self.cancel_btn = QPushButton("إلغاء التغييرات")
-        apply_theme_style(self.cancel_btn, "cancel_button")
+        self.cancel_btn.setStyleSheet(self.get_special_button_style())
         self.cancel_btn.clicked.connect(self.cancel_changes)
 
         save_buttons_layout.addWidget(self.reset_defaults_btn)
