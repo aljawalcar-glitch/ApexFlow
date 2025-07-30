@@ -355,12 +355,12 @@ class SettingsUI(ThemeAwareDialog):
 
         # عنوان الصفحة
         title = QLabel("إعدادات المظهر والسمات")
-        apply_theme_style(title, "title_text")
+        apply_theme_style(title, "title_text", auto_register=True)
         layout.addWidget(title)
 
         # مجموعة السمة
         theme_group = QGroupBox("السمة والألوان")
-        apply_theme_style(theme_group, "group_box")
+        apply_theme_style(theme_group, "group_box", auto_register=True)
         theme_layout = QFormLayout(theme_group)
         theme_layout.setSpacing(15)
 
@@ -375,7 +375,7 @@ class SettingsUI(ThemeAwareDialog):
         accent_layout = QHBoxLayout()
         self.accent_color_input = QLineEdit()
         self.accent_color_input.setPlaceholderText("#ff6f00")
-        apply_theme_style(self.accent_color_input, "input")
+        apply_theme_style(self.accent_color_input, "input", auto_register=True)
         self.accent_color_input.textChanged.connect(self.on_accent_color_changed)
 
         self.accent_color_btn = QPushButton("اختر اللون")
@@ -388,7 +388,7 @@ class SettingsUI(ThemeAwareDialog):
 
         # ألوان النصوص
         text_colors_group = QGroupBox("ألوان النصوص")
-        apply_theme_style(text_colors_group, "group_box")
+        apply_theme_style(text_colors_group, "group_box", auto_register=True)
         text_colors_layout = QFormLayout(text_colors_group)
         text_colors_layout.setSpacing(10)
 
@@ -436,13 +436,13 @@ class SettingsUI(ThemeAwareDialog):
         # مستوى الشفافية
         transparency_layout = QHBoxLayout()
         transparency_label = QLabel("مستوى الشفافية:")
-        apply_theme_style(transparency_label, "label")
+        apply_theme_style(transparency_label, "label", auto_register=True)
         self.transparency_slider = QSlider(Qt.Horizontal)
         self.transparency_slider.setRange(20, 95)
         self.transparency_slider.setValue(80)
-        apply_theme_style(self.transparency_slider, "slider")
+        apply_theme_style(self.transparency_slider, "slider", auto_register=True)
         self.transparency_value = QLabel("80%")
-        apply_theme_style(self.transparency_value, "label")
+        apply_theme_style(self.transparency_value, "label", auto_register=True)
 
         transparency_layout.addWidget(self.transparency_slider, 3)
         transparency_layout.addWidget(self.transparency_value, 1)
@@ -522,12 +522,12 @@ class SettingsUI(ThemeAwareDialog):
 
         # عنوان الصفحة
         title = QLabel("إعدادات الخطوط والنصوص")
-        apply_theme_style(title, "title_text")
+        apply_theme_style(title, "title_text", auto_register=True)
         layout.addWidget(title)
 
         # مجموعة إعدادات الخط الأساسي
         font_group = QGroupBox("الخط الأساسي")
-        apply_theme_style(font_group, "group_box")
+        apply_theme_style(font_group, "group_box", auto_register=True)
         font_layout = QFormLayout(font_group)
         font_layout.setSpacing(15)
 
@@ -539,7 +539,7 @@ class SettingsUI(ThemeAwareDialog):
         apply_theme_style(self.font_size_slider, "slider")
 
         self.font_size_label = QLabel("16")
-        apply_theme_style(self.font_size_label, "label")
+        apply_theme_style(self.font_size_label, "label", auto_register=True)
         self.font_size_slider.valueChanged.connect(
             lambda v: self.font_size_label.setText(str(v))
         )
@@ -581,19 +581,19 @@ class SettingsUI(ThemeAwareDialog):
 
         # مجموعة إعدادات النصوص (منقولة من المظهر)
         text_group = QGroupBox("إعدادات النصوص")
-        apply_theme_style(text_group, "group_box")
+        apply_theme_style(text_group, "group_box", auto_register=True)
         text_layout = QFormLayout(text_group)
         text_layout.setSpacing(15)
 
         # إظهار التلميحات (منقول من المظهر)
         self.show_tooltips_check = QCheckBox("إظهار التلميحات")
-        apply_theme_style(self.show_tooltips_check, "checkbox")
+        apply_theme_style(self.show_tooltips_check, "checkbox", auto_register=True)
         self.show_tooltips_check.stateChanged.connect(self.mark_as_changed)
         text_layout.addRow(self.show_tooltips_check)
 
         # تمكين الحركات (منقول من المظهر)
         self.enable_animations_check = QCheckBox("تمكين الحركات والتأثيرات")
-        apply_theme_style(self.enable_animations_check, "checkbox")
+        apply_theme_style(self.enable_animations_check, "checkbox", auto_register=True)
         self.enable_animations_check.setChecked(True)
         self.enable_animations_check.stateChanged.connect(self.mark_as_changed)
         text_layout.addRow(self.enable_animations_check)

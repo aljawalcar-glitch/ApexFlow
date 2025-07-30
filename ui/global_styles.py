@@ -141,7 +141,9 @@ def get_widget_style(widget_type, colors, accent_color):
             QLabel {{
                 color: {colors["text_body"]};
                 background: transparent;
-                font-size: 14px;
+                font-size: {font_settings["size"]}px;
+                font-family: {font_settings["family"]};
+                font-weight: {font_settings["weight"]};
                 border: none;
                 outline: none;
             }}
@@ -152,7 +154,9 @@ def get_widget_style(widget_type, colors, accent_color):
             QLabel {{
                 color: {colors["text_secondary"]};
                 background: transparent;
-                font-size: 13px;
+                font-size: {int(font_settings["size"] * 0.9)}px;
+                font-family: {font_settings["family"]};
+                font-weight: {font_settings["weight"]};
                 border: none;
                 outline: none;
             }}
@@ -163,7 +167,9 @@ def get_widget_style(widget_type, colors, accent_color):
             QLabel {{
                 color: {colors["text_muted"]};
                 background: transparent;
-                font-size: 12px;
+                font-size: {int(font_settings["size"] * 0.8)}px;
+                font-family: {font_settings["family"]};
+                font-weight: {font_settings["weight"]};
                 border: none;
                 outline: none;
             }}
@@ -174,8 +180,36 @@ def get_widget_style(widget_type, colors, accent_color):
             QLabel {{
                 color: {colors["text_accent"]};
                 background: transparent;
-                font-size: 14px;
+                font-size: {font_settings["size"]}px;
+                font-family: {font_settings["family"]};
                 font-weight: bold;
+                border: none;
+                outline: none;
+            }}
+        """
+
+    elif widget_type == "section_label":
+        return f"""
+            QLabel {{
+                color: {colors["text_title"]};
+                background: transparent;
+                font-size: {int(font_settings["size"] * 1.3)}px;
+                font-family: {font_settings["family"]};
+                font-weight: bold;
+                border: none;
+                outline: none;
+                margin-bottom: 10px;
+            }}
+        """
+
+    elif widget_type == "info_label":
+        return f"""
+            QLabel {{
+                color: {colors["text_secondary"]};
+                background: transparent;
+                font-size: {font_settings["size"]}px;
+                font-family: {font_settings["family"]};
+                font-weight: {font_settings["weight"]};
                 border: none;
                 outline: none;
             }}
@@ -191,6 +225,9 @@ def get_widget_style(widget_type, colors, accent_color):
                 border-radius: 6px;
                 color: {colors["text_body"]};
                 padding: 8px 12px;
+                font-size: {font_settings["size"]}px;
+                font-family: {font_settings["family"]};
+                font-weight: {font_settings["weight"]};
             }}
             QLineEdit:focus {{
                 border: 1px solid {accent_color};
@@ -290,7 +327,9 @@ def get_widget_style(widget_type, colors, accent_color):
                 border-radius: 8px;
                 padding: 8px 12px;
                 color: {colors['text_body']};
-                font-size: 14px;
+                font-size: {font_settings["size"]}px;
+                font-family: {font_settings["family"]};
+                font-weight: {font_settings["weight"]};
                 min-height: 20px;
                 selection-background-color: rgba(255, 111, 0, 0.3);
             }}
@@ -480,7 +519,8 @@ def get_widget_style(widget_type, colors, accent_color):
     elif widget_type == "group_box":
         return f"""
             QGroupBox {{
-                font-size: 14px;
+                font-size: {int(font_settings["size"] * 1.1)}px;
+                font-family: {font_settings["family"]};
                 font-weight: bold;
                 color: {colors.get("text_title", "white")};
                 border: 1px solid {colors.get("border", "#4a5568")};
@@ -494,6 +534,8 @@ def get_widget_style(widget_type, colors, accent_color):
                 left: 15px;
                 padding: 0 8px 0 8px;
                 color: {colors.get("text_secondary", "#a0aec0")};
+                font-size: {font_settings["size"]}px;
+                font-family: {font_settings["family"]};
             }}
         """
 
@@ -528,7 +570,9 @@ def get_widget_style(widget_type, colors, accent_color):
         return f"""
             QCheckBox {{
                 color: {colors['text_body']};
-                font-size: 13px;
+                font-size: {font_settings["size"]}px;
+                font-family: {font_settings["family"]};
+                font-weight: {font_settings["weight"]};
                 spacing: 8px;
             }}
             QCheckBox::indicator {{

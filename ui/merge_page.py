@@ -30,6 +30,8 @@ class MergePage(BasePageWidget):
 
         # --- حاوية عناصر التحكم العلوية ---
         self.controls_widget = QWidget()
+        # تطبيق نمط الثيمة على الحاوية
+        apply_theme_style(self.controls_widget, "frame", auto_register=True)
         self.controls_layout = QVBoxLayout(self.controls_widget)
         self.controls_layout.setSpacing(10)
         self.controls_layout.setContentsMargins(0, 0, 0, 0)
@@ -46,17 +48,18 @@ class MergePage(BasePageWidget):
 
         # --- أزرار وخيارات الإجراءات ---
         self.action_widget = QWidget()
+        # تطبيق نمط الثيمة على حاوية الإجراءات
+        apply_theme_style(self.action_widget, "frame", auto_register=True)
         action_layout = QHBoxLayout(self.action_widget)
-        
+
         self.printer_label = QLabel("اختر الطابعة:")
         self.printer_combo = QComboBox()
         self.merge_button = create_button("دمج الملفات", is_default=True)
         self.print_button = create_button("طباعة الملفات")
 
-        apply_theme_style(self.merge_button, "transparent_button")
-        apply_theme_style(self.print_button, "transparent_button")
-        apply_theme_style(self.printer_label, "label")
-        apply_theme_style(self.printer_combo, "combo")
+        # تطبيق أنماط الثيمة على العناصر
+        apply_theme_style(self.printer_label, "label", auto_register=True)
+        apply_theme_style(self.printer_combo, "combo", auto_register=True)
 
         action_layout.addWidget(self.printer_label)
         action_layout.addWidget(self.printer_combo)

@@ -40,7 +40,7 @@ class CompressPage(BasePageWidget):
 
         # إضافة checkbox للتبديل بين الأوضاع
         self.batch_mode_checkbox = QCheckBox("ضغط مجموعة ملفات")
-        apply_theme_style(self.batch_mode_checkbox, "checkbox")
+        apply_theme_style(self.batch_mode_checkbox, "checkbox", auto_register=True)
         self.batch_mode_checkbox.stateChanged.connect(self.on_mode_changed)
         self.main_layout.addWidget(self.batch_mode_checkbox)
 
@@ -67,7 +67,7 @@ class CompressPage(BasePageWidget):
 
         # فريم مجلد الحفظ
         self.save_location_frame = QGroupBox("مجلد الحفظ")
-        apply_theme_style(self.save_location_frame, "group_box")
+        apply_theme_style(self.save_location_frame, "group_box", auto_register=True)
         save_layout = QVBoxLayout(self.save_location_frame)
 
         # تخطيط أفقي للمسار والزر
@@ -75,7 +75,7 @@ class CompressPage(BasePageWidget):
 
         # عرض المسار الكامل
         self.save_location_label = QLabel("المسار: لم يتم اختيار ملف بعد")
-        apply_theme_style(self.save_location_label, "label")
+        apply_theme_style(self.save_location_label, "label", auto_register=True)
         self.save_location_label.setWordWrap(True)  # للسماح بالتفاف النص
 
         self.browse_save_btn = create_action_button("folder-open", 24, "تغيير المجلد")
@@ -89,7 +89,7 @@ class CompressPage(BasePageWidget):
 
         # فريم زر الضغط
         self.single_compress_frame = QGroupBox("تنفيذ")
-        apply_theme_style(self.single_compress_frame, "group_box")
+        apply_theme_style(self.single_compress_frame, "group_box", auto_register=True)
         compress_layout = QVBoxLayout(self.single_compress_frame)
 
         self.single_compress_button = create_action_button("play", 24, "تنفيذ الضغط")
@@ -112,7 +112,7 @@ class CompressPage(BasePageWidget):
 
         # عنوان الشريط
         self.slider_title = QLabel("نسبة الضغط:")
-        apply_theme_style(self.slider_title, "label")
+        apply_theme_style(self.slider_title, "label", auto_register=True)
         slider_layout.addWidget(self.slider_title)
 
         # تخطيط أفقي للشريط والنسبة
@@ -163,7 +163,7 @@ class CompressPage(BasePageWidget):
 
         # عرض النسبة
         self.compression_percentage = QLabel("10%")
-        apply_theme_style(self.compression_percentage, "label")
+        apply_theme_style(self.compression_percentage, "label", auto_register=True)
         self.compression_percentage.setMinimumWidth(50)
         self.compression_percentage.setAlignment(Qt.AlignCenter)
 
@@ -176,7 +176,7 @@ class CompressPage(BasePageWidget):
     def create_compression_info_frame(self):
         """إنشاء فريم المعلومات الثلاث في تخطيط أفقي"""
         self.info_frame = QGroupBox("معلومات الضغط")
-        apply_theme_style(self.info_frame, "group_box")
+        apply_theme_style(self.info_frame, "group_box", auto_register=True)
 
         # تخطيط أفقي للمعلومات الثلاث
         info_layout = QHBoxLayout(self.info_frame)
@@ -185,16 +185,16 @@ class CompressPage(BasePageWidget):
         compression_section = QVBoxLayout()
         compression_title = QLabel("نسبة الضغط")
         compression_title.setAlignment(Qt.AlignCenter)
-        apply_theme_style(compression_title, "label")
+        apply_theme_style(compression_title, "label", auto_register=True)
         compression_title.setStyleSheet(compression_title.styleSheet() + "font-weight: bold; background: transparent;")
 
         self.compression_level_label = QLabel("ضغط خفيف جداً")
         self.compression_level_label.setAlignment(Qt.AlignCenter)
-        apply_theme_style(self.compression_level_label, "label")
+        apply_theme_style(self.compression_level_label, "label", auto_register=True)
 
         self.compression_percent_label = QLabel("(10%)")
         self.compression_percent_label.setAlignment(Qt.AlignCenter)
-        apply_theme_style(self.compression_percent_label, "label")
+        apply_theme_style(self.compression_percent_label, "label", auto_register=True)
 
         compression_section.addWidget(compression_title)
         compression_section.addWidget(self.compression_level_label)
@@ -205,16 +205,16 @@ class CompressPage(BasePageWidget):
         size_section = QVBoxLayout()
         size_title = QLabel("الحجم المتوقع")
         size_title.setAlignment(Qt.AlignCenter)
-        apply_theme_style(size_title, "label")
+        apply_theme_style(size_title, "label", auto_register=True)
         size_title.setStyleSheet(size_title.styleSheet() + "font-weight: bold; background: transparent;")
 
         self.original_size_label = QLabel("الأصلي: غير معروف")
         self.original_size_label.setAlignment(Qt.AlignCenter)
-        apply_theme_style(self.original_size_label, "label")
+        apply_theme_style(self.original_size_label, "label", auto_register=True)
 
         self.expected_size_label = QLabel("المتوقع: غير معروف")
         self.expected_size_label.setAlignment(Qt.AlignCenter)
-        apply_theme_style(self.expected_size_label, "label")
+        apply_theme_style(self.expected_size_label, "label", auto_register=True)
 
         self.savings_label = QLabel("توفير: غير معروف")
         self.savings_label.setAlignment(Qt.AlignCenter)

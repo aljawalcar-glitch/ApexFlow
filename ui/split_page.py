@@ -46,11 +46,13 @@ class SplitPage(BasePageWidget):
         """إنشاء فريم مسار الحفظ مع زر التقسيم محاذي"""
         # إنشاء widget container للتخطيط الأفقي
         self.save_and_split_widget = QWidget()
+        # تطبيق نمط الثيمة على الحاوية
+        apply_theme_style(self.save_and_split_widget, "frame", auto_register=True)
         self.save_and_split_layout = QHBoxLayout(self.save_and_split_widget)
 
         # فريم مجلد الحفظ
         self.save_location_frame = QGroupBox("مجلد الحفظ")
-        apply_theme_style(self.save_location_frame, "group_box")
+        apply_theme_style(self.save_location_frame, "group_box", auto_register=True)
         save_layout = QVBoxLayout(self.save_location_frame)
 
         # تخطيط أفقي للمسار وزر التغيير
@@ -58,7 +60,7 @@ class SplitPage(BasePageWidget):
 
         # عرض المسار التلقائي
         self.save_location_label = QLabel("سيتم إنشاء مجلد تلقائياً في سطح المكتب")
-        apply_theme_style(self.save_location_label, "label")
+        apply_theme_style(self.save_location_label, "label", auto_register=True)
         self.save_location_label.setWordWrap(True)
 
         # زر تغيير المجلد
@@ -73,7 +75,7 @@ class SplitPage(BasePageWidget):
 
         # فريم زر التقسيم
         self.split_button_frame = QGroupBox("تنفيذ")
-        apply_theme_style(self.split_button_frame, "group_box")
+        apply_theme_style(self.split_button_frame, "group_box", auto_register=True)
         split_layout = QVBoxLayout(self.split_button_frame)
 
         # زر التقسيم بأيقونة

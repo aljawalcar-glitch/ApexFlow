@@ -1,0 +1,13 @@
+{
+    "fonts": {
+        "main": "Arial",
+        "title": "Arial",
+        "monospace": "Courier New"
+    },
+    "font_sizes": {
+        "small": 10,
+        "normal": 12,
+        "large": 16,
+        "title": 24
+    }
+}

@@ -99,6 +99,9 @@ class RotatePage(QWidget):
         self.setup_page_transitions()
 
         self.page_label = QLabel()
+        # تطبيق نمط الثيمة على تسمية الصفحة
+        from .theme_manager import apply_theme_style
+        apply_theme_style(self.page_label, "label", auto_register=True)
         self.update_page_label()
 
         # أقصى الشمال: التنقل

@@ -1,47 +1,29 @@
 @echo off
-setlocal
+echo Deleting temporary and unused files...
 
-echo.
-echo =================================================
-echo  ApexFlow Build Cleanup Script (Safe Version)
-echo =================================================
-echo This script will remove temporary files and folders
-echo created by the build process (PyInstaller).
-echo.
-echo IMPORTANT: This will NOT delete the 'dist' folder,
-echo which contains your compiled application.
-echo.
-echo The following will be removed:
-echo - The 'build' folder
-echo - The 'ApexFlow.spec' file
-echo.
-
-set /p "choice=Are you sure you want to continue? (y/N): "
-if /i not "%choice%"=="y" (
-    echo Cleanup cancelled.
-    goto :eof
+REM Delete documentation folder
+IF EXIST "docs" (
+    echo Deleting docs directory...
+    rmdir /s /q "docs"
 )
 
-echo.
-echo Deleting temporary build files...
-
-if exist "build" (
-    echo Removing 'build' directory...
-    rmdir /s /q "build"
+REM Delete documentation file
+IF EXIST "data\ANTIVIRUS_INFO.md" (
+    echo Deleting ANTIVIRUS_INFO.md...
+    del "data\ANTIVIRUS_INFO.md"
 )
 
-if exist "ApexFlow.spec" (
-    echo Removing 'ApexFlow.spec' file...
-    del "ApexFlow.spec"
+REM Delete development scripts
+IF EXIST "debug_build.bat" (
+    echo Deleting debug_build.bat...
+    del "debug_build.bat"
+)
+IF EXIST "assets\icons\create_icon.py" (
+    echo Deleting create_icon.py...
+    del "assets\icons\create_icon.py"
 )
 
-echo.
-echo =================================================
-echo  Cleanup complete!
-echo =================================================
-echo The 'dist' folder has been kept.
-echo.
+echo Cleanup process initiated. This script will delete itself now.
 
-:eof
-pause
-endlocal
+REM Self-delete this script
+del "%~f0"
