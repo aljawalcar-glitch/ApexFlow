@@ -11,6 +11,8 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PySide6.QtCore import Qt, Signal, QSize
 from PySide6.QtGui import QFont, QPixmap, QPainter, QIcon
 from .svg_icon_button import SVGIconButton
+from .theme_aware_widget import ThemeAwareDialog
+from modules.translator import tr
 
 # إضافة المجلد الجذر للمسار لاستيراد version
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -24,49 +26,14 @@ except ImportError:
     def get_about_text():
         return f"{APP_NAME} {VERSION}\nأداة شاملة لإدارة ومعالجة ملفات PDF"
 
-class AboutDialog(QDialog):
+class AboutDialog(ThemeAwareDialog):
     """نافذة حول البرنامج"""
     
     def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle(f"حول {APP_NAME}")
+        super().__init__(parent, widget_type="dialog_about")
+        self.setWindowTitle(tr("about_dialog_title", app_name=APP_NAME))
         self.setFixedSize(500, 400)
         self.setModal(True)
-        
-        # تطبيق نمط النافذة
-        self.setStyleSheet("""
-            QDialog {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(45, 55, 72, 0.95),
-                    stop:1 rgba(26, 32, 44, 0.95));
-                border: 1px solid rgba(255, 111, 0, 0.3);
-                border-radius: 10px;
-            }
-            QLabel {
-                color: white;
-                background: transparent;
-            }
-            QTextEdit {
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid rgba(255, 111, 0, 0.3);
-                border-radius: 6px;
-                color: white;
-                padding: 10px;
-                font-family: 'Consolas', 'Monaco', monospace;
-                font-size: 11px;
-            }
-            QPushButton {
-                background: rgba(255, 111, 0, 0.8);
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 8px 16px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background: rgba(255, 111, 0, 1.0);
-            }
-        """)
         
         self.setup_ui()
     
@@ -105,7 +72,7 @@ class AboutDialog(QDialog):
                     break
 
             if not logo_loaded:
-                raise FileNotFoundError("لم يتم العثور على الشعار")
+                raise FileNotFoundError(tr("logo_not_found"))
 
         except Exception as e:
             # fallback للشعار المخصص
@@ -114,7 +81,7 @@ class AboutDialog(QDialog):
                 logo_pixmap = logo_icon.icon().pixmap(64, 64)
                 logo_label.setPixmap(logo_pixmap)
             except:
-                logo_label.setText("PDF")
+                logo_label.setText(tr("logo_fallback_text"))
                 logo_label.setStyleSheet("font-size: 32px; color: #ff6f00; font-weight: bold;")
         
         # معلومات التطبيق
@@ -122,17 +89,17 @@ class AboutDialog(QDialog):
         
         # اسم التطبيق
         app_name_label = QLabel(APP_NAME)
-        app_name_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #ff6f00;")
+        app_name_label.setObjectName("about_app_name")
         info_layout.addWidget(app_name_label)
         
         # الإصدار
-        version_label = QLabel(f"الإصدار: {VERSION}")
-        version_label.setStyleSheet("font-size: 14px; color: #cccccc;")
+        version_label = QLabel(tr("version_label", version=VERSION))
+        version_label.setObjectName("about_version")
         info_layout.addWidget(version_label)
         
         # المطور
-        author_label = QLabel(f"تطوير: {APP_AUTHOR}")
-        author_label.setStyleSheet("font-size: 12px; color: #999999;")
+        author_label = QLabel(tr("author_label_dev", author=APP_AUTHOR))
+        author_label.setObjectName("about_author")
         info_layout.addWidget(author_label)
         
         header_layout.addWidget(logo_label)
@@ -144,7 +111,7 @@ class AboutDialog(QDialog):
         # خط فاصل
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
-        separator.setStyleSheet("color: rgba(255, 111, 0, 0.3);")
+        separator.setObjectName("about_separator")
         layout.addWidget(separator)
         
         # منطقة النص التفصيلي
@@ -154,7 +121,8 @@ class AboutDialog(QDialog):
         layout.addWidget(about_text)
         
         # زر الإغلاق
-        close_button = QPushButton("إغلاق")
+        close_button = QPushButton(tr("close_button"))
+        close_button.setObjectName("about_close_button")
         close_button.clicked.connect(self.accept)
         close_button.setFixedWidth(100)
         
@@ -255,7 +223,7 @@ class AppInfoWidget(QWidget):
         header_layout.addStretch()
         
         # زر المعلومات
-        self.info_button = SVGIconButton("info", 16, "حول البرنامج")
+        self.info_button = SVGIconButton("info", 16, tr("about_button_tooltip"))
         self.info_button.set_icon_color("#cccccc")
         self.info_button.clicked.connect(self.show_about_dialog)
         self.info_button.setStyleSheet("""
@@ -277,7 +245,7 @@ class AppInfoWidget(QWidget):
         version_layout = QHBoxLayout()
         version_layout.setContentsMargins(28, 0, 0, 0)  # محاذاة مع النص
         
-        version_label = QLabel(f"الإصدار {VERSION}")
+        version_label = QLabel(tr("version_info_label", version=VERSION))
         version_label.setStyleSheet("""
             QLabel {
                 color: #888888;
@@ -294,7 +262,7 @@ class AppInfoWidget(QWidget):
         author_layout = QHBoxLayout()
         author_layout.setContentsMargins(28, 0, 0, 0)  # محاذاة مع النص
         
-        author_label = QLabel(f"© {APP_AUTHOR}")
+        author_label = QLabel(tr("copyright_label", author=APP_AUTHOR))
         author_label.setStyleSheet("""
             QLabel {
                 color: #666666;

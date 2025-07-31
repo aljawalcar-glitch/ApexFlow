@@ -46,6 +46,95 @@ def get_widget_style(widget_type, colors, accent_color):
             QLabel {{ color: {colors["text_body"]}; background: transparent; border: none; outline: none; }}
             QFormLayout QLabel {{ color: {colors["text_body"]}; background: transparent; border: none; outline: none; }}
         """
+
+    elif widget_type == "dialog_about":
+        return f"""
+            QDialog {{
+                background-color: {darken_color(colors["bg"], 0.1)};
+                border: 1px solid {colors["border"]};
+                border-radius: 10px;
+            }}
+            QLabel {{
+                color: {colors["text_body"]};
+                background: transparent;
+            }}
+            QLabel#about_app_name {{
+                font-size: 24px;
+                font-weight: bold;
+                color: {accent_color};
+            }}
+            QLabel#about_version {{
+                font-size: 14px;
+                color: {colors["text_secondary"]};
+            }}
+            QLabel#about_author {{
+                font-size: 12px;
+                color: {colors["text_muted"]};
+            }}
+            QFrame#about_separator {{
+                background-color: {colors["border"]};
+                border: none;
+                height: 1px;
+            }}
+            QTextEdit {{
+                background: {colors["surface"]};
+                border: 1px solid {colors["border"]};
+                border-radius: 6px;
+                color: {colors["text_body"]};
+                padding: 10px;
+                font-family: 'Consolas', 'Monaco', monospace;
+                font-size: 11px;
+            }}
+            QTextEdit QScrollBar:vertical {{
+                background: {colors["surface"]};
+                width: 8px;
+                border-radius: 4px;
+                margin: 0;
+                border: 1px solid {colors["border"]};
+            }}
+            QTextEdit QScrollBar::handle:vertical {{
+                background: {accent_color};
+                border-radius: 4px;
+                min-height: 20px;
+            }}
+            QTextEdit QScrollBar::handle:vertical:hover {{
+                background: {darken_color(accent_color)};
+            }}
+            QTextEdit QScrollBar::add-line:vertical, QTextEdit QScrollBar::sub-line:vertical {{
+                height: 0;
+                background: none;
+            }}
+            QTextEdit QScrollBar:horizontal {{
+                background: {colors["surface"]};
+                height: 8px;
+                border-radius: 4px;
+                margin: 0;
+                border: 1px solid {colors["border"]};
+            }}
+            QTextEdit QScrollBar::handle:horizontal {{
+                background: {accent_color};
+                border-radius: 4px;
+                min-width: 20px;
+            }}
+            QTextEdit QScrollBar::handle:horizontal:hover {{
+                background: {darken_color(accent_color)};
+            }}
+            QTextEdit QScrollBar::add-line:horizontal, QTextEdit QScrollBar::sub-line:horizontal {{
+                width: 0;
+                background: none;
+            }}
+            QPushButton#about_close_button {{
+                background: {accent_color};
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-weight: bold;
+            }}
+            QPushButton#about_close_button:hover {{
+                background: {lighten_color(accent_color, 0.1)};
+            }}
+        """
     
     elif widget_type == "menu":
         return f"""
@@ -160,6 +249,44 @@ def get_widget_style(widget_type, colors, accent_color):
                 border: 1px solid {darken_color(accent_color)};
                 color: white; font-weight: bold;
             }}
+            QScrollBar:vertical {{
+                background: {colors["surface"]};
+                width: 8px;
+                border-radius: 4px;
+                margin: 0;
+                border: 1px solid {colors["border"]};
+            }}
+            QScrollBar::handle:vertical {{
+                background: {accent_color};
+                border-radius: 4px;
+                min-height: 20px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background: {darken_color(accent_color)};
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0;
+                background: none;
+            }}
+            QScrollBar:horizontal {{
+                background: {colors["surface"]};
+                height: 8px;
+                border-radius: 4px;
+                margin: 0;
+                border: 1px solid {colors["border"]};
+            }}
+            QScrollBar::handle:horizontal {{
+                background: {accent_color};
+                border-radius: 4px;
+                min-width: 20px;
+            }}
+            QScrollBar::handle:horizontal:hover {{
+                background: {darken_color(accent_color)};
+            }}
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+                width: 0;
+                background: none;
+            }}
         """
 
     elif widget_type == "compression_slider":
@@ -181,11 +308,56 @@ def get_widget_style(widget_type, colors, accent_color):
 
     elif widget_type == "graphics_view":
         return f"""
-            QGraphicsView {{
+            QGraphicsView, QScrollArea {{
                 background: transparent;
                 border: none;
                 outline: none;
             }}
+            QGraphicsView > QWidget, QScrollArea > QWidget > QWidget {{
+                background: transparent;
+            }}
+            QScrollBar:vertical {{
+                background: {colors["surface"]};
+                width: 8px;
+                border-radius: 4px;
+                margin: 0;
+                border: 1px solid {colors["border"]};
+            }}
+            QScrollBar::handle:vertical {{
+                background: {accent_color};
+                border-radius: 4px;
+                min-height: 20px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background: {darken_color(accent_color)};
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0;
+                background: none;
+            }}
+            QScrollBar:horizontal {{
+                background: {colors["surface"]};
+                height: 8px;
+                border-radius: 4px;
+                margin: 0;
+                border: 1px solid {colors["border"]};
+            }}
+            QScrollBar::handle:horizontal {{
+                background: {accent_color};
+                border-radius: 4px;
+                min-width: 20px;
+            }}
+            QScrollBar::handle:horizontal:hover {{
+                background: {darken_color(accent_color)};
+            }}
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+                width: 0;
+                background: none;
+            }}
+        """
+
+    elif widget_type == "scrollbar":
+        return f"""
             QScrollBar:vertical {{
                 background: {colors["surface"]};
                 width: 8px;

@@ -11,6 +11,7 @@ from .svg_icon_button import create_navigation_button, create_action_button
 from .theme_aware_widget import make_theme_aware
 from .notification_system import show_success, show_warning, show_error, show_info
 from PySide6.QtWidgets import QWidget
+from modules.translator import tr
 
 # استيراد الأنظمة الجديدة للأداء
 from .lazy_loader import global_page_loader
@@ -105,55 +106,55 @@ class RotatePage(QWidget):
         self.update_page_label()
 
         # أقصى الشمال: التنقل
-        self.prev_btn = create_navigation_button("prev", 24, "الصفحة السابقة")
+        self.prev_btn = create_navigation_button("prev", 24, tr("previous_page"))
         self.prev_btn.set_icon_color("#ffffff")
         self.prev_btn.setEnabled(False)
         self.prev_btn.clicked.connect(self.prev_page)
 
-        self.next_btn = create_navigation_button("next", 24, "الصفحة التالية")
+        self.next_btn = create_navigation_button("next", 24, tr("next_page"))
         self.next_btn.set_icon_color("#ffffff")
         self.next_btn.setEnabled(False)
         self.next_btn.clicked.connect(self.next_page)
 
         # أزرار التدوير (شمال) - أيقونات تدوير حقيقية
-        self.rotate_left_btn = create_action_button("rotate-ccw", 24, "تدوير عكس عقارب الساعة")
+        self.rotate_left_btn = create_action_button("rotate-ccw", 24, tr("rotate_left"))
         self.rotate_left_btn.set_icon_color("#ffffff")
         self.rotate_left_btn.setEnabled(False)
         self.rotate_left_btn.clicked.connect(self.rotate_left)
 
-        self.rotate_right_btn = create_action_button("rotate-cw", 24, "تدوير مع عقارب الساعة")
+        self.rotate_right_btn = create_action_button("rotate-cw", 24, tr("rotate_right"))
         self.rotate_right_btn.set_icon_color("#ffffff")
         self.rotate_right_btn.setEnabled(False)
         self.rotate_right_btn.clicked.connect(self.rotate_right)
 
         # زر الختم
-        self.stamp_btn = create_action_button("stamp", 24, "إضافة ختم")
+        self.stamp_btn = create_action_button("stamp", 24, tr("add_stamp"))
         self.stamp_btn.set_icon_color("#ffffff")
         self.stamp_btn.setEnabled(False)
         self.stamp_btn.clicked.connect(self.open_stamp_manager)
 
         # أزرار تكبير وتصغير الختم (مخفية في البداية)
-        self.zoom_in_btn = create_action_button("stamp-zoom-in", 24, "تكبير الختم المحدد")
+        self.zoom_in_btn = create_action_button("stamp-zoom-in", 24, tr("zoom_in_stamp"))
         self.zoom_in_btn.set_icon_color("#ffffff")
         self.zoom_in_btn.setVisible(False)  # مخفي في البداية
         self.zoom_in_btn.clicked.connect(self.zoom_selected_stamp_in)
 
-        self.zoom_out_btn = create_action_button("stamp-zoom-out", 24, "تصغير الختم المحدد")
+        self.zoom_out_btn = create_action_button("stamp-zoom-out", 24, tr("zoom_out_stamp"))
         self.zoom_out_btn.set_icon_color("#ffffff")
         self.zoom_out_btn.setVisible(False)  # مخفي في البداية
         self.zoom_out_btn.clicked.connect(self.zoom_selected_stamp_out)
 
         # اليمين: إدارة الملفات
-        self.file_btn = create_action_button("folder", 24, "اختيار ملف PDF")
+        self.file_btn = create_action_button("folder", 24, tr("select_pdf_file"))
         self.file_btn.set_icon_color("#ffffff")
         self.file_btn.clicked.connect(self.select_file)
 
-        self.reset_btn = create_action_button("reset", 24, "إعادة تعيين التدوير")
+        self.reset_btn = create_action_button("reset", 24, tr("reset_rotation"))
         self.reset_btn.set_icon_color("#ffffff")
         self.reset_btn.setEnabled(False)
         self.reset_btn.clicked.connect(self.reset_rotation)
 
-        self.save_btn = create_action_button("save", 24, "حفظ الملف المُدوَّر")
+        self.save_btn = create_action_button("save", 24, tr("save_rotated_file"))
         self.save_btn.set_icon_color("#ffffff")
         self.save_btn.setEnabled(False)
         self.save_btn.clicked.connect(self.save_file)
@@ -308,7 +309,7 @@ class RotatePage(QWidget):
             # إعداد التحميل الكسول
             success = global_page_loader.set_pdf_file(file_path)
             if not success:
-                show_error(self, "فشل في فتح ملف PDF")
+                show_error(self, tr("pdf_open_error"))
                 return
 
             # إعداد شريط التقدم (إذا لم يكن موجوداً)
@@ -355,11 +356,11 @@ class RotatePage(QWidget):
             self.save_btn.setEnabled(True)
 
             # إشعار بالتحسينات الجديدة
-            show_success(self, f"تم تحميل {len(self.pages)} صفحة بدقة عالية مع انتقالات سلسة!", duration=3000)
+            show_success(self, tr("pdf_load_success", count=len(self.pages)), duration=3000)
 
         except Exception as e:
             print(f"Error loading PDF: {e}")
-            show_error(self, f"فشل في تحميل ملف PDF: {str(e)}")
+            show_error(self, tr("pdf_load_error", error=str(e)))
 
     def on_page_loaded(self, page_number: int, pixmap: QPixmap):
         """معالج تحميل الصفحة من النظام الكسول"""
@@ -382,7 +383,7 @@ class RotatePage(QWidget):
 
     def on_page_loading_error(self, page_number: int, error_msg: str):
         """معالج خطأ تحميل الصفحة"""
-        print(f"خطأ في تحميل الصفحة {page_number}: {error_msg}")
+        print(f"Error loading page {page_number}: {error_msg}")
         if hasattr(self, 'progress_bar'):
             self.progress_bar.setVisible(False)
 
@@ -455,7 +456,7 @@ class RotatePage(QWidget):
         # إضافة نص "جاري التحميل..."
         painter = QPainter(placeholder)
         painter.setPen(Qt.black)
-        painter.drawText(placeholder.rect(), Qt.AlignCenter, f"جاري تحميل الصفحة {self.current_page + 1}...")
+        painter.drawText(placeholder.rect(), Qt.AlignCenter, tr("loading_page", page_num=self.current_page + 1))
         painter.end()
 
         # إضافة للمشهد
@@ -524,9 +525,9 @@ class RotatePage(QWidget):
             actual_rotation = rotation % 360
             if actual_rotation < 0:
                 actual_rotation += 360
-            rotation_text = f" - مُدوَّر {actual_rotation}°"
+            rotation_text = tr("rotated_label", angle=actual_rotation)
 
-        self.page_label.setText(f"الصفحة {self.current_page + 1} من {len(self.pages)}{rotation_text}")
+        self.page_label.setText(tr("page_label", current=self.current_page + 1, total=len(self.pages), rotation=rotation_text))
 
     def select_file(self):
         """اختيار ملف PDF"""
@@ -535,7 +536,7 @@ class RotatePage(QWidget):
         default_dir = os.path.join(os.path.expanduser("~"), "Documents")
 
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "اختر ملف PDF", default_dir, "PDF Files (*.pdf)"
+            self, tr("select_pdf_file_title"), default_dir, tr("pdf_files_filter_rotate")
         )
         if file_path:
             self.load_pdf(file_path)
@@ -558,7 +559,7 @@ class RotatePage(QWidget):
     def save_file(self):
         """حفظ الملف المُدوَّر"""
         if not self.file_path or not self.pages:
-            show_warning(self, "لا يوجد ملف محمل للحفظ!")
+            show_warning(self, tr("no_file_to_save"))
             return
 
         # اختيار مكان الحفظ
@@ -570,9 +571,9 @@ class RotatePage(QWidget):
 
         save_path, _ = QFileDialog.getSaveFileName(
             self,
-            "حفظ الملف",
+            tr("save_file_title"),
             default_path,
-            "PDF Files (*.pdf)"
+            tr("pdf_files_filter_rotate")
         )
 
         if not save_path:
@@ -591,7 +592,7 @@ class RotatePage(QWidget):
             has_stamps = any(len(stamps) > 0 for stamps in self.stamps.values())
 
             if not rotations_to_apply and not has_stamps:
-                show_info(self, "لا توجد تغييرات للحفظ!")
+                show_info(self, tr("no_changes_to_save"))
                 return
 
             # طباعة معلومات التصحيح
@@ -619,44 +620,34 @@ class RotatePage(QWidget):
                 from modules.stamp_processor import get_stamp_summary
                 stamp_summary = get_stamp_summary(self.stamps)
 
-                message = f"تم حفظ الملف بنجاح!\n{save_path}\n\n"
-                if rotations_to_apply:
-                    message += f"تم تدوير {len(rotations_to_apply)} صفحة\n"
-                if stamp_summary['total_stamps'] > 0:
-                    message += f"تم إضافة {stamp_summary['total_stamps']} ختم على {stamp_summary['total_pages_with_stamps']} صفحة"
-
+                message = tr("save_success_summary", path=save_path, rotated_count=len(rotations_to_apply), stamp_count=stamp_summary['total_stamps'], page_count=stamp_summary['total_pages_with_stamps'])
+                
                 show_success(self, message, duration=5000)
             else:
-                show_error(self, "فشل في حفظ الملف!")
+                show_error(self, tr("save_failed"))
 
         except Exception as e:
-            show_error(self, f"حدث خطأ أثناء الحفظ: {str(e)}")
+            show_error(self, tr("save_error", error=str(e)))
 
     def open_stamp_manager(self):
         """فتح نافذة إدارة الأختام"""
         try:
             from .stamp_manager import StampManager
-            print("تم استيراد StampManager بنجاح")
-
+            
             stamp_manager = StampManager(self)
-            print("تم إنشاء StampManager بنجاح")
-
             stamp_manager.stamp_selected.connect(self.start_stamp_placement)
-            print("تم ربط الإشارات بنجاح")
-
-            result = stamp_manager.exec()
-            print(f"نتيجة تشغيل النافذة: {result}")
+            stamp_manager.exec()
 
         except Exception as e:
-            print(f"خطأ في فتح نافذة الأختام: {e}")
+            print(f"Error opening stamp manager: {e}")
             import traceback
             traceback.print_exc()
-            show_error(self, f"خطأ في فتح نافذة الأختام: {str(e)}")
+            show_error(self, tr("stamp_manager_error", error=str(e)))
 
     def start_stamp_placement(self, stamp_path):
         """بدء وضع الختم التفاعلي"""
         if not self.pages:
-            show_warning(self, "يجب تحميل ملف PDF أولاً!")
+            show_warning(self, tr("load_pdf_first"))
             return
 
         self.current_stamp_path = stamp_path
@@ -675,7 +666,7 @@ class RotatePage(QWidget):
         self.view.setDragMode(QGraphicsView.DragMode.NoDrag)  # تعطيل السحب أثناء وضع الختم
 
         # إظهار إشعار توجيهي
-        show_info(self, "حرك الماوس لمعاينة الختم واضغط لوضعه في المكان المطلوب", duration=5000)
+        show_info(self, tr("stamp_placement_guide"), duration=5000)
 
 
 

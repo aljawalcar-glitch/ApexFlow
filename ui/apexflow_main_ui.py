@@ -5,6 +5,7 @@ from PySide6.QtGui import QFont, QPixmap, QPainter, QColor, QLinearGradient, QIc
 from PySide6.QtSvg import QSvgRenderer
 import os
 from .theme_manager import apply_theme
+from modules.translator import tr
 
 # استيراد معلومات الإصدار
 try:
@@ -13,7 +14,7 @@ try:
     from version import get_full_version_string
 except ImportError:
     def get_full_version_string():
-        return "الإصدار v5.2.1 - تطوير فريق ApexFlow"
+        return tr("version_fallback", version="v5.2.1")
 
 # تم حذف TransparentBorderLabel لأنه كان يسبب ظهور إطارات حول النصوص
 
@@ -75,6 +76,9 @@ class WelcomePage(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setSpacing(10)
         main_layout.setContentsMargins(20, 20, 20, 20)
+        
+        # جعل خلفية الصفحة شفافة
+        self.setStyleSheet("background: transparent;")
 
         # العنوان الرئيسي
         title_layout = QVBoxLayout()
@@ -82,7 +86,7 @@ class WelcomePage(QWidget):
 
         # شعار التطبيق - نص مؤقت سيتم استبداله بالصورة لاحقاً
         self.logo_label = QLabel()
-        self.logo_label.setText("ApexFlow")
+        self.logo_label.setText(tr("app_name"))
         self.logo_label.setStyleSheet("""
             font-size: 36px;
             color: #ff6f00;
@@ -100,14 +104,14 @@ class WelcomePage(QWidget):
         title_layout.addWidget(self.logo_label)
 
         # اسم التطبيق
-        app_title = QLabel("ApexFlow")
+        app_title = QLabel(tr("app_name"))
         # استخدام نظام السمات الموحد
         apply_theme(app_title, "title_text")
         app_title.setAlignment(Qt.AlignCenter)
         title_layout.addWidget(app_title)
 
         # وصف التطبيق
-        description = QLabel("أداة شاملة لإدارة ومعالجة ملفات PDF")
+        description = QLabel(tr("app_description"))
         # استخدام نظام السمات الموحد للنص الثانوي
         apply_theme(description, "secondary_text")
         description.setAlignment(Qt.AlignCenter)
@@ -117,14 +121,14 @@ class WelcomePage(QWidget):
 
         # قسم الميزات الرئيسية
         features_frame = QFrame()
-
+        features_frame.setStyleSheet("background: transparent; border: none;")
         # استخدام نظام السمات الموحد للفريم فقط
         # apply_theme_style(features_frame, "frame") # تم التعطيل بناءً على طلب المستخدم
 
         features_layout = QVBoxLayout(features_frame)
 
         # عنوان الميزات
-        features_title = QLabel("الميزات الرئيسية")
+        features_title = QLabel(tr("key_features"))
         features_title.setStyleSheet("""
             font-size: 24px !important;
             font-weight: bold !important;
@@ -143,12 +147,12 @@ class WelcomePage(QWidget):
 
         # حفظ قائمة الميزات للتحميل المؤجل
         self.features_data = [
-            ("link", "دمج الملفات", "دمج عدة ملفات PDF في ملف واحد"),
-            ("scissors", "تقسيم الملفات", "تقسيم ملف PDF إلى ملفات منفصلة"),
-            ("archive", "ضغط الملفات", "تقليل حجم ملفات PDF"),
-            ("rotate-cw", "تدوير الصفحات", "تدوير صفحات PDF بزوايا مختلفة"),
-            ("file-text", "تحويل الملفات", "تحويل PDF إلى صور أو نصوص والعكس"),
-            ("settings", "إعدادات متقدمة", "تخصيص التطبيق حسب احتياجاتك")
+            ("link", tr("feature_merge_title"), tr("feature_merge_desc")),
+            ("scissors", tr("feature_split_title"), tr("feature_split_desc")),
+            ("archive", tr("feature_compress_title"), tr("feature_compress_desc")),
+            ("rotate-cw", tr("feature_rotate_title"), tr("feature_rotate_desc")),
+            ("file-text", tr("feature_convert_title"), tr("feature_convert_desc")),
+            ("settings", tr("feature_settings_title"), tr("feature_settings_desc"))
         ]
 
         # إنشاء بطاقات مؤقتة بنصوص بسيطة
@@ -164,13 +168,13 @@ class WelcomePage(QWidget):
 
         # قسم البدء السريع
         quick_start_frame = QFrame()
-
+        quick_start_frame.setStyleSheet("background: transparent; border: none;")
         # استخدام نظام السمات الموحد للفريم فقط
         # apply_theme_style(quick_start_frame, "frame") # تم التعطيل بناءً على طلب المستخدم
 
         quick_start_layout = QVBoxLayout(quick_start_frame)
 
-        quick_start_title = QLabel("البدء السريع")
+        quick_start_title = QLabel(tr("quick_start"))
         quick_start_title.setStyleSheet("""
             font-size: 20px !important;
             font-weight: bold !important;
@@ -188,9 +192,9 @@ class WelcomePage(QWidget):
         buttons_layout.setSpacing(15)
 
         quick_buttons = [
-            ("ضغط ملف", "#ed8936", 3),     # الفهرس 3 لصفحة الضغط
-            ("تقسيم ملف", "#48bb78", 2),  # الفهرس 2 لصفحة التقسيم
-            ("دمج ملفات", "#4299e1", 1),  # الفهرس 1 لصفحة الدمج
+            (tr("quick_start_compress"), "#ed8936", 3),     # الفهرس 3 لصفحة الضغط
+            (tr("quick_start_split"), "#48bb78", 2),  # الفهرس 2 لصفحة التقسيم
+            (tr("quick_start_merge"), "#4299e1", 1),  # الفهرس 1 لصفحة الدمج
         ]
 
         for text, color, page_index in quick_buttons:
@@ -235,7 +239,13 @@ class WelcomePage(QWidget):
             padding: 0px !important;
             margin-top: 10px !important;
         """)
-        main_layout.addWidget(version_label)
+        # إضافة حاوية شفافة للنص
+        version_container = QWidget()
+        version_container_layout = QVBoxLayout(version_container)
+        version_container_layout.setContentsMargins(0, 0, 0, 0)
+        version_container_layout.addWidget(version_label)
+        version_container.setStyleSheet("background: transparent;")
+        main_layout.addWidget(version_container)
 
     def create_placeholder_card(self, title, description):
         """إنشاء بطاقة ميزة مؤقتة بدون أيقونات"""
@@ -304,7 +314,7 @@ class WelcomePage(QWidget):
 
             self.icons_loaded = True
         except Exception as e:
-            print(f"خطأ في تحميل الأيقونات المؤجل: {e}")
+            print(tr("error_loading_icons", e=e))
 
     def load_logo(self):
         """تحميل شعار التطبيق"""
@@ -319,7 +329,7 @@ class WelcomePage(QWidget):
                 pixmap.setDevicePixelRatio(device_ratio)
                 self.logo_label.setPixmap(pixmap)
         except Exception as e:
-            print(f"خطأ في تحميل الشعار: {e}")
+            print(tr("error_loading_logo", e=e))
 
     def load_feature_icons(self):
         """تحميل أيقونات الميزات"""
@@ -345,7 +355,7 @@ class WelcomePage(QWidget):
                 self.features_grid.addWidget(new_card, row, col)
 
         except Exception as e:
-            print(f"خطأ في تحميل أيقونات الميزات: {e}")
+            print(tr("error_loading_feature_icons", e=e))
 
     def create_feature_card(self, icon, title, description):
         """إنشاء بطاقة ميزة"""
@@ -379,14 +389,14 @@ class WelcomePage(QWidget):
         else:
             # fallback نصي في حالة عدم وجود الأيقونة
             text_fallback = {
-                "link": "دمج",
-                "scissors": "تقسيم",
-                "archive": "ضغط",
-                "rotate-cw": "تدوير",
-                "file-text": "تحويل",
-                "settings": "إعدادات"
+                "link": tr("feature_merge_title"),
+                "scissors": tr("feature_split_title"),
+                "archive": tr("feature_compress_title"),
+                "rotate-cw": tr("feature_rotate_title"),
+                "file-text": tr("feature_convert_title"),
+                "settings": tr("feature_settings_title")
             }
-            icon_label.setText(text_fallback.get(icon, "PDF"))
+            icon_label.setText(text_fallback.get(icon, tr("feature_card_fallback")))
             icon_label.setStyleSheet("""
                 font-size: 16px;
                 color: #ff6f00;

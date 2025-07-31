@@ -17,10 +17,11 @@ from PySide6.QtGui import QIcon, QKeySequence, QShortcut
 from PySide6.QtCore import Qt, QSharedMemory, QSystemSemaphore
 
 # استيرادات الوحدات المحلية
-from modules.settings import load_settings  # استيراد مباشر لتجنب تحميل وحدات PDF
+from modules.settings import load_settings, set_setting  # استيراد مباشر لتجنب تحميل وحدات PDF
 from modules.app_utils import get_icon_path
 from modules.logger import debug, info, warning, error
 from ui import WelcomePage, apply_theme_style
+from modules.translator import tr
 
 # ===============================
 # فئات التطبيق الرئيسية
@@ -73,7 +74,7 @@ class ApexFlow(QMainWindow):
         self.operations_manager = OperationsManager(self, self.file_manager, self.message_manager)
 
         # تطبيق خصائص النافذة الموحدة
-        self.window_manager.set_window_properties(self, "أداة معالجة ملفات PDF")
+        self.window_manager.set_window_properties(self, tr("main_window_title"))
         self.setGeometry(200, 100, 1000, 600)
 
         # حفظ إعدادات السمة للتطبيق المؤجل (تسريع البدء)
@@ -86,6 +87,17 @@ class ApexFlow(QMainWindow):
         # تطبيق السمة بعد إنشاء الواجهة (تحسين الأداء)
         from PySide6.QtCore import QTimer
         QTimer.singleShot(100, self.apply_theme_delayed)  # تأجيل 100ms
+
+        # تطبيق اتجاه الواجهة
+        self.apply_layout_direction()
+
+    def apply_layout_direction(self):
+        """تطبيق اتجاه الواجهة بناءً على اللغة الحالية"""
+        language = self.settings_data.get("language", "ar")
+        if language == "ar":
+            self.setLayoutDirection(Qt.RightToLeft)
+        else:
+            self.setLayoutDirection(Qt.LeftToRight)
 
     def apply_theme_delayed(self):
         """تطبيق السمة بشكل مؤجل لتحسين سرعة البدء"""
@@ -130,6 +142,7 @@ class ApexFlow(QMainWindow):
     def initUI(self):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
+        central_widget.setStyleSheet("background: transparent;")
 
         # تحديد مسار الأيقونة بشكل صحيح
         icon_path = get_icon_path()
@@ -150,7 +163,11 @@ class ApexFlow(QMainWindow):
 
         # القائمة الجانبية
         self.menu_list = QListWidget()
-        self.menu_list.addItems(["الرئيسية", "دمج وطباعة", "تقسيم", "ضغط", "ختم وتدوير", "تحويل", "حماية وخصائص", "الإعدادات"])
+        self.menu_list.addItems([
+            tr("menu_home"), tr("menu_merge_print"), tr("menu_split"),
+            tr("menu_compress"), tr("menu_stamp_rotate"), tr("menu_convert"),
+            tr("menu_security"), tr("menu_settings")
+        ])
         self.menu_list.setLayoutDirection(Qt.RightToLeft)
 
         # إعدادات التحديد والتفاعل
@@ -179,6 +196,7 @@ class ApexFlow(QMainWindow):
 
         # إنشاء منطقة المحتوى مع التحميل الكسول
         self.stack = QStackedWidget()
+        self.stack.setStyleSheet("background: transparent;")
 
         # إنشاء صفحة الترحيب فقط (الصفحة الافتراضية)
         self.welcome_page = WelcomePage()
@@ -189,8 +207,9 @@ class ApexFlow(QMainWindow):
         scroll.setWidgetResizable(True)
         scroll.setWidget(self.welcome_page)
 
-        # استخدام نظام السمات الموحد
+        # استخدام نظام السمات الموحد مع خلفية شفافة
         apply_theme_style(scroll, "graphics_view")
+        scroll.viewport().setStyleSheet("background: transparent;")
 
         # إضافة صفحة الترحيب إلى المكدس
         self.stack.addWidget(scroll)  # الفهرس 0
@@ -199,13 +218,17 @@ class ApexFlow(QMainWindow):
         self.pages_loaded = [True, False, False, False, False, False, False, False]  # تتبع الصفحات المحملة
 
         # إنشاء صفحات نائبة مع محتوى بسيط
-        page_names = ["الدمج", "التقسيم", "الضغط", "التدوير", "التحويل", "حماية وخصائص", "الإعدادات"]
+        page_names = [
+            tr("menu_merge_print"), tr("menu_split"), tr("menu_compress"),
+            tr("menu_stamp_rotate"), tr("menu_convert"), tr("menu_security"),
+            tr("menu_settings")
+        ]
         for page_name in page_names:
             placeholder = QWidget()
             layout = QVBoxLayout(placeholder)
             layout.setAlignment(Qt.AlignCenter)
 
-            label = QLabel(f"جاري تحميل صفحة {page_name}...")
+            label = QLabel(tr("loading_page_message", page_name=page_name))
             label.setAlignment(Qt.AlignCenter)
             label.setStyleSheet("color: #cccccc; font-size: 16px; font-weight: normal;")
             layout.addWidget(label)
@@ -215,9 +238,13 @@ class ApexFlow(QMainWindow):
         # ربط القائمة بالتحميل الكسول
         self.menu_list.currentRowChanged.connect(self.load_page_on_demand)
 
-        # إضافة العناصر للتخطيط الرئيسي
-        main_layout.addWidget(self.stack)
-        main_layout.addWidget(sidebar_widget)
+        # إضافة العناصر للتخطيط الرئيسي (مع مراعاة اتجاه الواجهة)
+        if self.layoutDirection() == Qt.RightToLeft:
+            main_layout.addWidget(self.stack)
+            main_layout.addWidget(sidebar_widget)
+        else:
+            main_layout.addWidget(sidebar_widget)
+            main_layout.addWidget(self.stack)
 
         # إعداد اختصارات لوحة المفاتيح (بدون تحميل الوحدات)
         self.setup_keyboard_shortcuts_lazy()
@@ -372,7 +399,7 @@ class ApexFlow(QMainWindow):
 
             elif index == 5:  # صفحة التحويل
                 from ui.convert_page import ConvertPage
-                page = ConvertPage(self.operations_manager)
+                page = ConvertPage(self.file_manager, self.operations_manager)
 
             elif index == 6:  # صفحة الحماية
                 from ui.security_page import SecurityPage
@@ -394,7 +421,7 @@ class ApexFlow(QMainWindow):
                     # إنشاء صفحة خطأ
                     error_widget = QWidget()
                     layout = QVBoxLayout(error_widget)
-                    label = QLabel("خطأ في تحميل صفحة الإعدادات")
+                    label = QLabel(tr("error_loading_settings_page"))
                     label.setAlignment(Qt.AlignCenter)
                     label.setStyleSheet("color: white; font-size: 16px;")
                     layout.addWidget(label)
@@ -409,27 +436,39 @@ class ApexFlow(QMainWindow):
                 self._apply_current_theme_to_page(page, index)
 
         except ImportError as e:
-            page_names = ["", "الدمج", "التقسيم", "الضغط", "التدوير", "التحويل", "حماية وخصائص", "الإعدادات"]
-            page_name = page_names[index] if index < len(page_names) else f"الصفحة {index}"
-            error(f"خطأ في استيراد وحدة صفحة {page_name} (الفهرس {index}): {e}")
-            error(f"تفاصيل الخطأ: {type(e).__name__} - {str(e)}")
-            self._create_error_page(index, f"فشل في تحميل وحدة صفحة {page_name}",
-                                  f"تعذر استيراد الوحدة المطلوبة.\nالخطأ: {str(e)}\nتأكد من وجود الملف المطلوب.")
+            page_names = [
+                "", tr("menu_merge_print"), tr("menu_split"), tr("menu_compress"),
+                tr("menu_stamp_rotate"), tr("menu_convert"), tr("menu_security"),
+                tr("menu_settings")
+            ]
+            page_name = page_names[index] if index < len(page_names) else f"Page {index}"
+            error(f"Error importing module for page {page_name} (index {index}): {e}")
+            error(f"Error details: {type(e).__name__} - {str(e)}")
+            self._create_error_page(index, tr("error_importing_module", page_name=page_name),
+                                  tr("error_importing_module_details", e=str(e)))
         except AttributeError as e:
-            page_names = ["", "الدمج", "التقسيم", "الضغط", "التدوير", "التحويل", "حماية وخصائص", "الإعدادات"]
-            page_name = page_names[index] if index < len(page_names) else f"الصفحة {index}"
-            error(f"خطأ في خصائص صفحة {page_name} (الفهرس {index}): {e}")
-            error(f"تفاصيل الخطأ: {type(e).__name__} - {str(e)}")
-            self._create_error_page(index, f"خطأ في بنية صفحة {page_name}",
-                                  f"مشكلة في خصائص أو دوال الصفحة.\nالخطأ: {str(e)}\nقد تحتاج الصفحة إلى تحديث.")
+            page_names = [
+                "", tr("menu_merge_print"), tr("menu_split"), tr("menu_compress"),
+                tr("menu_stamp_rotate"), tr("menu_convert"), tr("menu_security"),
+                tr("menu_settings")
+            ]
+            page_name = page_names[index] if index < len(page_names) else f"Page {index}"
+            error(f"Attribute error in page {page_name} (index {index}): {e}")
+            error(f"Error details: {type(e).__name__} - {str(e)}")
+            self._create_error_page(index, tr("error_page_structure", page_name=page_name),
+                                  tr("error_page_structure_details", e=str(e)))
         except Exception as e:
-            page_names = ["", "الدمج", "التقسيم", "الضغط", "التدوير", "التحويل", "حماية وخصائص", "الإعدادات"]
-            page_name = page_names[index] if index < len(page_names) else f"الصفحة {index}"
-            error(f"خطأ عام في تحميل صفحة {page_name} (الفهرس {index}): {e}")
-            error(f"تفاصيل الخطأ: {type(e).__name__} - {str(e)}")
-            error(f"تتبع الخطأ: {traceback.format_exc()}")
-            self._create_error_page(index, f"خطأ غير متوقع في صفحة {page_name}",
-                                  f"حدث خطأ غير متوقع أثناء تحميل الصفحة.\nالخطأ: {str(e)}\nيرجى إعادة تشغيل التطبيق.")
+            page_names = [
+                "", tr("menu_merge_print"), tr("menu_split"), tr("menu_compress"),
+                tr("menu_stamp_rotate"), tr("menu_convert"), tr("menu_security"),
+                tr("menu_settings")
+            ]
+            page_name = page_names[index] if index < len(page_names) else f"Page {index}"
+            error(f"General error loading page {page_name} (index {index}): {e}")
+            error(f"Error details: {type(e).__name__} - {str(e)}")
+            error(f"Traceback: {traceback.format_exc()}")
+            self._create_error_page(index, tr("error_unexpected_page_load", page_name=page_name),
+                                  tr("error_unexpected_page_load_details", e=str(e)))
 
         # الانتقال إلى الصفحة
         self.stack.setCurrentIndex(index)
@@ -454,7 +493,7 @@ class ApexFlow(QMainWindow):
 
         # زر إعادة المحاولة - نفس طريقة أزرار الإعدادات
         from ui.svg_icon_button import create_action_button
-        retry_button = create_action_button("reset", 24, "إعادة المحاولة")
+        retry_button = create_action_button("reset", 24, tr("retry_button"))
         retry_button.update_theme_colors()  # نفس ما يحدث في الإعدادات
         retry_button.clicked.connect(lambda: self.retry_load_page(index))
 
@@ -674,6 +713,16 @@ class ApexFlow(QMainWindow):
         # إعادة تحميل الإعدادات
         self.settings_data = load_settings()
 
+        # تطبيق اتجاه الواجهة الجديد
+        self.apply_layout_direction()
+        
+        # إعادة بناء الواجهة الرئيسية لعكس الشريط الجانبي
+        # هذا يتطلب إعادة تهيئة الواجهة بالكامل
+        # ملاحظة: هذا قد يسبب وميضًا بسيطًا، ولكنه ضروري لعكس التخطيط
+        self.initUI()
+        self.apply_theme_delayed()
+
+
         # تطبيق الإعدادات الجديدة على الواجهة
         self.apply_ui_settings()
 
@@ -739,9 +788,49 @@ def main():
     """الدالة الرئيسية لتشغيل التطبيق"""
     app = SingleApplication(sys.argv)
 
+    # التحقق من التشغيل الأول وعرض واجهة الإعداد
+    settings_data = load_settings()
+    if not settings_data:
+        from ui.first_run_dialog import FirstRunDialog
+        
+        first_run_dialog = FirstRunDialog()
+        
+        def on_settings_chosen(language, theme):
+            set_setting("language", language)
+            set_setting("theme", theme)
+
+            # إعادة تحميل الترجمات لضمان تطبيق اللغة المختارة
+            import importlib
+            from modules import translator
+            importlib.reload(translator)
+            
+            # تطبيق الاتجاه فورًا
+            if language == "ar":
+                app.setLayoutDirection(Qt.RightToLeft)
+            else:
+                app.setLayoutDirection(Qt.LeftToRight)
+
+        first_run_dialog.settings_chosen.connect(on_settings_chosen)
+        if not first_run_dialog.exec():
+            sys.exit(0) # Exit if the user closes the dialog
+
+    # --- تطبيق اتجاه الواجهة قبل إنشاء أي نافذة ---
+    settings_data = load_settings()
+    language = settings_data.get("language", "ar")
+    
+    # تعيين اللغة في المترجم أولاً
+    from modules.translator import translator
+    # translator.set_language(language) # تم إزالة هذه الدالة، الترجمة تعتمد على الإعدادات عند التحميل
+    
+    if language == "ar":
+        app.setLayoutDirection(Qt.RightToLeft)
+    else:
+        app.setLayoutDirection(Qt.LeftToRight)
+    # -----------------------------------------
+
     # فحص إذا كان التطبيق يعمل بالفعل
     if app.is_running():
-        QMessageBox.warning(None, "تحذير", "التطبيق يعمل بالفعل!")
+        QMessageBox.warning(None, tr("warning"), tr("app_already_running_warning"))
         sys.exit(1)
 
     # إنشاء النافذة الرئيسية

@@ -105,14 +105,12 @@ class FileManager:
     def __init__(self, main_window):
         self.main_window = main_window
 
-    def select_pdf_files(self, title="اختيار ملفات PDF", multiple=True):
-        """اختيار ملفات PDF"""
+    def select_file(self, title="اختيار ملف", file_filter="All Files (*)", multiple=False):
+        """اختيار ملف واحد أو عدة ملفات مع مرشح مخصص."""
         from PySide6.QtWidgets import QFileDialog
         import os
 
         full_title = f"ApexFlow - {title}"
-        pdf_filter = "PDF Files (*.pdf)"
-        # مجلد Documents كافتراضي
         default_dir = os.path.join(os.path.expanduser("~"), "Documents")
 
         if multiple:
@@ -120,7 +118,7 @@ class FileManager:
                 self.main_window,
                 full_title,
                 default_dir,
-                pdf_filter
+                file_filter
             )
             return files
         else:
@@ -128,9 +126,13 @@ class FileManager:
                 self.main_window,
                 full_title,
                 default_dir,
-                pdf_filter
+                file_filter
             )
             return file
+
+    def select_pdf_files(self, title="اختيار ملفات PDF", multiple=True):
+        """اختيار ملفات PDF"""
+        return self.select_file(title, "PDF Files (*.pdf)", multiple)
 
     def select_image_files(self, title="اختيار ملفات الصور"):
         """اختيار ملفات الصور"""
@@ -510,87 +512,75 @@ class OperationsManager:
             self.message_manager.show_error(f"حدث خطأ غير متوقع: {str(e)}")
             return False
 
-    def pdf_to_images(self):
+    def pdf_to_images(self, files, output_dir):
         """تحويل PDF إلى صور"""
         try:
-            file = self.file_manager.select_pdf_files("اختيار ملف PDF للتحويل", multiple=False)
-            if file:
-                output_dir = self.file_manager.select_directory("اختيار مجلد حفظ الصور")
-                if output_dir:
-                    success = self.convert_module.pdf_to_images(file, output_dir)
-                    if success:
-                        self.message_manager.show_success("تم تحويل PDF إلى صور بنجاح!")
-                        return True
-                    else:
-                        self.message_manager.show_error("فشل في تحويل PDF إلى صور.")
-                        return False
-
+            # يفترض أن files تحتوي على ملف واحد فقط لهذه العملية
+            if not files or len(files) != 1:
+                self.message_manager.show_error("يجب تحديد ملف PDF واحد فقط.")
+                return False
+            
+            success = self.convert_module.pdf_to_images(files[0], output_dir)
+            if success:
+                self.message_manager.show_success("تم تحويل PDF إلى صور بنجاح!")
+                return True
+            else:
+                self.message_manager.show_error("فشل في تحويل PDF إلى صور.")
+                return False
         except Exception as e:
             self.message_manager.show_error(f"حدث خطأ غير متوقع: {str(e)}")
             return False
 
-    def images_to_pdf(self):
+    def images_to_pdf(self, files, output_path):
         """تحويل صور إلى PDF"""
         try:
-            files = self.file_manager.select_image_files("اختيار الصور للتحويل")
-            if files:
-                from modules import settings
-                settings_data = settings.load_settings()
-                output = self.file_manager.get_output_path_with_settings(settings_data, "images_to_pdf.pdf")
+            if not files:
+                self.message_manager.show_error("يجب تحديد صورة واحدة على الأقل.")
+                return False
 
-                if output:
-                    success = self.convert_module.images_to_pdf(files, output)
-                    if success:
-                        self.message_manager.show_success("تم تحويل الصور إلى PDF بنجاح!")
-                        return True
-                    else:
-                        self.message_manager.show_error("فشل في تحويل الصور إلى PDF.")
-                        return False
-
+            success = self.convert_module.images_to_pdf(files, output_path)
+            if success:
+                self.message_manager.show_success("تم تحويل الصور إلى PDF بنجاح!")
+                return True
+            else:
+                self.message_manager.show_error("فشل في تحويل الصور إلى PDF.")
+                return False
         except Exception as e:
             self.message_manager.show_error(f"حدث خطأ غير متوقع: {str(e)}")
             return False
 
-    def pdf_to_text(self):
+    def pdf_to_text(self, files, output_path):
         """استخراج النص من PDF"""
         try:
-            file = self.file_manager.select_pdf_files("اختيار ملف PDF لاستخراج النص", multiple=False)
-            if file:
-                from modules.settings import load_settings
-                settings_data = load_settings()
-                output = self.file_manager.get_output_path_with_settings(settings_data, "extracted_text.txt")
+            if not files or len(files) != 1:
+                self.message_manager.show_error("يجب تحديد ملف PDF واحد فقط.")
+                return False
 
-                if output:
-                    success = self.convert_module.pdf_to_text(file, output)
-                    if success:
-                        self.message_manager.show_success("تم استخراج النص من PDF بنجاح!")
-                        return True
-                    else:
-                        self.message_manager.show_error("فشل في استخراج النص من PDF.")
-                        return False
-
+            success = self.convert_module.pdf_to_text(files[0], output_path)
+            if success:
+                self.message_manager.show_success("تم استخراج النص من PDF بنجاح!")
+                return True
+            else:
+                self.message_manager.show_error("فشل في استخراج النص من PDF.")
+                return False
         except Exception as e:
             self.message_manager.show_error(f"حدث خطأ غير متوقع: {str(e)}")
             return False
 
-    def text_to_pdf(self):
+    def text_to_pdf(self, files, output_path):
         """تحويل نص إلى PDF"""
         try:
-            file = self.file_manager.select_text_file("اختيار ملف نصي للتحويل")
-            if file:
-                from modules import settings
-                settings_data = settings.load_settings()
-                output = self.file_manager.get_output_path_with_settings(settings_data, "text_to_pdf.pdf")
+            if not files or len(files) != 1:
+                self.message_manager.show_error("يجب تحديد ملف نصي واحد فقط.")
+                return False
 
-                if output:
-                    success = self.convert_module.text_to_pdf(file, output, 12)
-                    if success:
-                        self.message_manager.show_success("تم تحويل النص إلى PDF بنجاح!")
-                        return True
-                    else:
-                        self.message_manager.show_error("فشل في تحويل النص إلى PDF.")
-                        return False
-
+            success = self.convert_module.text_to_pdf(files[0], output_path, 12)
+            if success:
+                self.message_manager.show_success("تم تحويل النص إلى PDF بنجاح!")
+                return True
+            else:
+                self.message_manager.show_error("فشل في تحويل النص إلى PDF.")
+                return False
         except Exception as e:
             self.message_manager.show_error(f"حدث خطأ غير متوقع: {str(e)}")
             return False

@@ -1,3 +1,4 @@
+import weakref
 from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import QObject, Signal
 from modules.settings import load_settings, set_setting  # استيراد مباشر لتجنب تحميل وحدات PDF
@@ -24,32 +25,32 @@ class GlobalThemeManager(QObject):
         self.themes = {
             "dark": {
                 "bg": "#1a202c", "surface": "#2d3748", "border": "#4a5568",
-                "text_title": "#ffffff", "text_body": "#e2e8f0", "text_secondary": "#a0aec0",
-                "text_muted": "#718096", "text_accent": "#ff6f00", "text": "#e2e8f0"
+                "text_title": "#ffffff", "text_body": "#ffffff", "text_secondary": "#a0aec0",
+                "text_muted": "#718096", "text_accent": "#ff6f00", "text": "#ffffff"
             },
             "light": {
                 "bg": "#ffffff", "surface": "#f7fafc", "border": "#e2e8f0",
-                "text_title": "#1a202c", "text_body": "#2d3748", "text_secondary": "#4a5568",
-                "text_muted": "#718096", "text_accent": "#ff6f00", "text": "#2d3748"
+                "text_title": "#000000", "text_body": "#000000", "text_secondary": "#4a5568",
+                "text_muted": "#718096", "text_accent": "#ff6f00", "text": "#000000"
             },
             "blue": {
                 "bg": "#1a2332", "surface": "#2a4365", "border": "#4a5568",
-                "text_title": "#ffffff", "text_body": "#e2e8f0", "text_secondary": "#a0aec0",
-                "text_muted": "#718096", "text_accent": "#3182ce", "text": "#e2e8f0"
+                "text_title": "#ffffff", "text_body": "#ffffff", "text_secondary": "#a0aec0",
+                "text_muted": "#718096", "text_accent": "#3182ce", "text": "#ffffff"
             },
             "green": {
                 "bg": "#1a3221", "surface": "#275432", "border": "#3f684a",
-                "text_title": "#ffffff", "text_body": "#e2e8f0", "text_secondary": "#a0aec0",
-                "text_muted": "#718096", "text_accent": "#38a169", "text": "#e2e8f0"
+                "text_title": "#ffffff", "text_body": "#ffffff", "text_secondary": "#a0aec0",
+                "text_muted": "#718096", "text_accent": "#38a169", "text": "#ffffff"
             },
             "purple": {
                 "bg": "#2c1a32", "surface": "#4d2a54", "border": "#6b3f72",
-                "text_title": "#ffffff", "text_body": "#e2e8f0", "text_secondary": "#a0aec0",
-                "text_muted": "#718096", "text_accent": "#805ad5", "text": "#e2e8f0"
+                "text_title": "#ffffff", "text_body": "#ffffff", "text_secondary": "#a0aec0",
+                "text_muted": "#718096", "text_accent": "#805ad5", "text": "#ffffff"
             }
         }
 
-        self.registered_widgets = []  # قائمة العناصر المسجلة
+        self.registered_widgets = []  # قائمة المراجع الضعيفة للعناصر المسجلة
         self.load_theme_from_settings()
 
     def load_theme_from_settings(self):
@@ -93,18 +94,28 @@ class GlobalThemeManager(QObject):
         if options:
             print(f"خيارات إضافية: {options}")
 
+        # Clean up dead references before emitting the signal
+        self.registered_widgets = [ref for ref in self.registered_widgets if ref["widget"]()]
+
         self.theme_changed.emit(self.current_theme, self.current_accent, self.current_options)
         self.save_theme_to_settings()
 
     def register_widget(self, widget: QWidget, widget_type: str):
-        """تسجيل عنصر لتحديثات السمة المستقبلية."""
+        """تسجيل عنصر لتحديثات السمة المستقبلية باستخدام المراجع الضعيفة."""
         # تجنب التكرار
-        if not any(w['widget'] == widget for w in self.registered_widgets):
+        if not any(w['widget']() == widget for w in self.registered_widgets):
+            widget_ref = weakref.ref(widget)
             self.registered_widgets.append({
-                "widget": widget,
+                "widget": widget_ref,
                 "type": widget_type
             })
-            self.theme_changed.connect(lambda theme_name, accent_color, options: apply_theme_style(widget, widget_type, auto_register=False))
+
+            def on_theme_change(theme_name, accent_color, options):
+                w = widget_ref()
+                if w:
+                    apply_theme_style(w, widget_type, auto_register=False)
+
+            self.theme_changed.connect(on_theme_change)
             debug(f"تم تسجيل عنصر: {widget_type} للاستجابة لتغييرات السمة.")
 
     def save_theme_to_settings(self, theme_name: str = None, accent_color: str = None):
@@ -154,6 +165,8 @@ def make_theme_aware(widget: QWidget, widget_type: str):
 
 def refresh_all_fonts():
     """إعادة تطبيق الأنماط على جميع العناصر المسجلة عند تغيير الخطوط"""
+    # This function now correctly triggers the change_theme method,
+    # which handles the weak references properly.
     try:
         current_theme = global_theme_manager.current_theme
         current_accent = global_theme_manager.current_accent

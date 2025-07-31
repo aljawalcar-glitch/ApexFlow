@@ -13,11 +13,12 @@ from .ui_helpers import create_section_label, create_info_label, create_button
 from .global_styles import get_scroll_style
 from modules.logger import info, error
 from modules.app_utils import get_icon_path
+from modules.translator import tr
 import os
 
 class SecurityPage(BasePage):
     def __init__(self, file_manager, operations_manager):
-        super().__init__(page_title="حماية وخصائص PDF", theme_key="security_page")
+        super().__init__(page_title=tr("security_page_title"), theme_key="security_page")
         self.file_manager = file_manager
         self.operations_manager = operations_manager
         self.source_file = None
@@ -42,8 +43,8 @@ class SecurityPage(BasePage):
 
         # 1. قسم اختيار الملف داخل المحتوى
         file_selection_layout = QHBoxLayout()
-        self.select_file_button = create_button("اختر ملف PDF", on_click=self.select_file)
-        self.file_label = QLabel("لم يتم اختيار أي ملف")
+        self.select_file_button = create_button(tr("select_pdf_file"), on_click=self.select_file)
+        self.file_label = QLabel(tr("no_file_selected"))
         self.file_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         # تطبيق نمط الثيمة على تسمية الملف
         from .theme_manager import apply_theme_style
@@ -71,16 +72,16 @@ class SecurityPage(BasePage):
         apply_theme_style(password_container, "frame")
         password_layout = QGridLayout(password_container)
         password_layout.setSpacing(15)
-        password_layout.addWidget(create_section_label("إدارة كلمة المرور"), 0, 0, 1, 2)
+        password_layout.addWidget(create_section_label(tr("password_management")), 0, 0, 1, 2)
 
         # حقل كلمة مرور المستخدم
-        user_password_label = QLabel("كلمة مرور المستخدم")
+        user_password_label = QLabel(tr("user_password"))
         # تطبيق نمط الثيمة على التسمية
         from .theme_manager import apply_theme_style
         apply_theme_style(user_password_label, "label")
 
         self.password_input = QLineEdit()
-        self.password_input.setPlaceholderText("أدخل كلمة المرور الجديدة أو الحالية")
+        self.password_input.setPlaceholderText(tr("password_placeholder"))
         self.password_input.setEchoMode(QLineEdit.Password)
         self.password_input.setMinimumHeight(35)
         # تطبيق نمط الثيمة على حقل الإدخال
@@ -90,12 +91,12 @@ class SecurityPage(BasePage):
         password_layout.addWidget(self.password_input, 2, 0)
 
         # حقل كلمة مرور المالك
-        owner_password_label = QLabel("كلمة مرور المالك")
+        owner_password_label = QLabel(tr("owner_password"))
         # تطبيق نمط الثيمة على التسمية
         apply_theme_style(owner_password_label, "label")
 
         self.owner_password_input = QLineEdit()
-        self.owner_password_input.setPlaceholderText("كلمة مرور المالك (عند التشفير)")
+        self.owner_password_input.setPlaceholderText(tr("owner_password_placeholder"))
         self.owner_password_input.setEchoMode(QLineEdit.Password)
         self.owner_password_input.setMinimumHeight(35)
         # تطبيق نمط الثيمة على حقل الإدخال
@@ -104,16 +105,16 @@ class SecurityPage(BasePage):
         password_layout.addWidget(owner_password_label, 1, 1)
         password_layout.addWidget(self.owner_password_input, 2, 1)
         
-        permissions_label = QLabel("الأذونات (عند التشفير):")
+        permissions_label = QLabel(tr("permissions_label"))
         # تطبيق نمط الثيمة على التسمية
         apply_theme_style(permissions_label, "label")
 
-        self.allow_printing_cb = QCheckBox("السماح بالطباعة")
+        self.allow_printing_cb = QCheckBox(tr("allow_printing"))
         self.allow_printing_cb.setChecked(True)
         # تطبيق نمط الثيمة على مربع الاختيار
         apply_theme_style(self.allow_printing_cb, "checkbox")
 
-        self.allow_copying_cb = QCheckBox("السماح بالنسخ")
+        self.allow_copying_cb = QCheckBox(tr("allow_copying"))
         self.allow_copying_cb.setChecked(True)
         # تطبيق نمط الثيمة على مربع الاختيار
         apply_theme_style(self.allow_copying_cb, "checkbox")
@@ -131,10 +132,10 @@ class SecurityPage(BasePage):
         apply_theme_style(properties_container, "frame")
         properties_layout = QGridLayout(properties_container)
         properties_layout.setSpacing(15)
-        properties_layout.addWidget(create_section_label("خصائص الملف (Metadata)"), 0, 0, 1, 2)
+        properties_layout.addWidget(create_section_label(tr("metadata_section")), 0, 0, 1, 2)
 
         # Title and Author
-        title_label = QLabel("العنوان")
+        title_label = QLabel(tr("title_label"))
         apply_theme_style(title_label, "label")
         self.title_input = QLineEdit()
         self.title_input.setMinimumHeight(35)
@@ -142,7 +143,7 @@ class SecurityPage(BasePage):
         properties_layout.addWidget(title_label, 1, 0)
         properties_layout.addWidget(self.title_input, 2, 0)
 
-        author_label = QLabel("المؤلف")
+        author_label = QLabel(tr("author_label"))
         apply_theme_style(author_label, "label")
         self.author_input = QLineEdit()
         self.author_input.setMinimumHeight(35)
@@ -151,7 +152,7 @@ class SecurityPage(BasePage):
         properties_layout.addWidget(self.author_input, 2, 1)
 
         # Subject and Keywords
-        subject_label = QLabel("الموضوع")
+        subject_label = QLabel(tr("subject_label"))
         apply_theme_style(subject_label, "label")
         self.subject_input = QLineEdit()
         self.subject_input.setMinimumHeight(35)
@@ -159,7 +160,7 @@ class SecurityPage(BasePage):
         properties_layout.addWidget(subject_label, 3, 0)
         properties_layout.addWidget(self.subject_input, 4, 0)
 
-        keywords_label = QLabel("الكلمات المفتاحية")
+        keywords_label = QLabel(tr("keywords_label"))
         apply_theme_style(keywords_label, "label")
         self.keywords_input = QLineEdit()
         self.keywords_input.setMinimumHeight(35)
@@ -175,18 +176,18 @@ class SecurityPage(BasePage):
         from PySide6.QtWidgets import QComboBox
         self.action_combo = QComboBox()
         self.action_combo.addItems([
-            "تشفير الملف",
-            "فك تشفير الملف",
-            "تحديث الخصائص فقط"
+            tr("encrypt_file"),
+            tr("decrypt_file"),
+            tr("update_properties_only")
         ])
         self.action_combo.setMinimumWidth(200)
         # تطبيق نمط الثيمة على القائمة المنسدلة
         apply_theme_style(self.action_combo, "combo")
 
         # زر حفظ واحد
-        self.save_button = create_button("حفظ الملف", on_click=self.save_file_with_selected_action)
+        self.save_button = create_button(tr("save_file"), on_click=self.save_file_with_selected_action)
 
-        action_label = QLabel("اختر الإجراء:")
+        action_label = QLabel(tr("select_action"))
         apply_theme_style(action_label, "label")
         action_buttons_layout.addWidget(action_label)
         action_buttons_layout.addWidget(self.action_combo)
@@ -210,10 +211,10 @@ class SecurityPage(BasePage):
 
     def select_file(self):
         """فتح مربع حوار لاختيار ملف PDF"""
-        file_path, _ = QFileDialog.getOpenFileName(self, "اختر ملف PDF", "", "PDF Files (*.pdf)")
+        file_path, _ = QFileDialog.getOpenFileName(self, tr("select_pdf_file_title"), "", tr("pdf_files_filter_rotate"))
         if file_path:
             self.source_file = file_path
-            self.file_label.setText(f"الملف المحدد: {self.source_file}")
+            self.file_label.setText(tr("selected_file_label", path=self.source_file))
             self.load_pdf_properties(self.source_file)
             self.update_ui_state()
 
@@ -226,14 +227,14 @@ class SecurityPage(BasePage):
         # الحصول على الإجراء المحدد
         selected_action = self.action_combo.currentText()
 
-        if selected_action == "تشفير الملف":
+        if selected_action == tr("encrypt_file"):
             # تنفيذ عملية التشفير
             password = self.password_input.text()
             if not password:
                 # self.message_manager.show_warning("كلمة مرور فارغة", "الرجاء إدخال كلمة مرور للمستخدم.")
                 return
 
-            output_path = self.get_save_path("_encrypted")
+            output_path = self.get_save_path(tr("encrypted_suffix"))
             if not output_path:
                 return
 
@@ -246,23 +247,23 @@ class SecurityPage(BasePage):
             info(f"بدء عملية التشفير للملف: {self.source_file}")
             self.operations_manager.encrypt_pdf(self.source_file, output_path, password, owner_password, permissions)
 
-        elif selected_action == "فك تشفير الملف":
+        elif selected_action == tr("decrypt_file"):
             # تنفيذ عملية فك التشفير
             password = self.password_input.text()
             if not password:
                 # self.message_manager.show_warning("كلمة مرور فارغة", "الرجاء إدخال كلمة المرور الحالية لفك التشفير.")
                 return
 
-            output_path = self.get_save_path("_decrypted")
+            output_path = self.get_save_path(tr("decrypted_suffix"))
             if not output_path:
                 return
 
             info(f"بدء عملية فك التشفير للملف: {self.source_file}")
             self.operations_manager.decrypt_pdf(self.source_file, output_path, password)
 
-        elif selected_action == "تحديث الخصائص فقط":
+        elif selected_action == tr("update_properties_only"):
             # تنفيذ عملية تحديث الخصائص
-            output_path = self.get_save_path("_properties_updated")
+            output_path = self.get_save_path(tr("properties_updated_suffix"))
             if not output_path:
                 return
 
@@ -284,7 +285,7 @@ class SecurityPage(BasePage):
         self.action_combo.setEnabled(has_selection)
         
         if not has_selection:
-            self.file_label.setText("لم يتم اختيار أي ملف")
+            self.file_label.setText(tr("no_file_selected"))
             self.clear_properties_fields()
 
     def load_pdf_properties(self, file_path):
@@ -333,7 +334,7 @@ class SecurityPage(BasePage):
         
         # اقتراح اسم ملف جديد
         default_path = self.operations_manager.get_output_path(self.source_file, suffix)
-        save_path, _ = QFileDialog.getSaveFileName(self, "حفظ الملف", default_path, "PDF Files (*.pdf)")
+        save_path, _ = QFileDialog.getSaveFileName(self, tr("save_file_title"), default_path, tr("pdf_files_filter_rotate"))
         return save_path
 
     def encrypt_pdf(self):
@@ -347,7 +348,7 @@ class SecurityPage(BasePage):
             # self.message_manager.show_warning("كلمة مرور فارغة", "الرجاء إدخال كلمة مرور للمستخدم.")
             return
 
-        output_path = self.get_save_path("_encrypted")
+        output_path = self.get_save_path(tr("encrypted_suffix"))
         if not output_path:
             return
 
@@ -371,7 +372,7 @@ class SecurityPage(BasePage):
             # self.message_manager.show_warning("كلمة مرور فارغة", "الرجاء إدخال كلمة المرور الحالية لفك التشفير.")
             return
 
-        output_path = self.get_save_path("_decrypted")
+        output_path = self.get_save_path(tr("decrypted_suffix"))
         if not output_path:
             return
 
@@ -387,12 +388,12 @@ class SecurityPage(BasePage):
             self.password_input.setEchoMode(QLineEdit.Normal)
             eye_off_path = os.path.join(base_path, "assets", "icons", "default", "eye-off.svg")
             self.toggle_password_btn.setIcon(QIcon(eye_off_path))
-            self.toggle_password_btn.setToolTip("إخفاء كلمة المرور")
+            self.toggle_password_btn.setToolTip(tr("hide_password"))
         else:
             self.password_input.setEchoMode(QLineEdit.Password)
             eye_path = os.path.join(base_path, "assets", "icons", "default", "eye.svg")
             self.toggle_password_btn.setIcon(QIcon(eye_path))
-            self.toggle_password_btn.setToolTip("إظهار كلمة المرور")
+            self.toggle_password_btn.setToolTip(tr("show_password"))
 
     def toggle_owner_password_visibility(self):
         """تبديل إظهار/إخفاء كلمة مرور المالك"""
@@ -403,12 +404,12 @@ class SecurityPage(BasePage):
             self.owner_password_input.setEchoMode(QLineEdit.Normal)
             eye_off_path = os.path.join(base_path, "assets", "icons", "default", "eye-off.svg")
             self.toggle_owner_password_btn.setIcon(QIcon(eye_off_path))
-            self.toggle_owner_password_btn.setToolTip("إخفاء كلمة مرور المالك")
+            self.toggle_owner_password_btn.setToolTip(tr("hide_owner_password"))
         else:
             self.owner_password_input.setEchoMode(QLineEdit.Password)
             eye_path = os.path.join(base_path, "assets", "icons", "default", "eye.svg")
             self.toggle_owner_password_btn.setIcon(QIcon(eye_path))
-            self.toggle_owner_password_btn.setToolTip("إظهار كلمة مرور المالك")
+            self.toggle_owner_password_btn.setToolTip(tr("show_owner_password"))
 
     def update_properties(self):
         """تحديث خصائص ملف PDF"""
@@ -416,7 +417,7 @@ class SecurityPage(BasePage):
             # self.message_manager.show_warning("لم يتم تحديد ملف", "الرجاء تحديد ملف لتحديث خصائصه.")
             return
 
-        output_path = self.get_save_path("_properties_updated")
+        output_path = self.get_save_path(tr("properties_updated_suffix"))
         if not output_path:
             return
 

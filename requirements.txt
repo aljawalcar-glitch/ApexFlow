@@ -21,6 +21,10 @@ pycryptodome>=3.18.0
 # Pillow for image manipulation and conversion
 Pillow>=10.0.1
 
+# Libraries for Arabic text rendering in PDFs
+arabic_reshaper>=3.0.0
+python-bidi>=0.4.2
+
 # مراقبة النظام - System Monitoring
 # psutil for system resource monitoring
 psutil>=5.9.0

@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from .theme_manager import apply_theme_style
 from .svg_icon_button import create_action_button
+from modules.translator import tr
 import os
 
 class SplitPage(BasePageWidget):
@@ -21,7 +22,7 @@ class SplitPage(BasePageWidget):
         :param file_manager: مدير الملفات لاختيار الملف.
         :param operations_manager: مدير العمليات لتنفيذ التقسيم.
         """
-        super().__init__(page_title="تقسيم ملفات PDF", theme_key="split_page", parent=parent)
+        super().__init__(page_title=tr("split_page_title"), theme_key="split_page", parent=parent)
 
         self.file_manager = file_manager
         self.operations_manager = operations_manager
@@ -32,7 +33,7 @@ class SplitPage(BasePageWidget):
 
         # إضافة زر اختيار الملف
         self.add_top_button(
-            text="اختر ملف PDF للتقسيم",
+            text=tr("select_pdf_to_split"),
             on_click=self.select_file_for_splitting
         )
 
@@ -51,7 +52,7 @@ class SplitPage(BasePageWidget):
         self.save_and_split_layout = QHBoxLayout(self.save_and_split_widget)
 
         # فريم مجلد الحفظ
-        self.save_location_frame = QGroupBox("مجلد الحفظ")
+        self.save_location_frame = QGroupBox(tr("save_folder"))
         apply_theme_style(self.save_location_frame, "group_box", auto_register=True)
         save_layout = QVBoxLayout(self.save_location_frame)
 
@@ -59,12 +60,12 @@ class SplitPage(BasePageWidget):
         path_layout = QHBoxLayout()
 
         # عرض المسار التلقائي
-        self.save_location_label = QLabel("سيتم إنشاء مجلد تلقائياً في سطح المكتب")
+        self.save_location_label = QLabel(tr("auto_folder_creation"))
         apply_theme_style(self.save_location_label, "label", auto_register=True)
         self.save_location_label.setWordWrap(True)
 
         # زر تغيير المجلد
-        self.browse_save_btn = create_action_button("folder-open", 24, "تغيير المجلد")
+        self.browse_save_btn = create_action_button("folder-open", 24, tr("change_folder"))
         self.browse_save_btn.set_icon_color("#ffffff")
         self.browse_save_btn.clicked.connect(self.select_save_location)
 
@@ -74,12 +75,12 @@ class SplitPage(BasePageWidget):
         save_layout.addLayout(path_layout)
 
         # فريم زر التقسيم
-        self.split_button_frame = QGroupBox("تنفيذ")
+        self.split_button_frame = QGroupBox(tr("execute"))
         apply_theme_style(self.split_button_frame, "group_box", auto_register=True)
         split_layout = QVBoxLayout(self.split_button_frame)
 
         # زر التقسيم بأيقونة
-        self.split_button = create_action_button("scissors", 32, "تقسيم الملف")
+        self.split_button = create_action_button("scissors", 32, tr("split_file"))
         self.split_button.set_icon_color("#ffffff")
         self.split_button.clicked.connect(self.execute_split)
 
@@ -101,7 +102,7 @@ class SplitPage(BasePageWidget):
         self.clear_files()
         self.save_and_split_widget.setVisible(False)
 
-        file = self.file_manager.select_pdf_files(title="اختر ملف PDF للتقسيم", multiple=False)
+        file = self.file_manager.select_pdf_files(title=tr("select_pdf_to_split_title"), multiple=False)
         if file and os.path.exists(file):
             self.current_file_path = file
             self.file_list_frame.add_files([file])
@@ -112,7 +113,7 @@ class SplitPage(BasePageWidget):
             # إظهار التخطيط الكامل (فريم الحفظ + زر التقسيم)
             self.save_and_split_widget.setVisible(True)
         elif file:
-            print(f"خطأ: الملف غير موجود: {file}")
+            print(f"Error: File not found: {file}")
 
     def create_auto_save_path(self, file_path):
         """إنشاء مسار الحفظ التلقائي في سطح المكتب"""
@@ -123,13 +124,13 @@ class SplitPage(BasePageWidget):
         desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 
         # إنشاء اسم مجلد ذكي
-        folder_name = f"{file_name}_split_pages"
+        folder_name = f"{file_name}{tr('split_pages_suffix')}"
 
         # إنشاء مسار فريد لتجنب التضارب
         self.auto_save_path = self.create_unique_folder(desktop_path, folder_name)
 
         # تحديث النص المعروض
-        self.save_location_label.setText(f"المسار: {self.auto_save_path}")
+        self.save_location_label.setText(f"{tr('path_prefix')} {self.auto_save_path}")
 
     def create_unique_folder(self, base_path, folder_name):
         """إنشاء مجلد بأسم فريد لتجنب التضارب"""
@@ -147,7 +148,7 @@ class SplitPage(BasePageWidget):
                     os.makedirs(new_folder_path, exist_ok=True)
                     return new_folder_path
                 except Exception as e:
-                    print(f"خطأ في إنشاء المجلد: {e}")
+                    print(f"Error creating folder: {e}")
                     return base_path
 
             counter += 1
@@ -162,7 +163,7 @@ class SplitPage(BasePageWidget):
         # فتح حوار اختيار المجلد
         directory = QFileDialog.getExistingDirectory(
             self,
-            "ApexFlow - اختيار مجلد الحفظ",
+            tr("select_save_folder_title"),
             os.path.join(os.path.expanduser("~"), "Desktop")
         )
 
@@ -170,9 +171,9 @@ class SplitPage(BasePageWidget):
             # إنشاء مجلد فرعي ذكي
             if self.current_file_path:
                 file_name = os.path.splitext(os.path.basename(self.current_file_path))[0]
-                folder_name = f"{file_name}_split_pages"
+                folder_name = f"{file_name}{tr('split_pages_suffix')}"
                 self.auto_save_path = self.create_unique_folder(directory, folder_name)
-                self.save_location_label.setText(f"المسار: {self.auto_save_path}")
+                self.save_location_label.setText(f"{tr('path_prefix')} {self.auto_save_path}")
 
     def execute_split(self):
         """

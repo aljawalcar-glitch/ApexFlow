@@ -12,6 +12,8 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PySide6.QtCore import Qt, Signal, QMimeData, QPoint, QPropertyAnimation, QEasingCurve, QTimer
 from PySide6.QtGui import QDrag, QPainter, QPixmap, QIcon, QFont
 from .svg_icon_button import create_action_button
+from .theme_manager import make_theme_aware
+from modules.translator import tr
 
 class FileListItem(QListWidgetItem):
     """عنصر ملف مخصص مع معلومات إضافية"""
@@ -39,10 +41,10 @@ class FileListItem(QListWidgetItem):
                     self.is_valid = True
             else:
                 self.is_valid = False
-                self.error_message = "الملف غير موجود"
+                self.error_message = tr("file_not_found")
         except Exception as e:
             self.is_valid = False
-            self.error_message = f"خطأ في قراءة الملف: {str(e)}"
+            self.error_message = tr("error_reading_file", e=str(e))
     
     def validate_pdf(self):
         """التحقق من صحة ملف PDF"""
@@ -50,11 +52,11 @@ class FileListItem(QListWidgetItem):
             with open(self.file_path, 'rb') as file:
                 header = file.read(8)
                 if not header.startswith(b'%PDF-'):
-                    self.error_message = "ملف PDF غير صالح"
+                    self.error_message = tr("invalid_pdf_file")
                     return False
             return True
         except Exception as e:
-            self.error_message = f"خطأ في فحص PDF: {str(e)}"
+            self.error_message = tr("error_checking_pdf", e=str(e))
             return False
     
     def update_display(self):
@@ -64,11 +66,11 @@ class FileListItem(QListWidgetItem):
         
         if self.is_valid:
             # الحجم على اليسار واسم الملف على اليمين
-            display_text = f"الحجم: {size_text}                                                    {file_name}"
+            display_text = f"{tr('size_label')} {size_text}                                                    {file_name}"
             self.setToolTip(self.file_path)
         else:
-            display_text = f"{self.error_message}                                                    خطأ: {file_name}"
-            self.setToolTip(f"خطأ: {self.error_message}")
+            display_text = f"{self.error_message}                                                    {tr('error_label')} {file_name}"
+            self.setToolTip(f"{tr('error_label')} {self.error_message}")
         
         self.setText(display_text)
     
@@ -95,72 +97,7 @@ class DraggableListWidget(QListWidget):
         self.setDragDropMode(QListWidget.InternalMove)
         self.setDefaultDropAction(Qt.MoveAction)
         self.drag_start_position = QPoint()
-        
-        # تخصيص المظهر مع تأثيرات محسنة
-        self.setStyleSheet("""
-            QListWidget {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(45, 55, 72, 0.3),
-                    stop:1 rgba(26, 32, 44, 0.5));
-                border: 1px solid rgba(255, 111, 0, 0.2);
-                border-radius: 8px;
-                outline: none;
-                selection-background-color: transparent;
-                padding: 4px;
-            }
-            QListWidget::item {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 rgba(45, 55, 72, 0.8),
-                    stop:1 rgba(45, 55, 72, 0.6));
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 8px;
-                padding: 12px;
-                margin: 3px;
-                color: #e2e8f0;
-                font-weight: 500;
-            }
-            QListWidget::item:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 rgba(255, 111, 0, 0.3),
-                    stop:1 rgba(255, 111, 0, 0.1));
-                border: 1px solid rgba(255, 111, 0, 0.6);
-                color: white;
-            }
-            QListWidget::item:selected {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 rgba(255, 111, 0, 0.5),
-                    stop:1 rgba(255, 111, 0, 0.3));
-                border: 2px solid #ff6f00;
-                color: white;
-                font-weight: bold;
-            }
-            QScrollBar:vertical {
-                background: rgba(45, 55, 72, 0.5);
-                width: 10px;
-                margin: 0;
-                border-radius: 5px;
-            }
-            QScrollBar::handle:vertical {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #ff6f00,
-                    stop:1 #e65100);
-                min-height: 20px;
-                border-radius: 4px;
-                margin: 1px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #ff8f00,
-                    stop:1 #ff6f00);
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                height: 0;
-                background: none;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                background: transparent;
-            }
-        """)
+        make_theme_aware(self, "list_widget")
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -211,39 +148,13 @@ class DraggableListWidget(QListWidget):
         """عند دخول عنصر مسحوب"""
         if event.mimeData().hasText():
             event.acceptProposedAction()
-            self.setStyleSheet(self.styleSheet() + """
-                QListWidget {
-                    border: 2px dashed #ff6f00;
-                    background: rgba(255, 111, 0, 0.1);
-                }
-            """)
+            # The visual feedback for drag-and-drop should be handled by the theme or a more dynamic approach.
+            # For now, we remove the hardcoded style change to allow the theme to work correctly.
 
     def dragLeaveEvent(self, event):
         """عند خروج عنصر مسحوب"""
-        self.setStyleSheet("""
-            QListWidget {
-                background: transparent;
-                border: none;
-                outline: none;
-                selection-background-color: rgba(255, 111, 0, 0.3);
-            }
-            QListWidget::item {
-                background: rgba(45, 55, 72, 0.5);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 6px;
-                padding: 8px;
-                margin: 2px;
-                color: #e2e8f0;
-            }
-            QListWidget::item:hover {
-                background: rgba(255, 111, 0, 0.2);
-                border-color: rgba(255, 111, 0, 0.5);
-            }
-            QListWidget::item:selected {
-                background: rgba(255, 111, 0, 0.3);
-                border-color: #ff6f00;
-            }
-        """)
+        # Restore original style by reapplying the theme
+        make_theme_aware(self, "list_widget")
     
     def dropEvent(self, event):
         super().dropEvent(event)
@@ -262,6 +173,7 @@ class FileListFrame(QFrame):
     files_changed = Signal(list)  # عند تغيير قائمة الملفات
     file_removed = Signal(str)    # عند حذف ملف
     files_reordered = Signal(list)  # عند إعادة ترتيب الملفات
+    clear_button_clicked = Signal() # عند الضغط على زر السلة
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -277,7 +189,7 @@ class FileListFrame(QFrame):
         layout.setSpacing(5)
         
         # عنوان الفريم
-        self.title_label = QLabel("الملفات المختارة")
+        self.title_label = QLabel(tr("selected_files_title"))
         self.title_label.setStyleSheet("""
             QLabel {
                 color: #ff6f00;
@@ -292,8 +204,8 @@ class FileListFrame(QFrame):
         
         # قائمة الملفات - مساحة أكبر
         self.file_list = DraggableListWidget()
-        self.file_list.setMaximumHeight(180)  # ارتفاع أكبر (زيادة 60px)
         self.file_list.setMinimumHeight(120)  # حد أدنى للارتفاع
+        self.file_list.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.file_list.files_reordered.connect(self.on_files_reordered)
         self.file_list.itemDoubleClicked.connect(self.on_item_double_clicked)
         layout.addWidget(self.file_list)
@@ -303,15 +215,15 @@ class FileListFrame(QFrame):
         buttons_layout.setSpacing(5)
         
         # استخدام زر أيقونة SVG لمسح الكل (سيطبق اللون الأحمر تلقائياً)
-        self.clear_all_btn = create_action_button("delete", 16, "مسح جميع الملفات")
+        self.clear_all_btn = create_action_button("delete", 16, tr("clear_all_files_tooltip"))
         self.clear_all_btn.setMaximumWidth(40)
-        self.clear_all_btn.clicked.connect(self.clear_all_files)
+        self.clear_all_btn.clicked.connect(self.on_clear_all_clicked)
         
         buttons_layout.addWidget(self.clear_all_btn)
         buttons_layout.addStretch()
         
         # عداد الملفات
-        self.count_label = QLabel("0 ملف")
+        self.count_label = QLabel(tr("file_count_plural", count=0))
         self.count_label.setStyleSheet("""
             QLabel {
                 color: #a0aec0;
@@ -335,9 +247,9 @@ class FileListFrame(QFrame):
         # إضافة تأثير الظهور التدريجي
         self.setGraphicsEffect(None)  # بدون تأثيرات افتراضياً
         
-        # تحديد الحد الأدنى والأقصى للارتفاع - مساحة أكبر
-        self.setMinimumHeight(220)  # زيادة 60px
-        self.setMaximumHeight(220)
+        # تحديد الحد الأدنى للارتفاع
+        self.setMinimumHeight(220)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
     
     def add_files(self, file_paths):
         """إضافة ملفات جديدة"""
@@ -356,12 +268,12 @@ class FileListFrame(QFrame):
             # إظهار رسالة تأكيد
             count = len(added_files)
             if count == 1:
-                self.title_label.setText(f"تم إضافة ملف واحد")
+                self.title_label.setText(tr("file_added_single"))
             else:
-                self.title_label.setText(f"تم إضافة {count} ملف")
+                self.title_label.setText(tr("file_added_plural", count=count))
 
             # إعادة العنوان الأصلي بعد 3 ثوان
-            QTimer.singleShot(3000, lambda: self.title_label.setText("الملفات المختارة"))
+            QTimer.singleShot(3000, lambda: self.title_label.setText(tr("selected_files_title")))
     
     def remove_file(self, file_path):
         """حذف ملف محدد"""
@@ -379,8 +291,16 @@ class FileListFrame(QFrame):
             self.file_removed.emit(file_path)
             self.files_changed.emit(self.files)
     
+    def on_clear_all_clicked(self):
+        """عند الضغط على زر مسح الكل"""
+        self.clear_all_files()
+        self.clear_button_clicked.emit()
+
     def clear_all_files(self):
         """مسح جميع الملفات"""
+        if not self.files:
+            return  # لا تفعل شيئًا إذا كانت القائمة فارغة بالفعل
+            
         self.files.clear()
         self.file_list.clear()
         self.update_display()
@@ -395,7 +315,7 @@ class FileListFrame(QFrame):
     def update_display(self):
         """تحديث العرض"""
         count = len(self.files)
-        self.count_label.setText(f"{count} ملف" if count != 1 else "ملف واحد")
+        self.count_label.setText(tr("file_count_single") if count == 1 else tr("file_count_plural", count=count))
         
         # إظهار/إخفاء الفريم
         if count > 0:
@@ -452,11 +372,11 @@ class FileListFrame(QFrame):
             menu = QMenu(self)
 
             # حذف الملف
-            remove_action = menu.addAction("حذف الملف")
+            remove_action = menu.addAction(tr("remove_file_context_menu"))
             remove_action.triggered.connect(lambda: self.remove_file(item.file_path))
 
             # معلومات الملف
-            info_action = menu.addAction("معلومات الملف")
+            info_action = menu.addAction(tr("file_info_context_menu"))
             info_action.triggered.connect(lambda: self.show_file_info(item))
 
             menu.exec_(event.globalPos())
@@ -466,16 +386,16 @@ class FileListFrame(QFrame):
         from PySide6.QtWidgets import QMessageBox
 
         info_text = f"""
-        اسم الملف: {os.path.basename(item.file_path)}
-        المسار: {item.file_path}
-        الحجم: {item.format_file_size(item.file_size)}
-        الحالة: {'صالح' if item.is_valid else 'غير صالح'}
+        {tr("file_info_name")} {os.path.basename(item.file_path)}
+        {tr("file_info_path")} {item.file_path}
+        {tr("file_info_size")} {item.format_file_size(item.file_size)}
+        {tr("file_info_status")} {tr("file_info_status_valid") if item.is_valid else tr("file_info_status_invalid")}
         """
 
         if not item.is_valid:
-            info_text += f"\nالخطأ: {item.error_message}"
+            info_text += f"\n{tr('file_info_error')} {item.error_message}"
 
-        QMessageBox.information(self, "معلومات الملف", info_text)
+        QMessageBox.information(self, tr("file_info_title"), info_text)
 
     def refresh_files(self):
         """تحديث معلومات جميع الملفات"""

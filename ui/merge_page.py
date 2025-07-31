@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QMessageBox, QC
 from .base_page import BasePageWidget
 from .ui_helpers import create_button
 from .theme_manager import apply_theme_style
+from modules.translator import tr
 
 class MergePage(BasePageWidget):
     """
@@ -17,7 +18,7 @@ class MergePage(BasePageWidget):
         :param file_manager: مدير الملفات لاختيار الملفات.
         :param operations_manager: مدير العمليات لتنفيذ الدمج والطباعة.
         """
-        super().__init__(page_title="دمج وطباعة", theme_key="merge_page", parent=parent)
+        super().__init__(page_title=tr("merge_page_title"), theme_key="merge_page", parent=parent)
 
         self.file_manager = file_manager
         self.operations_manager = operations_manager
@@ -38,9 +39,9 @@ class MergePage(BasePageWidget):
 
         # --- أزرار إضافة الملفات ---
         add_files_layout = QHBoxLayout()
-        self.add_folder_button = create_button("إضافة مجلد")
+        self.add_folder_button = create_button(tr("add_folder"))
         self.add_folder_button.clicked.connect(self.add_folder)
-        self.add_file_button = create_button("إضافة ملف")
+        self.add_file_button = create_button(tr("add_file"))
         self.add_file_button.clicked.connect(self.select_files)
         add_files_layout.addWidget(self.add_folder_button)
         add_files_layout.addWidget(self.add_file_button)
@@ -52,10 +53,10 @@ class MergePage(BasePageWidget):
         apply_theme_style(self.action_widget, "frame", auto_register=True)
         action_layout = QHBoxLayout(self.action_widget)
 
-        self.printer_label = QLabel("اختر الطابعة:")
+        self.printer_label = QLabel(tr("select_printer"))
         self.printer_combo = QComboBox()
-        self.merge_button = create_button("دمج الملفات", is_default=True)
-        self.print_button = create_button("طباعة الملفات")
+        self.merge_button = create_button(tr("merge_files"), is_default=True)
+        self.print_button = create_button(tr("print_files"))
 
         # تطبيق أنماط الثيمة على العناصر
         apply_theme_style(self.printer_label, "label", auto_register=True)
@@ -88,7 +89,7 @@ class MergePage(BasePageWidget):
 
     def select_files(self):
         """فتح حوار لاختيار ملفات PDF وتحديث القائمة."""
-        files = self.file_manager.select_pdf_files(title="اختر ملفات PDF", multiple=True)
+        files = self.file_manager.select_pdf_files(title=tr("select_pdf_files_title"), multiple=True)
         if files:
             self.file_list_frame.add_files(files)
             # استدعاء on_files_changed يدوياً لضمان تحديث الواجهة
@@ -99,7 +100,7 @@ class MergePage(BasePageWidget):
         from modules.app_utils import browse_folder_simple
 
         # استخدام نافذة اختيار المجلد البسيطة
-        folder = browse_folder_simple(title="اختر مجلدًا يحتوي على ملفات PDF")
+        folder = browse_folder_simple(title=tr("select_folder_title"))
 
         # إذا تم اختيار مجلد، معالجته
         if folder:
@@ -112,8 +113,8 @@ class MergePage(BasePageWidget):
     def execute_merge(self):
         """تنفيذ عملية الدمج بعد تأكيد المستخدم."""
         files_to_merge = self.file_list_frame.get_valid_files()
-        reply = QMessageBox.question(self, 'تأكيد الدمج', 
-                                     f"هل أنت متأكد أنك تريد دمج {len(files_to_merge)} ملفات؟",
+        reply = QMessageBox.question(self, tr("confirm_merge_title"), 
+                                     tr("confirm_merge_message", count=len(files_to_merge)),
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             # تمرير الويدجت الأصل (self) لإظهار حوار التقدم
@@ -123,16 +124,16 @@ class MergePage(BasePageWidget):
         """تنفيذ عملية الطباعة بعد تأكيد المستخدم."""
         selected_files = self.file_list_frame.get_valid_files()
         if not selected_files:
-            QMessageBox.warning(self, "خطأ", "الرجاء تحديد ملف واحد على الأقل للطباعة.")
+            QMessageBox.warning(self, tr("error_title"), tr("select_one_file_message"))
             return
 
         printer_name = self.printer_combo.currentText()
         if not printer_name:
-            QMessageBox.warning(self, "خطأ", "الرجاء اختيار طابعة.")
+            QMessageBox.warning(self, tr("error_title"), tr("select_printer_message"))
             return
 
-        reply = QMessageBox.question(self, 'تأكيد الطباعة', 
-                                     f"هل أنت متأكد أنك تريد طباعة {len(selected_files)} ملف/ملفات إلى الطابعة '{printer_name}'؟",
+        reply = QMessageBox.question(self, tr("confirm_print_title"), 
+                                     tr("confirm_print_message", count=len(selected_files), printer=printer_name),
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
         if reply == QMessageBox.Yes:

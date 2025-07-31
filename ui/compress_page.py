@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from .theme_manager import apply_theme_style, make_theme_aware
 from .svg_icon_button import create_action_button
+from modules.translator import tr
 import os
 
 class CompressPage(BasePageWidget):
@@ -18,7 +19,7 @@ class CompressPage(BasePageWidget):
     واجهة المستخدم الخاصة بوظيفة ضغط ملفات PDF.
     """
     def __init__(self, file_manager, operations_manager, parent=None):
-        super().__init__(page_title="ضغط ملفات PDF", theme_key="compress_page", parent=parent)
+        super().__init__(page_title=tr("compress_page_title"), theme_key="compress_page", parent=parent)
 
         self.file_manager = file_manager
         self.operations_manager = operations_manager
@@ -27,11 +28,11 @@ class CompressPage(BasePageWidget):
         self.selected_files = []
 
         self.select_button = self.add_top_button(
-            text="اختر ملف PDF لتقليل الحجم",
+            text=tr("select_pdf_to_compress"),
             on_click=self.select_files_for_compression
         )
 
-        self.batch_mode_checkbox = QCheckBox("ضغط مجموعة ملفات")
+        self.batch_mode_checkbox = QCheckBox(tr("batch_compress_mode"))
         make_theme_aware(self.batch_mode_checkbox, "checkbox")
         self.batch_mode_checkbox.stateChanged.connect(self.on_mode_changed)
         self.main_layout.addWidget(self.batch_mode_checkbox)
@@ -42,7 +43,7 @@ class CompressPage(BasePageWidget):
         self.create_batch_options()
 
         self.compress_button = self.add_action_button(
-            text="ضغط الملفات",
+            text=tr("compress_files"),
             on_click=self.execute_compress,
             is_default=True
         )
@@ -52,27 +53,27 @@ class CompressPage(BasePageWidget):
     def create_save_location_frame(self):
         self.save_and_compress_layout = QHBoxLayout()
 
-        self.save_location_frame = QGroupBox("مجلد الحفظ")
+        self.save_location_frame = QGroupBox(tr("save_folder"))
         make_theme_aware(self.save_location_frame, "group_box")
         save_layout = QVBoxLayout(self.save_location_frame)
 
         path_layout = QHBoxLayout()
-        self.save_location_label = QLabel("المسار: لم يتم اختيار ملف بعد")
+        self.save_location_label = QLabel(tr("path_not_selected"))
         make_theme_aware(self.save_location_label, "label")
         self.save_location_label.setWordWrap(True)
 
-        self.browse_save_btn = create_action_button("folder-open", 24, "تغيير المجلد")
+        self.browse_save_btn = create_action_button("folder-open", 24, tr("change_folder"))
         self.browse_save_btn.clicked.connect(self.select_save_location)
 
         path_layout.addWidget(self.save_location_label, 1)
         path_layout.addWidget(self.browse_save_btn)
         save_layout.addLayout(path_layout)
 
-        self.single_compress_frame = QGroupBox("تنفيذ")
+        self.single_compress_frame = QGroupBox(tr("execute"))
         make_theme_aware(self.single_compress_frame, "group_box")
         compress_layout = QVBoxLayout(self.single_compress_frame)
 
-        self.single_compress_button = create_action_button("play", 24, "تنفيذ الضغط")
+        self.single_compress_button = create_action_button("play", 24, tr("execute_compression"))
         self.single_compress_button.clicked.connect(self.execute_compress)
         compress_layout.addWidget(self.single_compress_button)
         compress_layout.addStretch()
@@ -83,7 +84,7 @@ class CompressPage(BasePageWidget):
 
     def create_compression_slider(self):
         slider_layout = QVBoxLayout()
-        self.slider_title = QLabel("نسبة الضغط:")
+        self.slider_title = QLabel(tr("compression_ratio"))
         make_theme_aware(self.slider_title, "label")
         slider_layout.addWidget(self.slider_title)
 
@@ -110,25 +111,25 @@ class CompressPage(BasePageWidget):
         self.main_layout.addLayout(slider_layout)
 
     def create_compression_info_frame(self):
-        self.info_frame = QGroupBox("معلومات الضغط")
+        self.info_frame = QGroupBox(tr("compression_info"))
         make_theme_aware(self.info_frame, "group_box")
         info_layout = QHBoxLayout(self.info_frame)
 
         # Compression section
-        compression_section = self.create_info_section("نسبة الضغط", ["compression_level_label", "compression_percent_label"])
-        self.compression_level_label.setText("ضغط خفيف جداً")
+        compression_section = self.create_info_section(tr("compression_ratio"), ["compression_level_label", "compression_percent_label"])
+        self.compression_level_label.setText(tr("very_light_compression"))
         self.compression_percent_label.setText("(10%)")
         
         # Size section
-        size_section = self.create_info_section("الحجم المتوقع", ["original_size_label", "expected_size_label", "savings_label"])
-        self.original_size_label.setText("الأصلي: غير معروف")
-        self.expected_size_label.setText("المتوقع: غير معروف")
-        self.savings_label.setText("توفير: غير معروف")
+        size_section = self.create_info_section(tr("expected_size"), ["original_size_label", "expected_size_label", "savings_label"])
+        self.original_size_label.setText(tr("original_unknown"))
+        self.expected_size_label.setText(tr("expected_unknown"))
+        self.savings_label.setText(tr("saving_unknown"))
 
         # Quality section
-        quality_section = self.create_info_section("جودة الملف", ["quality_status_label", "quality_desc_label"])
-        self.quality_status_label.setText("ممتاز ✅")
-        self.quality_desc_label.setText("مناسب للضغط العالي")
+        quality_section = self.create_info_section(tr("file_quality"), ["quality_status_label", "quality_desc_label"])
+        self.quality_status_label.setText(tr("quality_excellent"))
+        self.quality_desc_label.setText(tr("quality_high_compression"))
 
         info_layout.addLayout(compression_section, 1)
         info_layout.addLayout(size_section, 1)
@@ -156,32 +157,32 @@ class CompressPage(BasePageWidget):
     def create_batch_options(self):
         self.batch_horizontal_layout = QHBoxLayout()
 
-        self.batch_save_frame = QGroupBox("مجلد الحفظ")
+        self.batch_save_frame = QGroupBox(tr("save_folder"))
         make_theme_aware(self.batch_save_frame, "group_box")
         batch_save_layout = QVBoxLayout(self.batch_save_frame)
-        self.batch_save_label = QLabel("سيتم إنشاء مجلد جديد")
+        self.batch_save_label = QLabel(tr("new_folder_will_be_created"))
         make_theme_aware(self.batch_save_label, "label")
         self.batch_save_label.setWordWrap(True)
-        self.batch_browse_btn = create_action_button("folder-open", 24, "تغيير المجلد")
+        self.batch_browse_btn = create_action_button("folder-open", 24, tr("change_folder"))
         self.batch_browse_btn.clicked.connect(self.select_batch_save_location)
         batch_save_layout.addWidget(self.batch_save_label)
         batch_save_layout.addWidget(self.batch_browse_btn)
 
-        self.batch_options_frame = QGroupBox("خيارات الضغط")
+        self.batch_options_frame = QGroupBox(tr("compression_options"))
         make_theme_aware(self.batch_options_frame, "group_box")
         batch_layout = QFormLayout(self.batch_options_frame)
         self.batch_compression_combo = QComboBox()
-        self.batch_compression_combo.addItems(["ضغط خفيف", "ضغط متوسط", "ضغط عالي", "ضغط أقصى"])
+        self.batch_compression_combo.addItems([tr("light_compression"), tr("medium_compression"), tr("high_compression"), tr("max_compression")])
         self.batch_compression_combo.setCurrentIndex(1)
         make_theme_aware(self.batch_compression_combo, "combo")
-        compression_label = QLabel("مستوى الضغط:")
+        compression_label = QLabel(tr("compression_level"))
         compression_label.setStyleSheet("background: transparent;")
         batch_layout.addRow(compression_label, self.batch_compression_combo)
 
-        self.batch_button_frame = QGroupBox("تنفيذ")
+        self.batch_button_frame = QGroupBox(tr("execute"))
         make_theme_aware(self.batch_button_frame, "group_box")
         button_layout = QVBoxLayout(self.batch_button_frame)
-        self.batch_compress_button = create_action_button("play", 24, "تنفيذ الضغط")
+        self.batch_compress_button = create_action_button("play", 24, tr("execute_compression"))
         self.batch_compress_button.clicked.connect(self.execute_compress)
         button_layout.addWidget(self.batch_compress_button)
         button_layout.addStretch()
@@ -223,12 +224,12 @@ class CompressPage(BasePageWidget):
     def on_mode_changed(self):
         self.clear_files()
         self.hide_all_frames()
-        button_text = "اختر ملفات PDF للضغط المجمع" if self.batch_mode_checkbox.isChecked() else "اختر ملف PDF لتقليل الحجم"
+        button_text = tr("select_pdfs_for_batch_compression") if self.batch_mode_checkbox.isChecked() else tr("select_pdf_to_compress")
         self.top_buttons_layout.itemAt(0).widget().setText(button_text)
 
     def select_files_for_compression(self):
         is_batch = self.batch_mode_checkbox.isChecked()
-        title = "اختر ملفات PDF للضغط المجمع" if is_batch else "اختر ملف PDF للضغط"
+        title = tr("select_pdfs_for_batch_compression") if is_batch else tr("select_pdf_to_compress_single")
         files = self.file_manager.select_pdf_files(title=title, multiple=is_batch)
 
         if not files: return
@@ -237,8 +238,8 @@ class CompressPage(BasePageWidget):
         if is_batch:
             self.file_list_frame.add_files(self.selected_files)
             base_dir = os.path.dirname(self.selected_files[0])
-            new_folder = self.create_unique_folder(base_dir, "compressed_files")
-            self.batch_save_label.setText(f"المسار: {new_folder}")
+            new_folder = self.create_unique_folder(base_dir, tr("compressed_files"))
+            self.batch_save_label.setText(f"{tr('path_prefix')} {new_folder}")
         else:
             self.current_file_path = self.selected_files[0]
             self.current_file_size = os.path.getsize(self.current_file_path) if os.path.exists(self.current_file_path) else 0
@@ -273,15 +274,15 @@ class CompressPage(BasePageWidget):
         if not self.current_file_path:
             return
         
-        directory = self.file_manager.select_directory("اختر مجلد الحفظ")
+        directory = self.file_manager.select_directory(tr("select_save_folder"))
         if directory:
             self.update_save_path(self.current_file_path, directory)
 
     def select_batch_save_location(self):
         """Opens a dialog to select a save directory for batch processing."""
-        directory = self.file_manager.select_directory("اختر مجلد الحفظ للمجموعة")
+        directory = self.file_manager.select_directory(tr("select_batch_save_folder"))
         if directory:
-            self.batch_save_label.setText(f"المسار: {directory}")
+            self.batch_save_label.setText(f"{tr('path_prefix')} {directory}")
 
     def update_save_path(self, file_path, base_dir=None):
         """Updates the save path label for a single file."""
@@ -290,8 +291,8 @@ class CompressPage(BasePageWidget):
         
         filename = os.path.basename(file_path)
         name, ext = os.path.splitext(filename)
-        new_filename = f"{name}_compressed{ext}"
-        self.save_location_label.setText(f"المسار: {os.path.join(base_dir, new_filename)}")
+        new_filename = f"{name}{tr('compressed_suffix')}{ext}"
+        self.save_location_label.setText(f"{tr('path_prefix')} {os.path.join(base_dir, new_filename)}")
 
     def create_unique_folder(self, base_dir, folder_name):
         """Creates a unique folder name to avoid overwriting."""
