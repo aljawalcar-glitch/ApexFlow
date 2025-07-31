@@ -148,15 +148,11 @@ class AppInfoWidget(QWidget):
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
         separator.setFixedHeight(2)
-        separator.setStyleSheet("""
-            QFrame {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 rgba(255, 111, 0, 0.0),
-                    stop:0.5 rgba(255, 111, 0, 0.4),
-                    stop:1 rgba(255, 111, 0, 0.0));
-                border: none;
-            }
-        """)
+        separator.setObjectName("theme_separator")
+
+        # تطبيق نمط السمة
+        from .theme_manager import apply_theme
+        apply_theme(separator, "theme_separator")
         layout.addWidget(separator)
         
         # منطقة الشعار واسم البرنامج
@@ -210,14 +206,11 @@ class AppInfoWidget(QWidget):
         
         # اسم البرنامج مع تنسيق نظيف
         app_name = QLabel(APP_NAME)
-        app_name.setStyleSheet("""
-            QLabel {
-                color: #ff6f00;
-                font-size: 13px;
-                font-weight: bold;
-                background: transparent;
-            }
-        """)
+        app_name.setObjectName("company_name")
+
+        # تطبيق نمط السمة
+        from .theme_manager import apply_theme
+        apply_theme(app_name, "company_name")
         header_layout.addWidget(app_name)
         
         header_layout.addStretch()

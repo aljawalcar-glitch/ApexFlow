@@ -67,7 +67,6 @@ class SecurityPage(BasePage):
 
         # 2. قسم إدارة كلمة المرور
         password_container = QWidget()
-        password_container.setLayoutDirection(Qt.RightToLeft)
         # تطبيق نمط الثيمة على الحاوية
         apply_theme_style(password_container, "frame")
         password_layout = QGridLayout(password_container)
@@ -127,7 +126,6 @@ class SecurityPage(BasePage):
 
         # 3. قسم خصائص الملف (Metadata)
         properties_container = QWidget()
-        properties_container.setLayoutDirection(Qt.RightToLeft)
         # تطبيق نمط الثيمة على الحاوية
         apply_theme_style(properties_container, "frame")
         properties_layout = QGridLayout(properties_container)

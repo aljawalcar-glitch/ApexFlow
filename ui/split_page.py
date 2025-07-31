@@ -64,9 +64,16 @@ class SplitPage(BasePageWidget):
         apply_theme_style(self.save_location_label, "label", auto_register=True)
         self.save_location_label.setWordWrap(True)
 
+        # تحديد لون الأيقونات حسب السمة
+        from .theme_manager import global_theme_manager
+        if global_theme_manager.current_theme == "light":
+            icon_color = "#333333"  # لون داكن للوضع الفاتح
+        else:
+            icon_color = "#ffffff"  # لون أبيض للوضع المظلم
+
         # زر تغيير المجلد
         self.browse_save_btn = create_action_button("folder-open", 24, tr("change_folder"))
-        self.browse_save_btn.set_icon_color("#ffffff")
+        self.browse_save_btn.set_icon_color(icon_color)
         self.browse_save_btn.clicked.connect(self.select_save_location)
 
         path_layout.addWidget(self.save_location_label, 1)
@@ -81,7 +88,7 @@ class SplitPage(BasePageWidget):
 
         # زر التقسيم بأيقونة
         self.split_button = create_action_button("scissors", 32, tr("split_file"))
-        self.split_button.set_icon_color("#ffffff")
+        self.split_button.set_icon_color(icon_color)
         self.split_button.clicked.connect(self.execute_split)
 
         split_layout.addWidget(self.split_button)

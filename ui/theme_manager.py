@@ -150,10 +150,16 @@ def apply_theme_style(widget: QWidget, widget_type: str = "default", auto_regist
         if auto_register:
             global_theme_manager.register_widget(widget, widget_type)
     
+    except RuntimeError:
+        # The widget was likely deleted. Ignore.
+        pass
     except Exception as e:
         print(f"خطأ فادح في تطبيق السمة على {widget_type}: {e}")
         # نمط احتياطي في حالة الفشل
-        widget.setStyleSheet("background-color: #1a202c; color: white;")
+        try:
+            widget.setStyleSheet("background-color: #1a202c; color: white;")
+        except RuntimeError:
+            pass # Widget deleted.
         
 def make_theme_aware(widget: QWidget, widget_type: str):
     """

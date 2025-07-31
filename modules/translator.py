@@ -73,3 +73,10 @@ def tr(key: str, **kwargs) -> str:
     دالة مختصرة للوصول إلى مثيل المترجم العالمي.
     """
     return translator.tr(key, **kwargs)
+
+def get_current_language() -> str:
+    """
+    Returns the current language code.
+    إرجاع رمز اللغة الحالية.
+    """
+    return translator.language

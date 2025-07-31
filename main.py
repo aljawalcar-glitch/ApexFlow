@@ -140,6 +140,13 @@ class ApexFlow(QMainWindow):
         return self._settings_ui_module
 
     def initUI(self):
+        # مسح التخطيط القديم إذا كان موجوداً
+        if hasattr(self, 'centralWidget') and self.centralWidget():
+            old_widget = self.centralWidget()
+            old_widget.setParent(None)
+            old_widget.deleteLater()
+            QApplication.processEvents()
+        
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         central_widget.setStyleSheet("background: transparent;")
@@ -205,10 +212,14 @@ class ApexFlow(QMainWindow):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(self.welcome_page)
+        
+
 
         # استخدام نظام السمات الموحد مع خلفية شفافة
         apply_theme_style(scroll, "graphics_view")
         scroll.viewport().setStyleSheet("background: transparent;")
+
+
 
         # إضافة صفحة الترحيب إلى المكدس
         self.stack.addWidget(scroll)  # الفهرس 0
@@ -237,13 +248,54 @@ class ApexFlow(QMainWindow):
         # ربط القائمة بالتحميل الكسول
         self.menu_list.currentRowChanged.connect(self.load_page_on_demand)
 
-        # إضافة العناصر للتخطيط الرئيسي (مع مراعاة اتجاه الواجهة)
-        if self.layoutDirection() == Qt.RightToLeft:
-            main_layout.addWidget(self.stack)
-            main_layout.addWidget(sidebar_widget)
+        # حفظ مراجع العناصر
+        self.sidebar_widget = sidebar_widget
+        self.main_layout = main_layout
+        
+        # إضافة العناصر للتخطيط الرئيسي بالترتيب الافتراضي أولاً (للعربية)
+        main_layout.addWidget(sidebar_widget)
+        main_layout.addWidget(self.stack)
+        
+        # ترتيب التخطيط حسب اللغة
+        self.arrange_layout()
+        
+        # تحديث اتجاه شريط التمرير
+        self.update_scrollbars_direction()
+        
+    def arrange_layout(self):
+        """ترتيب التخطيط حسب اللغة"""
+        if not hasattr(self, 'main_layout') or not hasattr(self, 'sidebar_widget'):
+            return
+        
+        if not hasattr(self, 'stack'):
+            return
+            
+        language = self.settings_data.get("language", "ar")
+        
+        # مسح العناصر من التخطيط
+        self.main_layout.removeWidget(self.stack)
+        self.main_layout.removeWidget(self.sidebar_widget)
+        
+        # إضافة العناصر بالترتيب الصحيح (مع مراعاة RightToLeft)
+        if language == "ar":
+            # في RightToLeft: العنصر الأول يظهر يميناً، الثاني يساراً
+            self.main_layout.addWidget(self.sidebar_widget)  # البنل أولاً (يظهر يميناً)
+            self.main_layout.addWidget(self.stack)  # المحتوى ثانياً (يظهر يساراً)
         else:
-            main_layout.addWidget(sidebar_widget)
-            main_layout.addWidget(self.stack)
+            # في LeftToRight: العنصر الأول يظهر يساراً، الثاني يميناً
+            self.main_layout.addWidget(self.sidebar_widget)  # البنل أولاً (يظهر يساراً)
+            self.main_layout.addWidget(self.stack)  # المحتوى ثانياً (يظهر يميناً)
+    
+    def update_scrollbars_direction(self):
+        """تحديث اتجاه شريط التمرير في جميع الصفحات"""
+        language = self.settings_data.get("language", "ar")
+        direction = Qt.RightToLeft if language == "ar" else Qt.LeftToRight
+        
+        # تحديث جميع QScrollArea في التطبيق
+        for i in range(self.stack.count()):
+            page = self.stack.widget(i)
+            if isinstance(page, QScrollArea):
+                page.setLayoutDirection(direction)
 
         # إعداد اختصارات لوحة المفاتيح (بدون تحميل الوحدات)
         self.setup_keyboard_shortcuts_lazy()
@@ -712,15 +764,31 @@ class ApexFlow(QMainWindow):
         # إعادة تحميل الإعدادات
         self.settings_data = load_settings()
 
-        # تطبيق اتجاه الواجهة الجديد
-        self.apply_layout_direction()
+        # إعادة تحميل وحدة الترجمة لتطبيق اللغة الجديدة فوراً
+        import importlib
+        from modules import translator
+        importlib.reload(translator)
+        # We need to re-import `tr` as the module has been reloaded
+        from modules.translator import tr
         
-        # إعادة بناء الواجهة الرئيسية لعكس الشريط الجانبي
-        # هذا يتطلب إعادة تهيئة الواجهة بالكامل
-        # ملاحظة: هذا قد يسبب وميضًا بسيطًا، ولكنه ضروري لعكس التخطيط
+        # تطبيق اتجاه الواجهة الجديد
+        language = self.settings_data.get("language", "ar")
+        if language == "ar":
+            QApplication.instance().setLayoutDirection(Qt.RightToLeft)
+            self.setLayoutDirection(Qt.RightToLeft)
+        else:
+            QApplication.instance().setLayoutDirection(Qt.LeftToRight)
+            self.setLayoutDirection(Qt.LeftToRight)
+        
+        # إعادة بناء الواجهة الرئيسية لعكس الشريط الجانبي وتحديث النصوص
         self.initUI()
+        # إعادة ترتيب التخطيط إذا كانت العناصر موجودة
+        if hasattr(self, 'arrange_layout'):
+            self.arrange_layout()
+        # تحديث اتجاه شريط التمرير
+        if hasattr(self, 'update_scrollbars_direction'):
+            self.update_scrollbars_direction()
         self.apply_theme_delayed()
-
 
         # تطبيق الإعدادات الجديدة على الواجهة
         self.apply_ui_settings()

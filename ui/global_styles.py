@@ -159,6 +159,11 @@ def get_widget_style(widget_type, colors, accent_color):
             QMenu::item:hover, QListWidget::item:hover {{
                 background-color: rgba(255, 255, 255, 0.1);
             }}
+            QMenu::item:selected:hover, QListWidget::item:selected:hover {{
+                background-color: {darken_color(accent_color, 0.2)};
+                color: white;
+                font-weight: bold;
+            }}
         """
 
     elif widget_type == "button":
@@ -184,12 +189,70 @@ def get_widget_style(widget_type, colors, accent_color):
             QFrame {{ background-color: {colors["surface"]}; border: none; border-radius: 8px; }}
         """
 
+    elif widget_type == "slider_indicator":
+        return f"""
+            QFrame {{ background-color: {accent_color}; border: none; border-radius: 3px; }}
+        """
+
+    elif widget_type == "tab_button":
+        return f"""
+            QPushButton {{
+                background: transparent;
+                border: none;
+                outline: none;
+                font-size: 16px;
+                font-weight: normal;
+                padding: 15px 25px;
+                color: {colors["text_body"]};
+                border-radius: 8px;
+            }}
+            QPushButton:hover {{
+                background: {colors["surface"]};
+            }}
+            QPushButton:checked {{
+                background: {colors["surface"]};
+                font-weight: bold;
+            }}
+        """
+
+    elif widget_type == "theme_separator":
+        # استخراج قيم RGB من لون السمة
+        if accent_color.startswith('#'):
+            hex_color = accent_color[1:]
+            r = int(hex_color[0:2], 16)
+            g = int(hex_color[2:4], 16)
+            b = int(hex_color[4:6], 16)
+        else:
+            r, g, b = 255, 111, 0  # fallback
+
+        return f"""
+            QFrame {{
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 rgba({r}, {g}, {b}, 0.0),
+                    stop:0.5 rgba({r}, {g}, {b}, 0.4),
+                    stop:1 rgba({r}, {g}, {b}, 0.0));
+                border: none;
+            }}
+        """
+
     elif widget_type == "separator":
          return f"""
             QFrame {{
                 background-color: {colors["border"]};
                 border: none;
                 height: 1px;
+            }}
+        """
+
+    elif widget_type == "company_name":
+        return f"""
+            QLabel {{
+                color: {accent_color};
+                font-size: 13px;
+                font-weight: bold;
+                background: transparent;
+                border: none;
+                outline: none;
             }}
         """
 
@@ -481,6 +544,101 @@ def lighten_color(color, factor=0.2):
 # Keep compatibility functions if they are used elsewhere
 def get_button_style(colors, accent_color):
     return get_widget_style("button", colors, accent_color)
+
+
+
+def get_rtl_aware_scroll_style(colors, accent_color):
+    """دالة للحصول على ستايل scrollbar مع دعم RTL/LTR"""
+    try:
+        from modules import settings
+        settings_data = settings.load_settings()
+        ui_settings = settings_data.get("ui_settings", {})
+        language = ui_settings.get("language", "العربية")
+
+        # نفس الستايل للآن، لكن يمكن تخصيصه لاحقاً
+        return f"""
+            QScrollBar:vertical {{
+                background: {colors["surface"]};
+                width: 8px;
+                border-radius: 4px;
+                margin: 0;
+                border: 1px solid {colors["border"]};
+            }}
+            QScrollBar::handle:vertical {{
+                background: {accent_color};
+                border-radius: 4px;
+                min-height: 20px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background: {darken_color(accent_color)};
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0;
+                background: none;
+            }}
+            QScrollBar:horizontal {{
+                background: {colors["surface"]};
+                height: 8px;
+                border-radius: 4px;
+                margin: 0;
+                border: 1px solid {colors["border"]};
+            }}
+            QScrollBar::handle:horizontal {{
+                background: {accent_color};
+                border-radius: 4px;
+                min-width: 20px;
+            }}
+            QScrollBar::handle:horizontal:hover {{
+                background: {darken_color(accent_color)};
+            }}
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+                width: 0;
+                background: none;
+            }}
+        """
+    except:
+        # في حالة حدوث خطأ، استخدم الستايل الافتراضي
+        return f"""
+            QScrollBar:vertical {{
+                background: {colors["surface"]};
+                width: 8px;
+                border-radius: 4px;
+                margin: 0;
+                border: 1px solid {colors["border"]};
+            }}
+            QScrollBar::handle:vertical {{
+                background: {accent_color};
+                border-radius: 4px;
+                min-height: 20px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background: {darken_color(accent_color)};
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0;
+                background: none;
+            }}
+            QScrollBar:horizontal {{
+                background: {colors["surface"]};
+                height: 8px;
+                border-radius: 4px;
+                margin: 0;
+                border: 1px solid {colors["border"]};
+            }}
+            QScrollBar::handle:horizontal {{
+                background: {accent_color};
+                border-radius: 4px;
+                min-width: 20px;
+            }}
+            QScrollBar::handle:horizontal:hover {{
+                background: {darken_color(accent_color)};
+            }}
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+                width: 0;
+                background: none;
+            }}
+        """
+
 
 def get_scroll_style(colors, accent_color):
     return get_widget_style("graphics_view", colors, accent_color)

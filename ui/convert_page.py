@@ -46,18 +46,16 @@ class ConvertPage(BasePageWidget):
         header_area_layout.setContentsMargins(0, 0, 0, 0)
         header_area_layout.setSpacing(5) # مسافة صغيرة بين العنوان والأزرار
 
+        # تخطيط موحد للعنوان والأزرار مع مراعاة اتجاه اللغة
+        header_content_layout = QHBoxLayout()
+        header_content_layout.setSpacing(20)
+
         # العنوان
         self.title_label = create_title(tr("convert_files_title"))
-        # تأكد من أن العنوان يمتد بعرض النافذة
-        title_layout = QHBoxLayout()
-        title_layout.addWidget(self.title_label)
-        title_layout.addStretch()
-        header_area_layout.addLayout(title_layout)
 
-        # تخطيط أفقي للأزرار لوضعها على اليمين
+        # تخطيط الأزرار
         buttons_layout = QHBoxLayout()
         buttons_layout.setSpacing(0)  # المسافة بين الأزرار 0
-        buttons_layout.addStretch()   # لدفع الأزرار إلى أقصى اليمين
 
         # أزرار التحويل (التبويبات)
         self.convert_options = {
@@ -67,28 +65,84 @@ class ConvertPage(BasePageWidget):
             "text_to_pdf": tr("text_to_pdf"),
         }
 
+        # حاوية للأزرار والمؤشر
+        buttons_container = QWidget()
+        buttons_container_layout = QVBoxLayout(buttons_container)
+        buttons_container_layout.setContentsMargins(0, 0, 0, 0)
+        buttons_container_layout.setSpacing(0)
+
+        # تخطيط الأزرار
+        buttons_widget = QWidget()
+        buttons_widget_layout = QHBoxLayout(buttons_widget)
+        buttons_widget_layout.setContentsMargins(0, 0, 0, 0)
+        buttons_widget_layout.setSpacing(0)
+
         for key, text in self.convert_options.items():
             button = QPushButton(text)
             button.setObjectName(key)
             button.setCheckable(True)
             button.clicked.connect(self.on_tab_selected)
             button.setProperty("class", "tab-button")
-            # تطبيق النمط الخاص هنا
-            button.setStyleSheet(self.get_special_button_style())
+
+            # استخدام نظام السمات الموحد
+            from .theme_manager import apply_theme
+            apply_theme(button, "tab_button")
+
             self.top_buttons[key] = button
-            buttons_layout.addWidget(button)
+            buttons_widget_layout.addWidget(button)
+
+        # مؤشر الانزلاق المحسن
+        from PySide6.QtWidgets import QFrame
+        self.slider_indicator = QFrame()
+        from .theme_manager import apply_theme
+        apply_theme(self.slider_indicator, "slider_indicator")
+        self.slider_indicator.setFixedHeight(3)
+
+        buttons_container_layout.addWidget(buttons_widget)
+        buttons_container_layout.addWidget(self.slider_indicator)
+
+        buttons_layout.addWidget(buttons_container)
         
-        header_area_layout.addLayout(buttons_layout)
+        # ترتيب العنوان والأزرار حسب اتجاه اللغة
+        from modules.translator import get_current_language
+        current_lang = get_current_language()
+
+        if current_lang == "ar":  # العربية: العنوان يمين، الأزرار يسار
+            header_content_layout.addLayout(buttons_layout)
+            header_content_layout.addStretch()
+            header_content_layout.addWidget(self.title_label)
+        else:  # الإنجليزية: العنوان يسار، الأزرار يمين
+            header_content_layout.addWidget(self.title_label)
+            header_content_layout.addStretch()
+            header_content_layout.addLayout(buttons_layout)
+
+        header_area_layout.addLayout(header_content_layout)
 
         # أزرار التحكم بالعملية
         self.controls_layout = QHBoxLayout()
-        self.controls_layout.setAlignment(Qt.AlignRight)
+
         self.add_files_btn = create_button(tr("add_files_convert"), on_click=self.select_files)
         self.cancel_btn = create_button(tr("cancel_operation"), on_click=self.reset_ui)
         self.cancel_btn.setProperty("class", "cancel-button")
 
+        # ترتيب الأزرار حسب اتجاه اللغة
+        current_lang = get_current_language()
+
+        # تنظيف التخطيط أولاً لتجنب التكرار
+        while self.controls_layout.count():
+            child = self.controls_layout.takeAt(0)
+            if child.widget():
+                child.widget().setParent(None)
+
+        # إضافة الأزرار بترتيب ثابت
         self.controls_layout.addWidget(self.add_files_btn)
         self.controls_layout.addWidget(self.cancel_btn)
+
+        # محاذاة حسب اللغة باستخدام LayoutDirection
+        if current_lang == "ar":  # العربية: أزرار على اليمين
+            self.controls_layout.setAlignment(Qt.AlignRight)
+        else:  # الإنجليزية: أزرار على اليسار
+            self.controls_layout.setAlignment(Qt.AlignLeft)
         header_area_layout.addLayout(self.controls_layout)
 
         self.main_layout.insertLayout(0, header_area_layout)
@@ -188,6 +242,7 @@ class ConvertPage(BasePageWidget):
         self.add_files_btn.show()
         self.cancel_btn.show()
         self.update_controls_visibility([])
+        self.update_slider_position()
 
     def select_files(self):
         if not self.active_operation: return
@@ -279,3 +334,15 @@ class ConvertPage(BasePageWidget):
         has_files = bool(files)
         self.save_location_frame.setVisible(has_files)
         self.process_frame.setVisible(has_files)
+
+    def update_slider_position(self):
+        """تحديث موضع مؤشر الانزلاق المحسن"""
+        from PySide6.QtCore import QTimer
+        if hasattr(self, 'slider_indicator') and self.top_buttons and self.active_operation:
+            if self.active_operation in self.top_buttons:
+                btn = self.top_buttons[self.active_operation]
+                # تأخير التحديث للتأكد من أن الأزرار تم رسمها
+                QTimer.singleShot(50, lambda: self.slider_indicator.setGeometry(
+                    btn.x(), btn.y() + btn.height() - 3,
+                    btn.width(), 3
+                ))

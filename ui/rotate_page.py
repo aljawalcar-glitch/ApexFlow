@@ -105,57 +105,64 @@ class RotatePage(QWidget):
         apply_theme_style(self.page_label, "label", auto_register=True)
         self.update_page_label()
 
+        # تحديد لون الأيقونات حسب السمة
+        from .theme_manager import global_theme_manager
+        if global_theme_manager.current_theme == "light":
+            icon_color = "#333333"  # لون داكن للوضع الفاتح
+        else:
+            icon_color = "#ffffff"  # لون أبيض للوضع المظلم
+
         # أقصى الشمال: التنقل
         self.prev_btn = create_navigation_button("prev", 24, tr("previous_page"))
-        self.prev_btn.set_icon_color("#ffffff")
+        self.prev_btn.set_icon_color(icon_color)
         self.prev_btn.setEnabled(False)
         self.prev_btn.clicked.connect(self.prev_page)
 
         self.next_btn = create_navigation_button("next", 24, tr("next_page"))
-        self.next_btn.set_icon_color("#ffffff")
+        self.next_btn.set_icon_color(icon_color)
         self.next_btn.setEnabled(False)
         self.next_btn.clicked.connect(self.next_page)
 
         # أزرار التدوير (شمال) - أيقونات تدوير حقيقية
         self.rotate_left_btn = create_action_button("rotate-ccw", 24, tr("rotate_left"))
-        self.rotate_left_btn.set_icon_color("#ffffff")
+        self.rotate_left_btn.set_icon_color(icon_color)
         self.rotate_left_btn.setEnabled(False)
         self.rotate_left_btn.clicked.connect(self.rotate_left)
 
         self.rotate_right_btn = create_action_button("rotate-cw", 24, tr("rotate_right"))
-        self.rotate_right_btn.set_icon_color("#ffffff")
+        self.rotate_right_btn.set_icon_color(icon_color)
         self.rotate_right_btn.setEnabled(False)
         self.rotate_right_btn.clicked.connect(self.rotate_right)
 
         # زر الختم
         self.stamp_btn = create_action_button("stamp", 24, tr("add_stamp"))
-        self.stamp_btn.set_icon_color("#ffffff")
+        self.stamp_btn.set_icon_color(icon_color)
         self.stamp_btn.setEnabled(False)
         self.stamp_btn.clicked.connect(self.open_stamp_manager)
 
         # أزرار تكبير وتصغير الختم (مخفية في البداية)
         self.zoom_in_btn = create_action_button("stamp-zoom-in", 24, tr("zoom_in_stamp"))
-        self.zoom_in_btn.set_icon_color("#ffffff")
+        self.zoom_in_btn.set_icon_color(icon_color)
         self.zoom_in_btn.setVisible(False)  # مخفي في البداية
         self.zoom_in_btn.clicked.connect(self.zoom_selected_stamp_in)
 
         self.zoom_out_btn = create_action_button("stamp-zoom-out", 24, tr("zoom_out_stamp"))
-        self.zoom_out_btn.set_icon_color("#ffffff")
+        self.zoom_out_btn.set_icon_color(icon_color)
         self.zoom_out_btn.setVisible(False)  # مخفي في البداية
         self.zoom_out_btn.clicked.connect(self.zoom_selected_stamp_out)
 
         # اليمين: إدارة الملفات
         self.file_btn = create_action_button("folder", 24, tr("select_pdf_file"))
-        self.file_btn.set_icon_color("#ffffff")
+        self.file_btn.set_icon_color(icon_color)
         self.file_btn.clicked.connect(self.select_file)
 
         self.reset_btn = create_action_button("reset", 24, tr("reset_rotation"))
-        self.reset_btn.set_icon_color("#ffffff")
+        self.reset_btn.set_icon_color(icon_color)
         self.reset_btn.setEnabled(False)
         self.reset_btn.clicked.connect(self.reset_rotation)
 
         self.save_btn = create_action_button("save", 24, tr("save_rotated_file"))
-        self.save_btn.set_icon_color("#ffffff")
+        self.save_btn.set_icon_color(icon_color)
         self.save_btn.setEnabled(False)
         self.save_btn.clicked.connect(self.save_file)
 

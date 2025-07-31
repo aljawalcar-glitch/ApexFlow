@@ -12,7 +12,8 @@ sys.path.insert(0, project_root)
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QPushButton, QCheckBox, QSpinBox, QSlider, QGroupBox,
-    QFileDialog, QMessageBox, QFormLayout, QFrame, QScrollArea, QStackedWidget
+    QFileDialog, QMessageBox, QFormLayout, QFrame, QScrollArea, QStackedWidget,
+    QApplication
 )
 from PySide6.QtCore import Qt, QTimer, Signal
 from modules import settings
@@ -52,9 +53,32 @@ class StepIndicator(QWidget):
             btn.setCheckable(True)
             btn.clicked.connect(lambda checked, ui_idx=i: self.step_clicked.emit(ui_idx))
 
-            # استخدام نظام السمات الموحد
-            from .theme_manager import apply_theme
+            # استخدام نظام السمات الموحد مع تحديد لون النص
+            from .theme_manager import apply_theme, global_theme_manager
             apply_theme(btn, "button")
+
+            # إضافة لون النص المناسب حسب السمة
+            if global_theme_manager.current_theme == "light":
+                text_color = "#333333" 
+                hover_bg = "rgba(0, 0, 0, 0.1)"
+            else:
+                text_color = "#ffffff"
+                hover_bg = "rgba(255, 255, 255, 0.1)"
+
+            btn.setStyleSheet(f'''
+                QPushButton {{
+                    background: transparent;
+                    border: none;
+                    outline: none;
+                    font-size: 16px;
+                    font-weight: normal;
+                    padding: 15px 25px;
+                    color: {text_color};
+                }}
+                QPushButton:hover {{
+                    background: {hover_bg};
+                }}
+            ''')
 
             self.step_buttons.append(btn)
             layout.addWidget(btn)
@@ -64,7 +88,7 @@ class StepIndicator(QWidget):
 
         # استخدام نظام السمات الموحد
         from .theme_manager import apply_theme
-        apply_theme(self.slider_indicator, "frame")
+        apply_theme(self.slider_indicator, "slider_indicator")
         self.update_slider_position()
 
     def logical_to_ui_index(self, logical_index):
@@ -116,9 +140,32 @@ class StepIndicator(QWidget):
         self.current_step = step
 
         for i, btn in enumerate(self.step_buttons):
-            # استخدام نظام السمات الموحد
-            from .theme_manager import apply_theme
+            # استخدام نظام السمات الموحد مع تحديد لون النص
+            from .theme_manager import apply_theme, global_theme_manager
             apply_theme(btn, "button")
+
+            # إضافة لون النص المناسب حسب السمة
+            if global_theme_manager.current_theme == "light":
+                text_color = "#333333" 
+                hover_bg = "rgba(0, 0, 0, 0.1)"
+            else:
+                text_color = "#ffffff"
+                hover_bg = "rgba(255, 255, 255, 0.1)"
+
+            btn.setStyleSheet(f'''
+                QPushButton {{
+                    background: transparent;
+                    border: none;
+                    outline: none;
+                    font-size: 16px;
+                    font-weight: {"bold" if i == step else "normal"};
+                    padding: 15px 25px;
+                    color: {text_color};
+                }}
+                QPushButton:hover {{
+                    background: {hover_bg};
+                }}
+            ''')
             btn.setChecked(i == step)
 
         self.update_slider_position()
@@ -267,16 +314,16 @@ class SettingsUI(ThemeAwareDialog):
         # إضافة مسافة لمحاذاة الأزرار مع عنوان الصفحة (30px من اليسار)
         nav_layout.addSpacing(30)
 
-        # زر التالي (يسار) - أيقونة سهم يسار مع لون السمة
-        self.next_btn = create_navigation_button("prev", 24, tr("next_step"))
+        # زر التالي (يسار) - أيقونة سهم يمين مع لون السمة
+        self.next_btn = create_navigation_button("next", 24, tr("next_step"))
         self.next_btn.clicked.connect(self.next_step)
         nav_layout.addWidget(self.next_btn)
 
         # مسافة قليلة بين الأزرار
         nav_layout.addSpacing(15)
 
-        # زر السابق (يمين) - أيقونة سهم يمين مع لون السمة
-        self.prev_btn = create_navigation_button("next", 24, tr("previous_step"))
+        # زر السابق (يمين) - أيقونة سهم يسار مع لون السمة
+        self.prev_btn = create_navigation_button("prev", 24, tr("previous_step"))
         self.prev_btn.clicked.connect(self.previous_step)
         self.prev_btn.setEnabled(False)  # معطل في البداية بدلاً من مخفي
         nav_layout.addWidget(self.prev_btn)
@@ -986,21 +1033,29 @@ class SettingsUI(ThemeAwareDialog):
         except:
             theme_color = '#ff6f00'
 
-        # زر التالي (← التالي) - شفاف مثل الصورة
+        # تحديد لون الأيقونة حسب السمة
+        if global_theme_manager.current_theme == "light":
+            active_color = "#333333"  # لون داكن للوضع الفاتح
+        else:
+            active_color = "#ffffff"  # لون أبيض للوضع المظلم
+
+        disabled_color = "#666666"  # لون معطل موحد
+
+        # زر التالي (← التالي)
         if self.current_step > 0:
             self.next_btn.setEnabled(True)
-            self.next_btn.set_icon_color("#ffffff")  # أبيض شفاف
+            self.next_btn.set_icon_color(active_color)
         else:
             self.next_btn.setEnabled(False)
-            self.next_btn.set_icon_color("#666666")  # لون معطل
+            self.next_btn.set_icon_color(disabled_color)
 
-        # زر السابق (السابق →) - شفاف مثل الصورة
+        # زر السابق (السابق →)
         if self.current_step < len(self.step_indicator.steps) - 1:
             self.prev_btn.setEnabled(True)
-            self.prev_btn.set_icon_color("#ffffff")  # أبيض شفاف
+            self.prev_btn.set_icon_color(active_color)
         else:
             self.prev_btn.setEnabled(False)
-            self.prev_btn.set_icon_color("#666666")  # لون معطل
+            self.prev_btn.set_icon_color(disabled_color)
 
     def update_changes_report(self):
         """تحديث تقرير التغييرات مع معالجة أخطاء محسنة"""
@@ -1166,6 +1221,9 @@ class SettingsUI(ThemeAwareDialog):
             if hasattr(self, 'theme_combo'):
                 current["theme"] = self.theme_combo.currentText()
                 current["accent_color"] = self.accent_color_input.text() or "#ff6f00"
+                
+                if hasattr(self, 'language_combo'):
+                    current["language"] = "ar" if self.language_combo.currentText() == "العربية" else "en"
 
                 ui_settings = {}
                 # إعدادات الخطوط
@@ -1435,8 +1493,8 @@ class SettingsUI(ThemeAwareDialog):
         """Handle language change from the settings UI."""
         lang_code = "ar" if language_text == "العربية" else "en"
         
-        # Save the setting
-        settings.set_setting("language", lang_code)
+        # Update internal state, do not save immediately
+        self.settings_data["language"] = lang_code
         
         # Apply layout direction immediately
         app = QApplication.instance()
@@ -1445,6 +1503,11 @@ class SettingsUI(ThemeAwareDialog):
         else:
             app.setLayoutDirection(Qt.LeftToRight)
 
+        # Force the settings window to re-polish its style and update layout
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self.update()
+        
         # Mark changes and show restart message
         self.mark_as_changed()
         QMessageBox.information(self, 
