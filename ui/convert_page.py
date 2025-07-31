@@ -135,12 +135,16 @@ class ConvertPage(BasePageWidget):
 
     def get_special_button_style(self, color_rgb="13, 110, 253", checked_color_rgb="255, 111, 0"):
         """Generate a special button style with a given color."""
+        from .theme_manager import global_theme_manager
+        colors = global_theme_manager.get_current_colors()
+        text_color = colors.get('text_body', '#ffffff')
+
         return f"""
             QPushButton {{
                 background: rgba({color_rgb}, 0.2);
                 border: 1px solid rgba({color_rgb}, 0.4);
                 border-radius: 8px;
-                color: white;
+                color: {text_color};
                 font-size: 14px;
                 font-weight: bold;
                 padding: 12px 24px;

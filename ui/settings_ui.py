@@ -171,6 +171,9 @@ class SettingsUI(ThemeAwareDialog):
         # تحسين إضافي: تأخير تحميل العناصر الثقيلة
         QTimer.singleShot(50, self.delayed_initialization)
 
+        # ربط تغيير السمة بتحديث الأنماط الخاصة
+        global_theme_manager.theme_changed.connect(self.update_special_styles)
+
     def closeEvent(self, event):
         """حماية من الخروج بدون حفظ التغييرات"""
         if self.has_unsaved_changes:
@@ -417,49 +420,8 @@ class SettingsUI(ThemeAwareDialog):
         apply_theme_style(accent_color_label, "label")
         theme_layout.addRow(accent_color_label, accent_layout)
 
-        # ألوان النصوص
-        text_colors_group = QGroupBox(tr("text_colors_group"))
-        apply_theme_style(text_colors_group, "group_box", auto_register=True)
-        text_colors_layout = QFormLayout(text_colors_group)
-        text_colors_layout.setSpacing(10)
-
-        # لون العناوين
-        self.title_color_combo = FocusAwareComboBox()
-        self.title_color_combo.addItems([
-            tr("default_color"), tr("white_color"), tr("black_color"),
-            tr("dark_gray_color"), tr("dark_blue_color"), tr("dark_green_color")
-        ])
-        apply_theme_style(self.title_color_combo, "combo")
-        self.title_color_combo.currentTextChanged.connect(self.on_text_color_changed)
-        title_color_label = QLabel(tr("title_color_label"))
-        apply_theme_style(title_color_label, "label")
-        text_colors_layout.addRow(title_color_label, self.title_color_combo)
-
-        # لون النص العادي
-        self.body_color_combo = FocusAwareComboBox()
-        self.body_color_combo.addItems([
-            tr("default_color"), tr("white_color"), tr("black_color"),
-            tr("light_gray_color"), tr("dark_gray_color")
-        ])
-        apply_theme_style(self.body_color_combo, "combo")
-        self.body_color_combo.currentTextChanged.connect(self.on_text_color_changed)
-        body_color_label = QLabel(tr("body_color_label"))
-        apply_theme_style(body_color_label, "label")
-        text_colors_layout.addRow(body_color_label, self.body_color_combo)
-
-        # لون النص الثانوي
-        self.secondary_color_combo = FocusAwareComboBox()
-        self.secondary_color_combo.addItems([
-            tr("default_color"), tr("light_gray_color"),
-            tr("medium_gray_color"), tr("dark_gray_color")
-        ])
-        apply_theme_style(self.secondary_color_combo, "combo")
-        self.secondary_color_combo.currentTextChanged.connect(self.on_text_color_changed)
-        secondary_color_label = QLabel(tr("secondary_color_label"))
-        apply_theme_style(secondary_color_label, "label")
-        text_colors_layout.addRow(secondary_color_label, self.secondary_color_combo)
-
-        theme_layout.addRow(text_colors_group)
+        # تم إزالة إعدادات ألوان النصوص لتبسيط الواجهة
+        # The text color settings have been removed to simplify the interface
 
         # مستوى الشفافية
         transparency_layout = QHBoxLayout()
@@ -569,7 +531,7 @@ class SettingsUI(ThemeAwareDialog):
         apply_theme_style(self.font_size_slider, "slider")
 
         self.font_size_label = QLabel("16")
-        apply_theme_style(self.font_size_label, "label", auto_register=True)
+        apply_theme_style(self.font_size_label, "label", auto_register=True)  # تطبيق السمة هنا
         self.font_size_slider.valueChanged.connect(
             lambda v: self.font_size_label.setText(str(v))
         )
@@ -578,7 +540,7 @@ class SettingsUI(ThemeAwareDialog):
         font_size_layout.addWidget(self.font_size_slider, 3)
         font_size_layout.addWidget(self.font_size_label, 1)
         font_size_label2 = QLabel(tr("font_size_label"))
-        apply_theme_style(font_size_label2, "label")
+        apply_theme_style(font_size_label2, "label", auto_register=True)  # تطبيق السمة هنا
         font_layout.addRow(font_size_label2, font_size_layout)
 
         # نوع الخط
@@ -649,17 +611,8 @@ class SettingsUI(ThemeAwareDialog):
 
         # نص المعاينة
         self.font_preview_label = QLabel(tr("font_preview_text"))
-        apply_theme_style(self.font_preview_label, "label")
-        self.font_preview_label.setStyleSheet("""
-            QLabel {
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 8px;
-                padding: 20px;
-                text-align: center;
-                line-height: 1.5;
-            }
-        """)
+        apply_theme_style(self.font_preview_label, "label", auto_register=False) # No auto-register, handled manually
+        # The style is now set in update_font_preview to be theme-aware
         self.font_preview_label.setAlignment(Qt.AlignCenter)
         preview_layout.addWidget(self.font_preview_label)
 
@@ -716,6 +669,12 @@ class SettingsUI(ThemeAwareDialog):
             if not hasattr(self, 'font_preview_label'):
                 return
 
+            from .theme_manager import global_theme_manager
+            from PySide6.QtGui import QColor
+
+            colors = global_theme_manager.get_current_colors()
+            text_color_q = QColor(colors.get('text', '#ffffff'))
+
             # الحصول على القيم الحالية
             font_size = self.font_size_slider.value() if hasattr(self, 'font_size_slider') else 16
             font_family = self.font_family_combo.currentText() if hasattr(self, 'font_family_combo') else "النظام الافتراضي"
@@ -738,8 +697,8 @@ class SettingsUI(ThemeAwareDialog):
             # تطبيق النمط
             style = f"""
                 QLabel {{
-                    background: rgba(255, 255, 255, 0.05);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    background: rgba({text_color_q.red()}, {text_color_q.green()}, {text_color_q.blue()}, 0.05);
+                    border: 1px solid rgba({text_color_q.red()}, {text_color_q.green()}, {text_color_q.blue()}, 0.1);
                     border-radius: 8px;
                     padding: 20px;
                     text-align: center;
@@ -747,6 +706,7 @@ class SettingsUI(ThemeAwareDialog):
                     font-family: {font_family_css};
                     font-size: {font_size}px;
                     font-weight: {font_weight_css};
+                    color: {colors.get('text_body', '#ffffff')};
                 }}
             """
 
@@ -793,25 +753,14 @@ class SettingsUI(ThemeAwareDialog):
 
         # منطقة التقرير
         report_group = QGroupBox(tr("summary_of_changes_group"))
-        apply_theme_style(report_group, "group_box")
+        apply_theme_style(report_group, "group_box", auto_register=True)
         report_layout = QVBoxLayout(report_group)
         report_layout.setSpacing(10)
 
         # تقرير التغييرات
         self.changes_report = QLabel(tr("analyzing_changes_text"))
-        apply_theme_style(self.changes_report, "label")
-        self.changes_report.setStyleSheet("""
-            QLabel {
-                font-size: 13px;
-                line-height: 1.6;
-                padding: 15px;
-                background: rgba(255, 255, 255, 0.05);
-                border: none;
-                outline: none;
-                border-radius: 6px;
-                border: 1px solid rgba(255, 255, 255, 0.1);
-            }
-        """)
+        # The style is now set in update_special_styles to be theme-aware
+        apply_theme_style(self.changes_report, "label", auto_register=False) # No auto-register, handled manually
         self.changes_report.setWordWrap(True)
         self.changes_report.setAlignment(Qt.AlignTop)
         report_layout.addWidget(self.changes_report)
@@ -1530,22 +1479,30 @@ class SettingsUI(ThemeAwareDialog):
 
                 # تحميل إعدادات الخطوط
                 if hasattr(self, 'font_size_slider'):
+                    self.font_size_slider.blockSignals(True)
                     self.font_size_slider.setValue(ui_settings.get("font_size", 16))
+                    self.font_size_slider.blockSignals(False)
                 if hasattr(self, 'font_family_combo'):
+                    self.font_family_combo.blockSignals(True)
                     font_family = ui_settings.get("font_family", tr("system_default_font"))
                     index = self.font_family_combo.findText(font_family)
                     if index >= 0:
                         self.font_family_combo.setCurrentIndex(index)
+                    self.font_family_combo.blockSignals(False)
                 if hasattr(self, 'font_weight_combo'):
+                    self.font_weight_combo.blockSignals(True)
                     font_weight = ui_settings.get("font_weight", tr("font_weight_normal"))
                     index = self.font_weight_combo.findText(font_weight)
                     if index >= 0:
                         self.font_weight_combo.setCurrentIndex(index)
+                    self.font_weight_combo.blockSignals(False)
                 if hasattr(self, 'text_direction_combo'):
+                    self.text_direction_combo.blockSignals(True)
                     text_direction = ui_settings.get("text_direction", tr("text_direction_auto"))
                     index = self.text_direction_combo.findText(text_direction)
                     if index >= 0:
                         self.text_direction_combo.setCurrentIndex(index)
+                    self.text_direction_combo.blockSignals(False)
 
                 # تحميل إعدادات النصوص
                 if hasattr(self, 'show_tooltips_check'):
@@ -1580,31 +1537,6 @@ class SettingsUI(ThemeAwareDialog):
             security_settings = self.settings_data.get("security_settings", {})
             if hasattr(self, 'enable_password_check'):
                 self.enable_password_check.setChecked(security_settings.get("enable_password_protection", False))
-
-            # تحميل الألوان المخصصة وتطبيقها
-            custom_colors = self.settings_data.get("custom_colors", {})
-            if custom_colors:
-                from .theme_manager import global_theme_manager
-                current_theme = global_theme_manager.current_theme
-
-            # تطبيق الألوان المخصصة على السمة الحالية
-            if custom_colors.get("text_title") != tr("default_color_value"):
-                global_theme_manager.themes[current_theme]["text_title"] = custom_colors.get("text_title")
-            if custom_colors.get("text_body") != tr("default_color_value"):
-                global_theme_manager.themes[current_theme]["text_body"] = custom_colors.get("text_body")
-            if custom_colors.get("text_secondary") != tr("default_color_value"):
-                global_theme_manager.themes[current_theme]["text_secondary"] = custom_colors.get("text_secondary")
-
-            # تحديث القوائم المنسدلة للألوان
-            if hasattr(self, 'title_color_combo'):
-                title_color_text = self.get_combo_text_from_color(custom_colors.get("text_title", tr("default_color_value")))
-                self.title_color_combo.setCurrentText(title_color_text)
-            if hasattr(self, 'body_color_combo'):
-                body_color_text = self.get_combo_text_from_color(custom_colors.get("text_body", tr("default_color_value")))
-                self.body_color_combo.setCurrentText(body_color_text)
-            if hasattr(self, 'secondary_color_combo'):
-                secondary_color_text = self.get_combo_text_from_color(custom_colors.get("text_secondary", tr("default_color_value")))
-                self.secondary_color_combo.setCurrentText(secondary_color_text)
 
         except Exception as e:
             print(tr("error_loading_current_settings", e=e))
@@ -1649,81 +1581,37 @@ class SettingsUI(ThemeAwareDialog):
         # تحديث تقرير التغييرات فوراً
         QTimer.singleShot(100, self.update_changes_report)
 
-    def on_text_color_changed(self):
-        """تطبيق ألوان النصوص المخصصة"""
+    # تم إزالة الدوال المتعلقة بألوان النصوص المخصصة
+    # Functions related to custom text colors have been removed.
+
+    def update_special_styles(self):
+        """Update styles for widgets that need custom, theme-aware styling."""
         try:
-            # الحصول على الألوان المختارة
-            title_color = self.get_color_from_combo(self.title_color_combo.currentText())
-            body_color = self.get_color_from_combo(self.body_color_combo.currentText())
-            secondary_color = self.get_color_from_combo(self.secondary_color_combo.currentText())
-
-            # تحديث ألوان النصوص في theme_manager
             from .theme_manager import global_theme_manager
-            current_theme = global_theme_manager.current_theme
+            from PySide6.QtGui import QColor
+            colors = global_theme_manager.get_current_colors()
+            text_color_q = QColor(colors.get('text', '#ffffff'))
 
-            if title_color != tr("default_color_value"):
-                global_theme_manager.themes[current_theme]["text_title"] = title_color
-            if body_color != tr("default_color_value"):
-                global_theme_manager.themes[current_theme]["text_body"] = body_color
-            if secondary_color != tr("default_color_value"):
-                global_theme_manager.themes[current_theme]["text_secondary"] = secondary_color
-
-            # حفظ الألوان المخصصة في الإعدادات
-            if not hasattr(self, 'settings_data') or self.settings_data is None:
-                self.settings_data = {}
-
-            self.settings_data["custom_colors"] = {
-                "text_title": title_color,
-                "text_body": body_color,
-                "text_secondary": secondary_color
-            }
-
-            # حفظ في ملف الإعدادات فوراً
-            from modules import settings
-            settings.set_setting("custom_colors", self.settings_data["custom_colors"])
-
-            # إشعار جميع العناصر بتغيير الألوان
-            current_accent = global_theme_manager.current_accent
-            global_theme_manager.change_theme(current_theme, current_accent)
-
-            # إعادة تطبيق نمط الاسكرول في الصفحة الحالية
-            current_page = self.content_stack.currentWidget()
-            if current_page:
-                # البحث عن QScrollArea في الصفحة الحالية
-                scroll_areas = current_page.findChildren(QScrollArea)
-                for scroll_area in scroll_areas:
-                    scroll_area.setStyleSheet(self.get_scroll_area_style())
+            # Style for changes_report
+            if hasattr(self, 'changes_report') and self.changes_report:
+                self.changes_report.setStyleSheet(f"""
+                    QLabel {{
+                        font-size: 13px;
+                        line-height: 1.6;
+                        padding: 15px;
+                        background: rgba({text_color_q.red()}, {text_color_q.green()}, {text_color_q.blue()}, 0.05);
+                        border: 1px solid rgba({text_color_q.red()}, {text_color_q.green()}, {text_color_q.blue()}, 0.1);
+                        border-radius: 6px;
+                        color: {colors.get('text_body', '#ffffff')};
+                    }}
+                """)
+            
+            # Style for font_preview_label (by calling its update function)
+            if hasattr(self, 'font_preview_label'):
+                self.update_font_preview()
 
         except Exception as e:
-            print(tr("error_applying_text_colors", e=e))
-
-    def get_color_from_combo(self, combo_text):
-        """تحويل نص الكومبو إلى كود لون"""
-        color_map = {
-            tr("default_color"): tr("default_color_value"),
-            tr("white_color"): "#ffffff",
-            tr("black_color"): "#000000",
-            tr("light_gray_color"): "#e2e8f0",
-            tr("medium_gray_color"): "#a0aec0",
-            tr("dark_gray_color"): "#4a5568",
-            tr("dark_blue_color"): "#2d3748",
-            tr("dark_green_color"): "#1a202c"
-        }
-        return color_map.get(combo_text, tr("default_color_value"))
-
-    def get_combo_text_from_color(self, color_code):
-        """تحويل كود اللون إلى نص الكومبو"""
-        color_map = {
-            tr("default_color_value"): tr("default_color"),
-            "#ffffff": tr("white_color"),
-            "#000000": tr("black_color"),
-            "#e2e8f0": tr("light_gray_color"),
-            "#a0aec0": tr("medium_gray_color"),
-            "#4a5568": tr("dark_gray_color"),
-            "#2d3748": tr("dark_blue_color"),
-            "#1a202c": tr("dark_green_color")
-        }
-        return color_map.get(color_code, tr("default_color"))
+            print(f"Error updating special styles: {e}")
 
     def apply_current_theme(self):
         """تطبيق السمة الحالية على النافذة فقط - بدون تغيير النظام العام"""
@@ -1739,6 +1627,9 @@ class SettingsUI(ThemeAwareDialog):
             # تطبيق السمة على الفريم الكبير أيضاً
             if hasattr(self, 'content_frame'):
                 apply_theme_style(self.content_frame, "frame", auto_register=False)
+
+            # تحديث الأنماط الخاصة
+            self.update_special_styles()
 
             theme_name = global_theme_manager.current_theme
             accent_color = global_theme_manager.current_accent

@@ -168,7 +168,6 @@ class ApexFlow(QMainWindow):
             tr("menu_compress"), tr("menu_stamp_rotate"), tr("menu_convert"),
             tr("menu_security"), tr("menu_settings")
         ])
-        self.menu_list.setLayoutDirection(Qt.RightToLeft)
 
         # إعدادات التحديد والتفاعل
         self.menu_list.setFocusPolicy(Qt.NoFocus)
