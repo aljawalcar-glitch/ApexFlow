@@ -10,7 +10,7 @@
 
 !define APP_NAME "ApexFlow"
 !define COMPANY_NAME "ApexFlow Team"
-!define VERSION "5.2.2"
+!define VERSION "5.3.0"
 !define EXE_NAME "ApexFlow.exe"
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
 
@@ -50,38 +50,15 @@ RequestExecutionLevel admin
 ; =================================================================
 
 Function .onInit
-  ; Check if a previous version is installed and uninstall it
+  ; Simply check for and run the old uninstaller if it exists.
   ReadRegStr $R0 HKLM "${UNINSTALL_KEY}" "UninstallString"
-  ReadRegStr $R1 HKLM "${UNINSTALL_KEY}" "DisplayName"
-  ReadRegStr $R2 HKLM "${UNINSTALL_KEY}" "DisplayVersion"
-
   ${If} $R0 != ""
-    ; Show message about previous version
-    MessageBox MB_YESNO|MB_ICONQUESTION \
-      "Previous version of ${APP_NAME} ($R2) found.$\n$\nDo you want to remove it before installing the new version?" \
-      IDYES uninstall_previous IDNO skip_uninstall
-
-    uninstall_previous:
-      ; Show progress message
-      DetailPrint "Removing previous version..."
-
-      ; Run the uninstaller silently
-      ExecWait '"$R0" /S _?=$INSTDIR' $3
-
-      ; Check if uninstall was successful
-      ${If} $3 == 0
-        DetailPrint "Previous version removed successfully"
-        ; Clean up any remaining registry entries
-        DeleteRegKey HKLM "${UNINSTALL_KEY}"
-        DeleteRegKey HKLM "Software\${APP_NAME}"
-      ${Else}
-        MessageBox MB_OK|MB_ICONEXCLAMATION \
-          "Failed to remove previous version. Installation will continue."
-      ${EndIf}
-
-    skip_uninstall:
+    DetailPrint "Previous version found. Attempting to uninstall..."
+    ExecWait '"$R0" /S'
+    DetailPrint "Uninstallation attempt finished."
   ${EndIf}
 FunctionEnd
+
 
 ; =================================================================
 ; Installation Sections
@@ -170,6 +147,10 @@ Section "Uninstall"
   DetailPrint "Cleaning registry..."
   DeleteRegKey HKLM "${UNINSTALL_KEY}"
   DeleteRegKey HKLM "Software\${APP_NAME}"
+
+  ; Also remove potential user-specific registry keys
+  DetailPrint "Cleaning user-specific registry entries..."
+  DeleteRegKey HKCU "Software\${APP_NAME}"
 
   ; Show completion message
   DetailPrint "Uninstallation completed successfully!"

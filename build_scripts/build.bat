@@ -8,7 +8,6 @@ echo =================================================
 echo This script will compile the application using the enhanced spec file
 echo and then build the installer.
 echo.
-pause
 
 REM =================================================
 REM PART 1: COMPILE THE PYTHON APPLICATION
@@ -41,7 +40,6 @@ echo.
 echo --- PART 1 COMPLETED ---
 echo Application compiled successfully in 'build_scripts/dist/ApexFlow' folder
 echo.
-pause
 
 REM =================================================
 REM PART 2: BUILD THE NSIS INSTALLER
@@ -75,5 +73,4 @@ echo The application is ready for distribution!
 echo.
 
 :eof
-pause
 endlocal

@@ -243,14 +243,14 @@ class SettingsUI(ThemeAwareDialog):
         # أحجام خطوط منفصلة
         self.title_font_size_slider = QSlider(Qt.Horizontal)
         self.title_font_size_slider.setRange(16, 32)
-        self.title_font_size_slider.setValue(18)  # حجم العناوين
+        self.title_font_size_slider.setValue(18)
 
         self.menu_font_size_slider = QSlider(Qt.Horizontal)
         self.menu_font_size_slider.setRange(10, 20)
-        self.menu_font_size_slider.setValue(15)  # حجم القوائم
+        self.menu_font_size_slider.setValue(15)
 
         self.font_family_combo = FocusAwareComboBox()
-        self.font_family_combo.addItems([tr("system_default_font"), "Arial", "Tahoma", "Segoe UI"])
+        self.font_family_combo.addItems([tr("system_default_font"), "Arial", "Tahoma", "Segoe UI", "Cairo", "Amiri", "Noto Sans Arabic"])
 
         self.font_weight_combo = FocusAwareComboBox()
         self.font_weight_combo.addItems([tr("font_weight_normal"), tr("font_weight_bold"), tr("font_weight_extrabold")])
@@ -453,30 +453,31 @@ class SettingsUI(ThemeAwareDialog):
         self.create_step_pages()
         content_layout.addWidget(self.content_stack)
         
-        # أزرار التنقل الداخلية مع أيقونات SVG - محاذاة مع عنوان "إعدادات المظهر"
-        nav_layout = QHBoxLayout()
+        # أزرار التنقل الداخلية مع أيقونات SVG
+        # استخدام حاوية TransparentFrame لفرض اتجاه LTR مع الحفاظ على النمط
+        nav_container = TransparentFrame()
+        nav_container.setLayoutDirection(Qt.LeftToRight)  # فرض LTR
+        nav_layout = QHBoxLayout(nav_container)
+        nav_layout.setContentsMargins(0, 0, 0, 0)
+        nav_layout.setSpacing(15)
 
-        # إضافة مسافة لمحاذاة الأزرار مع عنوان الصفحة (30px من اليسار)
+        # إضافة مسافة لمحاذاة الأزرار مع عنوان الصفحة
         nav_layout.addSpacing(30)
 
-        # زر التالي (يسار) - أيقونة سهم يمين مع لون السمة
-        self.next_btn = create_navigation_button("next", 24, tr("next_step"))
-        self.next_btn.clicked.connect(self.next_step)
-        nav_layout.addWidget(self.next_btn)
-
-        # مسافة قليلة بين الأزرار
-        nav_layout.addSpacing(15)
-
-        # زر السابق (يمين) - أيقونة سهم يسار مع لون السمة
+        # إنشاء الأزرار
         self.prev_btn = create_navigation_button("prev", 24, tr("previous_step"))
         self.prev_btn.clicked.connect(self.previous_step)
-        self.prev_btn.setEnabled(False)  # معطل في البداية بدلاً من مخفي
-        nav_layout.addWidget(self.prev_btn)
+        self.prev_btn.setEnabled(False)
 
-        # دفع باقي المحتوى لليمين
+        self.next_btn = create_navigation_button("next", 24, tr("next_step"))
+        self.next_btn.clicked.connect(self.next_step)
+
+        # إضافة الأزرار بالترتيب الثابت (السابق ثم التالي)
+        nav_layout.addWidget(self.prev_btn)
+        nav_layout.addWidget(self.next_btn)
         nav_layout.addStretch()
-        
-        content_layout.addLayout(nav_layout)
+
+        content_layout.addWidget(nav_container)
         main_layout.addWidget(self.content_frame)
         
         # تعيين الصفحة الافتراضية والتحميل
@@ -737,7 +738,7 @@ class SettingsUI(ThemeAwareDialog):
 
         title_font_size_layout.addWidget(self.title_font_size_slider, 3)
         title_font_size_layout.addWidget(self.title_font_size_label, 1)
-        title_font_size_label2 = QLabel("حجم خط العناوين")
+        title_font_size_label2 = QLabel(tr("title_font_size_label"))
         apply_theme_style(title_font_size_label2, "label", auto_register=True)
         font_layout.addRow(title_font_size_label2, title_font_size_layout)
 
@@ -754,14 +755,11 @@ class SettingsUI(ThemeAwareDialog):
 
         menu_font_size_layout.addWidget(self.menu_font_size_slider, 3)
         menu_font_size_layout.addWidget(self.menu_font_size_label, 1)
-        menu_font_size_label2 = QLabel("حجم خط القوائم")
+        menu_font_size_label2 = QLabel(tr("menu_font_size_label"))
         apply_theme_style(menu_font_size_label2, "label", auto_register=True)
         font_layout.addRow(menu_font_size_label2, menu_font_size_layout)
 
         # نوع الخط (استخدام العنصر الموجود)
-        self.font_family_combo.addItems([
-            "Cairo", "Amiri", "Noto Sans Arabic"  # إضافة خطوط عربية فقط
-        ])
         apply_theme_style(self.font_family_combo, "combo")
         self.font_family_combo.currentTextChanged.connect(self.mark_as_changed)
         font_family_label = QLabel(tr("font_family_label"))
@@ -825,11 +823,15 @@ class SettingsUI(ThemeAwareDialog):
 
         # ربط التحديثات بالمعاينة والتطبيق الفوري
         self.font_size_slider.valueChanged.connect(self.update_font_preview)
+        self.title_font_size_slider.valueChanged.connect(self.update_font_preview)
+        self.menu_font_size_slider.valueChanged.connect(self.update_font_preview)
         self.font_family_combo.currentTextChanged.connect(self.update_font_preview)
         self.font_weight_combo.currentTextChanged.connect(self.update_font_preview)
 
         # تطبيق فوري للخطوط عند التغيير
         self.font_size_slider.valueChanged.connect(self._on_font_changed)
+        self.title_font_size_slider.valueChanged.connect(self._on_font_changed)
+        self.menu_font_size_slider.valueChanged.connect(self._on_font_changed)
         self.font_family_combo.currentTextChanged.connect(self._on_font_changed)
         self.font_weight_combo.currentTextChanged.connect(self._on_font_changed)
 
@@ -854,7 +856,7 @@ class SettingsUI(ThemeAwareDialog):
             font_family = self.font_family_combo.currentText()
             font_weight = self.font_weight_combo.currentText()
 
-            preview_text = f"معاينة الخط - {font_family} - {font_size}px - {font_weight}"
+            preview_text = tr("font_preview_dynamic_text", family=font_family, size=font_size, weight=font_weight)
             self.font_preview_label.setText(preview_text)
 
         except Exception as e:
@@ -1121,16 +1123,33 @@ class SettingsUI(ThemeAwareDialog):
 
     def next_step(self):
         """الانتقال للخطوة التالية"""
-        if self.current_step > 0:  # يمكن الانتقال للخطوة السابقة (فهرس أقل)
-            self.go_to_step(self.current_step - 1)
+        lang = settings.load_settings().get("language", "ar")
+        if lang == "ar":
+            # RTL: Next means decreasing index (moving left)
+            if self.current_step > 0:
+                self.go_to_step(self.current_step - 1)
+        else:
+            # LTR: Next means increasing index (moving right)
+            if self.current_step < len(self.step_indicator.steps) - 1:
+                self.go_to_step(self.current_step + 1)
 
     def previous_step(self):
         """الانتقال للخطوة السابقة"""
-        if self.current_step < len(self.step_indicator.steps) - 1:  # يمكن الانتقال للخطوة التالية (فهرس أكبر)
-            self.go_to_step(self.current_step + 1)
+        lang = settings.load_settings().get("language", "ar")
+        if lang == "ar":
+            # RTL: Previous means increasing index (moving right)
+            if self.current_step < len(self.step_indicator.steps) - 1:
+                self.go_to_step(self.current_step + 1)
+        else:
+            # LTR: Previous means decreasing index (moving left)
+            if self.current_step > 0:
+                self.go_to_step(self.current_step - 1)
 
     def update_navigation_buttons(self):
         """تحديث حالة أزرار التنقل مع نظام السمة"""
+        lang = settings.load_settings().get("language", "ar")
+        num_steps = len(self.step_indicator.steps)
+
         # الحصول على لون السمة الحالي
         try:
             from .theme_manager import global_theme_manager
@@ -1141,27 +1160,25 @@ class SettingsUI(ThemeAwareDialog):
 
         # تحديد لون الأيقونة حسب السمة
         if global_theme_manager.current_theme == "light":
-            active_color = "#333333"  # لون داكن للوضع الفاتح
+            active_color = "#333333"
         else:
-            active_color = "#ffffff"  # لون أبيض للوضع المظلم
+            active_color = "#ffffff"
+        disabled_color = "#666666"
 
-        disabled_color = "#666666"  # لون معطل موحد
-
-        # زر التالي (← التالي)
-        if self.current_step > 0:
-            self.next_btn.setEnabled(True)
-            self.next_btn.set_icon_color(active_color)
+        if lang == "ar":
+            # RTL Logic
+            can_go_next = self.current_step > 0
+            can_go_prev = self.current_step < num_steps - 1
         else:
-            self.next_btn.setEnabled(False)
-            self.next_btn.set_icon_color(disabled_color)
+            # LTR Logic
+            can_go_next = self.current_step < num_steps - 1
+            can_go_prev = self.current_step > 0
 
-        # زر السابق (السابق →)
-        if self.current_step < len(self.step_indicator.steps) - 1:
-            self.prev_btn.setEnabled(True)
-            self.prev_btn.set_icon_color(active_color)
-        else:
-            self.prev_btn.setEnabled(False)
-            self.prev_btn.set_icon_color(disabled_color)
+        self.next_btn.setEnabled(can_go_next)
+        self.next_btn.set_icon_color(active_color if can_go_next else disabled_color)
+
+        self.prev_btn.setEnabled(can_go_prev)
+        self.prev_btn.set_icon_color(active_color if can_go_prev else disabled_color)
 
     def update_changes_report(self):
         """تحديث تقرير التغييرات مع معالجة أخطاء محسنة"""
