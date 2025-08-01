@@ -37,8 +37,8 @@ pywin32>=306
 # Additional Development and Build Libraries
 # ===============================
 
-# PyInstaller for creating executable files (optional for development)
-# PyInstaller>=5.13.0
+# PyInstaller for creating executable files (required for building)
+PyInstaller>=6.0.0
 
 # ===============================
 # ملاحظات التثبيت - Installation Notes

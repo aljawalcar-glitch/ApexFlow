@@ -17,8 +17,8 @@ class GlobalThemeManager(QObject):
         super().__init__()
 
         # تهيئة القيم الافتراضية أولاً
-        self.current_theme = "dark"
-        self.current_accent = "#ff6f00"
+        self.current_theme = "blue"
+        self.current_accent = "#056a51"
         self.current_options = {}  # خيارات إضافية للسمة
 
         # قاموس مركزي وموحد لجميع السمات
@@ -36,7 +36,7 @@ class GlobalThemeManager(QObject):
             "blue": {
                 "bg": "#1a2332", "surface": "#2a4365", "border": "#4a5568",
                 "text_title": "#ffffff", "text_body": "#ffffff", "text_secondary": "#a0aec0",
-                "text_muted": "#718096", "text_accent": "#3182ce", "text": "#ffffff"
+                "text_muted": "#718096", "text_accent": "#056a51", "text": "#ffffff"
             },
             "green": {
                 "bg": "#1a3221", "surface": "#275432", "border": "#3f684a",
@@ -57,15 +57,15 @@ class GlobalThemeManager(QObject):
         """تحميل السمة من الإعدادات عند بدء التشغيل."""
         try:
             settings_data = load_settings()
-            self.current_theme = settings_data.get("theme", "dark")
-            self.current_accent = settings_data.get("accent_color", "#ff6f00")
+            self.current_theme = settings_data.get("theme", "blue")
+            self.current_accent = settings_data.get("accent_color", "#056a51")
             # تحديث اللون المميز في قواميس السمات
             for theme_data in self.themes.values():
                 theme_data["text_accent"] = self.current_accent
         except Exception as e:
             print(f"خطأ في تحميل السمة: {e}")
-            self.current_theme = "dark"
-            self.current_accent = "#ff6f00"
+            self.current_theme = "blue"
+            self.current_accent = "#056a51"
 
     def apply_theme(self, widget, widget_type="default"):
         """تطبيق السمة الموحدة على أي عنصر"""
@@ -179,6 +179,45 @@ def refresh_all_fonts():
         global_theme_manager.change_theme(current_theme, current_accent)
     except Exception as e:
         print(f"خطأ في إعادة تطبيق الخطوط: {e}")
+
+def refresh_all_themes():
+    """إعادة تطبيق السمة على جميع العناصر والنوافذ المسجلة"""
+    try:
+        # إعادة تحميل الإعدادات من الملف
+        global_theme_manager.load_theme_from_settings()
+
+        # تطبيق السمة على جميع العناصر المسجلة
+        current_theme = global_theme_manager.current_theme
+        current_accent = global_theme_manager.current_accent
+        global_theme_manager.change_theme(current_theme, current_accent)
+
+        # البحث عن النافذة الرئيسية وإعادة تطبيق السمة عليها
+        from PySide6.QtWidgets import QApplication
+        app = QApplication.instance()
+        if app:
+            for widget in app.allWidgets():
+                if widget.isWindow() and widget.isVisible():
+                    try:
+                        # إذا كانت النافذة الرئيسية، استخدم الدالة المخصصة
+                        if hasattr(widget, 'refresh_main_window_theme'):
+                            widget.refresh_main_window_theme()
+                        else:
+                            # للنوافذ الأخرى، تطبيق السمة العادي
+                            apply_theme_style(widget, "auto", auto_register=True)
+                            # تطبيق السمة على جميع العناصر الفرعية
+                            for child in widget.findChildren(object):
+                                if hasattr(child, 'setStyleSheet'):
+                                    try:
+                                        apply_theme_style(child, "auto", auto_register=True)
+                                    except:
+                                        pass
+                    except Exception as e:
+                        print(f"خطأ في تطبيق السمة على النافذة: {e}")
+
+        print("✅ تم إعادة تطبيق السمة على جميع العناصر")
+
+    except Exception as e:
+        print(f"❌ خطأ في إعادة تطبيق السمة: {e}")
     
 # --- دوال وهياكل للتوافق مع الكود القديم ---
 theme_manager = global_theme_manager

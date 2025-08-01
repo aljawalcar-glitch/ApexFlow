@@ -35,7 +35,9 @@ python -m PyInstaller main.py ^
     --onedir ^
     --icon="assets/icons/ApexFlow.ico" ^
     --add-data="assets;assets" ^
+    --add-data="data;data" ^
     --add-data="modules/default_settings.json;modules" ^
+    --add-data="docs;docs" ^
     --clean
 if %errorlevel% neq 0 (
     echo [ERROR] PyInstaller failed.

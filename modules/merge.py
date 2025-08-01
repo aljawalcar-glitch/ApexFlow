@@ -4,8 +4,20 @@ This module provides functionality to merge multiple PDF files into a single PDF
 """
 
 import os
-from PyPDF2 import PdfReader, PdfWriter
 from typing import List, Optional
+
+# تحميل كسول للمكتبات الثقيلة
+_pdf_reader = None
+_pdf_writer = None
+
+def _get_pdf_classes():
+    """تحميل كسول لمكتبات PyPDF2"""
+    global _pdf_reader, _pdf_writer
+    if _pdf_reader is None or _pdf_writer is None:
+        from PyPDF2 import PdfReader, PdfWriter
+        _pdf_reader = PdfReader
+        _pdf_writer = PdfWriter
+    return _pdf_reader, _pdf_writer
 
 def merge_pdfs(input_files: List[str], output_path: str) -> bool:
     """
@@ -30,9 +42,12 @@ def merge_pdfs(input_files: List[str], output_path: str) -> bool:
             if not file_path.lower().endswith('.pdf'):
                 raise ValueError(f"File is not a PDF: {file_path}")
         
+        # تحميل كسول للمكتبات
+        PdfReader, PdfWriter = _get_pdf_classes()
+
         # Create PDF writer object
         pdf_writer = PdfWriter()
-        
+
         # Process each input file
         for file_path in input_files:
             try:

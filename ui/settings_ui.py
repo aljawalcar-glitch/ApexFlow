@@ -21,7 +21,8 @@ from .theme_manager import global_theme_manager, apply_theme_style
 from .ui_helpers import FocusAwareComboBox
 from .theme_aware_widget import ThemeAwareDialog
 from .svg_icon_button import create_navigation_button
-from modules.translator import tr
+from .notification_system import show_success, show_warning, show_error, show_info
+from modules.translator import tr, reload_translations
 
 # حل مشكلة theme_manager
 theme_manager = global_theme_manager
@@ -55,6 +56,8 @@ class StepIndicator(QWidget):
 
             # استخدام نظام السمات الموحد مع تحديد لون النص
             from .theme_manager import apply_theme, global_theme_manager
+            from .global_styles import get_font_settings
+            font_settings = get_font_settings()
             apply_theme(btn, "button")
 
             # إضافة لون النص المناسب حسب السمة
@@ -70,7 +73,7 @@ class StepIndicator(QWidget):
                     background: transparent;
                     border: none;
                     outline: none;
-                    font-size: 16px;
+                    font-size: {font_settings['size']}px;
                     font-weight: normal;
                     padding: 15px 25px;
                     color: {text_color};
@@ -91,49 +94,9 @@ class StepIndicator(QWidget):
         apply_theme(self.slider_indicator, "slider_indicator")
         self.update_slider_position()
 
-    def logical_to_ui_index(self, logical_index):
-        """تحويل الفهرس المنطقي إلى فهرس الواجهة"""
-        # المنطق: المظهر=0، العمليات=1، متقدم=2، حفظ=3
-        # الواجهة: حفظ=0، متقدم=1، العمليات=2، المظهر=3
-        mapping = {0: 3, 1: 2, 2: 1, 3: 0}  # منطقي: واجهة
-        return mapping.get(logical_index, 0)
 
-    def ui_to_logical_index(self, ui_index):
-        """تحويل فهرس الواجهة إلى الفهرس المنطقي"""
-        # عكس التحويل السابق
-        mapping = {3: 0, 2: 1, 1: 2, 0: 3}  # واجهة: منطقي
-        return mapping.get(ui_index, 0)
         
-    def get_step_button_style(self, is_active=False):
-        """تنسيق أزرار الخطوات"""
-        if is_active:
-            return """
-                QPushButton {
-                    background: transparent;
-                    border: none;
-                    outline: none;
-                    font-size: 16px;
-                    font-weight: bold;
-                    padding: 15px 25px;
-                }
-                QPushButton:hover {
-                    background: transparent;
-                }
-            """
-        else:
-            return """
-                QPushButton {
-                    background: transparent;
-                    border: none;
-                    outline: none;
-                    font-size: 16px;
-                    font-weight: normal;
-                    padding: 15px 25px;
-                }
-                QPushButton:hover {
-                    background: transparent;
-                }
-            """
+
     
     def set_current_step(self, step):
         """تعيين الخطوة الحالية"""
@@ -142,6 +105,8 @@ class StepIndicator(QWidget):
         for i, btn in enumerate(self.step_buttons):
             # استخدام نظام السمات الموحد مع تحديد لون النص
             from .theme_manager import apply_theme, global_theme_manager
+            from .global_styles import get_font_settings
+            font_settings = get_font_settings()
             apply_theme(btn, "button")
 
             # إضافة لون النص المناسب حسب السمة
@@ -157,7 +122,7 @@ class StepIndicator(QWidget):
                     background: transparent;
                     border: none;
                     outline: none;
-                    font-size: 16px;
+                    font-size: {font_settings['size']}px;
                     font-weight: {"bold" if i == step else "normal"};
                     padding: 15px 25px;
                     color: {text_color};
@@ -200,23 +165,169 @@ class SettingsUI(ThemeAwareDialog):
     settings_changed = Signal()
 
     def __init__(self, parent=None):
-        super().__init__(parent, "settings_window")
-        self.setWindowTitle(tr("settings_window_title"))
-        # self.setWindowFlags(Qt.FramelessWindowHint) # No longer a frameless window
+        try:
+            super().__init__(parent, "settings_window")
+            self.setWindowTitle(tr("settings_window_title"))
 
-        self.settings_data = settings.load_settings()
-        self.original_settings = self.settings_data.copy()
-        self.current_step = 2  # البدء من المظهر (الفهرس 2)
-        self.has_unsaved_changes = False  # تتبع التغييرات غير المحفوظة
+            # إعداد المدراء
+            self._setup_managers(parent)
 
-        # تتبع الصفحات المحملة للتحميل الكسول
-        self.pages_loaded = [False, False, False]  # [حفظ، خطوط، مظهر]
-        self.page_widgets = [None, None, None]  # تخزين الصفحات المحملة
+            # تحميل الإعدادات
+            self.settings_data = settings.load_settings()
+            self.original_settings = self.settings_data.copy()
+            self.current_step = 2  # البدء من المظهر
+            self.has_unsaved_changes = False
 
-        self.init_ui()
+            # تتبع الصفحات المحملة للتحميل الكسول
+            self.pages_loaded = [False, False, False]
+            self.page_widgets = [None, None, None]
 
-        # تحسين إضافي: تأخير تحميل العناصر الثقيلة
-        QTimer.singleShot(50, self.delayed_initialization)
+            # إنشاء جميع العناصر مباشرة (إزالة التحميل الكسول المعقد)
+            self._create_all_widgets()
+            self.init_ui()
+
+            # تحميل الإعدادات في الواجهة
+            QTimer.singleShot(50, self._load_settings_to_ui)
+
+            # إشعار ترحيب بعد تحميل الواجهة
+            QTimer.singleShot(1000, self._show_welcome_notification)
+
+        except Exception as e:
+            print(f"خطأ في تهيئة واجهة الإعدادات: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _show_welcome_notification(self):
+        """إظهار رسالة ترحيب مفيدة عند فتح الإعدادات"""
+        show_info(self, tr("settings_welcome_message"), duration=4000)
+
+    def _setup_managers(self, parent):
+        """إعداد المدراء المطلوبة مع معالجة الأخطاء"""
+        try:
+            # إعداد مدير الإشعارات
+            if parent and hasattr(parent, 'notification_manager'):
+                self.notification_manager = parent.notification_manager
+            else:
+                from ui.notification_system import global_notification_manager
+                self.notification_manager = global_notification_manager
+        except Exception as e:
+            print(f"خطأ في إعداد مدير الإشعارات: {e}")
+            self.notification_manager = None
+
+        try:
+            # إعداد مدير الرسائل
+            if parent and hasattr(parent, 'message_manager'):
+                self.message_manager = parent.message_manager
+            else:
+                from modules.app_utils import MessageManager
+                self.message_manager = MessageManager(self)
+        except Exception as e:
+            print(f"خطأ في إعداد مدير الرسائل: {e}")
+            self.message_manager = None
+
+    def _create_all_widgets(self):
+        """إنشاء جميع العناصر مباشرة"""
+        # إنشاء عناصر المظهر
+        self.theme_combo = FocusAwareComboBox()
+        self.theme_combo.addItems(["dark", "light", "blue", "green", "purple"])
+
+        self.accent_color_input = QLineEdit()
+        self.language_combo = FocusAwareComboBox()
+        self.language_combo.addItems(["العربية", "English"])
+
+        # إنشاء عناصر الخطوط
+        self.font_size_slider = QSlider(Qt.Horizontal)
+        self.font_size_slider.setRange(8, 24)
+        self.font_size_slider.setValue(12)  # حجم مثالي للقراءة
+
+        # أحجام خطوط منفصلة
+        self.title_font_size_slider = QSlider(Qt.Horizontal)
+        self.title_font_size_slider.setRange(16, 32)
+        self.title_font_size_slider.setValue(18)  # حجم العناوين
+
+        self.menu_font_size_slider = QSlider(Qt.Horizontal)
+        self.menu_font_size_slider.setRange(10, 20)
+        self.menu_font_size_slider.setValue(15)  # حجم القوائم
+
+        self.font_family_combo = FocusAwareComboBox()
+        self.font_family_combo.addItems([tr("system_default_font"), "Arial", "Tahoma", "Segoe UI"])
+
+        self.font_weight_combo = FocusAwareComboBox()
+        self.font_weight_combo.addItems([tr("font_weight_normal"), tr("font_weight_bold"), tr("font_weight_extrabold")])
+
+        self.text_direction_combo = FocusAwareComboBox()
+        self.text_direction_combo.addItems([tr("text_direction_auto"), tr("text_direction_rtl"), tr("text_direction_ltr")])
+
+        # إنشاء عناصر النصوص
+        self.show_tooltips_check = QCheckBox(tr("show_tooltips_check"))
+        self.enable_animations_check = QCheckBox(tr("enable_animations_check"))
+
+        # إنشاء عناصر السمة المتقدمة
+        self.transparency_slider = QSlider(Qt.Horizontal)
+        self.transparency_slider.setRange(0, 100)
+        self.transparency_slider.setValue(80)
+
+        self.size_combo = FocusAwareComboBox()
+        self.size_combo.addItems([tr("size_small"), tr("size_medium"), tr("size_large"), tr("size_xlarge")])
+
+        self.contrast_combo = FocusAwareComboBox()
+        self.contrast_combo.addItems([tr("contrast_low"), tr("contrast_normal"), tr("contrast_high"), tr("contrast_xhigh")])
+
+        # إنشاء عناصر أخرى
+        self.font_preview_label = QLabel(tr("font_preview_text"))
+        self.changes_report = QLabel()
+
+        # ربط الإشارات
+        self._connect_signals()
+
+    def _connect_signals(self):
+        """ربط جميع الإشارات"""
+        # إشارات المظهر
+        self.theme_combo.currentTextChanged.connect(self._on_theme_changed)
+        self.accent_color_input.textChanged.connect(self._on_accent_changed)
+        self.language_combo.currentTextChanged.connect(self._on_language_changed)
+
+        # إشارات الخطوط
+        self.font_size_slider.valueChanged.connect(self._on_font_changed)
+        self.title_font_size_slider.valueChanged.connect(self._on_font_changed)
+        self.menu_font_size_slider.valueChanged.connect(self._on_font_changed)
+        self.font_family_combo.currentTextChanged.connect(self._on_font_changed)
+        self.font_weight_combo.currentTextChanged.connect(self._on_font_changed)
+
+        # إشارات السمة المتقدمة
+        self.transparency_slider.valueChanged.connect(self._on_advanced_changed)
+        self.size_combo.currentTextChanged.connect(self._on_advanced_changed)
+        self.contrast_combo.currentTextChanged.connect(self._on_advanced_changed)
+
+    def _on_theme_changed(self):
+        """معالجة تغيير السمة"""
+        if not self.has_unsaved_changes:
+            show_info(self, tr("theme_changed_notification"), duration=3000)
+        self.has_unsaved_changes = True
+        self.update_preview_only()
+
+    def _on_accent_changed(self):
+        """معالجة تغيير لون التمييز"""
+        if not self.has_unsaved_changes:
+            show_info(self, tr("accent_color_changed_notification"), duration=3000)
+        self.has_unsaved_changes = True
+        self.update_preview_only()
+
+    def _on_language_changed(self):
+        """معالجة تغيير اللغة"""
+        self.has_unsaved_changes = True
+
+    def _on_font_changed(self):
+        """معالجة تغيير الخطوط"""
+        if not self.has_unsaved_changes:
+            show_info(self, tr("font_changed_notification"), duration=3000)
+        self.has_unsaved_changes = True
+        self.update_font_preview()
+
+    def _on_advanced_changed(self):
+        """معالجة تغيير الإعدادات المتقدمة"""
+        self.has_unsaved_changes = True
+        self.update_preview_only()
 
         # ربط تغيير السمة بتحديث الأنماط الخاصة
         global_theme_manager.theme_changed.connect(self.update_special_styles)
@@ -224,32 +335,64 @@ class SettingsUI(ThemeAwareDialog):
     def closeEvent(self, event):
         """حماية من الخروج بدون حفظ التغييرات"""
         if self.has_unsaved_changes:
-            msg = QMessageBox(QMessageBox.Question, tr("warning"),
-                tr("unsaved_changes_prompt"), parent=self)
+            # إشعار تحذيري عن وجود تغييرات غير محفوظة
+            show_warning(self, tr("unsaved_changes_warning"), duration=4000)
 
-            save_btn = msg.addButton(tr("save_and_close"), QMessageBox.AcceptRole)
-            discard_btn = msg.addButton(tr("discard_changes"), QMessageBox.DestructiveRole)
-            cancel_btn = msg.addButton(tr("cancel"), QMessageBox.RejectRole)
+            result = self._show_save_confirmation()
 
-            apply_theme_style(msg, "dialog")
-            msg.exec()
-
-            if msg.clickedButton() == save_btn:
-                # حفظ التغييرات ثم إغلاق
+            if result == "save":
                 if self.save_all_settings():
-                    # استدعاء closeEvent الأصلي للتنظيف
+                    show_success(self, tr("settings_saved_before_close"), duration=2000)
                     super().closeEvent(event)
                 else:
                     event.ignore()
-            elif msg.clickedButton() == discard_btn:
-                # تجاهل التغييرات وإغلاق
+            elif result == "discard":
+                show_info(self, tr("changes_discarded"), duration=2000)
                 super().closeEvent(event)
-            else:
-                # إلغاء الإغلاق
+            else:  # cancel
                 event.ignore()
         else:
-            # لا توجد تغييرات، إغلاق عادي
+            # إشعار وداع لطيف
+            show_info(self, tr("settings_closed"), duration=2000)
             super().closeEvent(event)
+
+    def _show_save_confirmation(self):
+        """عرض رسالة تأكيد الحفظ"""
+        try:
+            # محاولة استخدام MessageManager إذا كان متاحاً
+            if hasattr(self.message_manager, 'show_question'):
+                return self.message_manager.show_question(
+                    self,
+                    tr("warning"),
+                    tr("unsaved_changes_prompt"),
+                    buttons=["save", "discard", "cancel"]
+                )
+            else:
+                # استخدام QMessageBox كبديل
+                msg = QMessageBox(QMessageBox.Question, tr("warning"),
+                    tr("unsaved_changes_prompt"), parent=self)
+
+                save_btn = msg.addButton(tr("save_and_close"), QMessageBox.AcceptRole)
+                discard_btn = msg.addButton(tr("discard_changes"), QMessageBox.DestructiveRole)
+                cancel_btn = msg.addButton(tr("cancel"), QMessageBox.RejectRole)
+
+                apply_theme_style(msg, "dialog")
+
+                # تخصيص ألوان الأزرار
+                save_btn.setStyleSheet(self.get_special_button_style("40, 167, 69"))  # أخضر للحفظ
+                discard_btn.setStyleSheet(self.get_special_button_style("255, 193, 7"))  # أصفر للتراجع
+                cancel_btn.setStyleSheet(self.get_special_button_style("220, 53, 69"))  # أحمر للإلغاء
+                msg.exec()
+
+                if msg.clickedButton() == save_btn:
+                    return "save"
+                elif msg.clickedButton() == discard_btn:
+                    return "discard"
+                else:
+                    return "cancel"
+        except Exception as e:
+            print(f"خطأ في عرض رسالة التأكيد: {e}")
+            return "cancel"
 
     # ===============================
     # دوال التهيئة والإعداد الأساسي
@@ -257,12 +400,14 @@ class SettingsUI(ThemeAwareDialog):
 
     def get_special_button_style(self, color_rgb="13, 110, 253"):
         """Generate a special button style with a given color."""
+        from .global_styles import get_font_settings
+        font_settings = get_font_settings()
         return f"""
             QPushButton {{
                 background: rgba({color_rgb}, 0.2);
                 border: 1px solid rgba({color_rgb}, 0.4);
                 border-radius: 8px;
-                font-size: 14px;
+                font-size: {font_settings['size']}px;
                 font-weight: bold;
                 padding: 12px 24px;
             }}
@@ -363,32 +508,28 @@ class SettingsUI(ThemeAwareDialog):
         self.load_page_on_demand(self.current_step)
 
     def load_page_on_demand(self, page_index):
-        """تحميل صفحة عند الحاجة فقط"""
-        if not self.pages_loaded[page_index]:
-            # إنشاء الصفحة المطلوبة
-            if page_index == 0:  # حفظ
-                page_widget = self.create_save_page()
-            elif page_index == 1:  # خطوط
-                page_widget = self.create_fonts_page()
-            elif page_index == 2:  # مظهر
-                page_widget = self.create_appearance_page()
-            else:
-                return
+        """تحميل صفحة عند الحاجة فقط (مبسط)"""
+        if self.pages_loaded[page_index]:
+            return
 
-            # استبدال العنصر النائب بالصفحة الحقيقية
+        # إنشاء الصفحة (العناصر موجودة مسبقاً)
+        page_creators = {
+            0: self.create_save_page,
+            1: self.create_fonts_page,
+            2: self.create_appearance_page
+        }
+
+        creator = page_creators.get(page_index)
+        if creator:
+            page_widget = creator()
             old_widget = self.content_stack.widget(page_index)
             self.content_stack.removeWidget(old_widget)
             old_widget.deleteLater()
-
             self.content_stack.insertWidget(page_index, page_widget)
             self.page_widgets[page_index] = page_widget
             self.pages_loaded[page_index] = True
 
-    def delayed_initialization(self):
-        """تحميل مؤجل للعناصر الثقيلة لتحسين سرعة الفتح"""
-        # يمكن إضافة تحميل العناصر الثقيلة هنا إذا لزم الأمر
-        # مثل تحميل قوائم الخطوط أو الأيقونات الكبيرة
-        pass
+
 
     # ===============================
     # دوال التنسيق والأنماط (تم نقلها إلى global_styles.py)
@@ -432,18 +573,14 @@ class SettingsUI(ThemeAwareDialog):
         theme_layout = QFormLayout(theme_group)
         theme_layout.setSpacing(15)
 
-        # السمة
-        self.theme_combo = FocusAwareComboBox()
-        self.theme_combo.addItems(["dark", "light", "blue", "green", "purple"])
+        # السمة (استخدام العنصر الموجود)
         apply_theme_style(self.theme_combo, "combo")
         self.theme_combo.currentTextChanged.connect(self.on_theme_changed)
         theme_label = QLabel(tr("theme_label"))
         apply_theme_style(theme_label, "label")
         theme_layout.addRow(theme_label, self.theme_combo)
 
-        # اللغة
-        self.language_combo = FocusAwareComboBox()
-        self.language_combo.addItems(["العربية", "English"])
+        # اللغة (استخدام العنصر الموجود)
         apply_theme_style(self.language_combo, "combo")
         self.language_combo.currentTextChanged.connect(self.on_language_changed)
         language_label = QLabel(tr("language"))
@@ -453,7 +590,7 @@ class SettingsUI(ThemeAwareDialog):
         # لون التمييز
         accent_layout = QHBoxLayout()
         self.accent_color_input = QLineEdit()
-        self.accent_color_input.setPlaceholderText("#ff6f00")
+        self.accent_color_input.setPlaceholderText("#056a51")
         apply_theme_style(self.accent_color_input, "input", auto_register=True)
         self.accent_color_input.textChanged.connect(self.on_accent_color_changed)
 
@@ -570,15 +707,12 @@ class SettingsUI(ThemeAwareDialog):
         font_layout = QFormLayout(font_group)
         font_layout.setSpacing(15)
 
-        # حجم الخط (منقول من المظهر)
+        # حجم الخط (استخدام العنصر الموجود)
         font_size_layout = QHBoxLayout()
-        self.font_size_slider = QSlider(Qt.Horizontal)
-        self.font_size_slider.setRange(10, 24)
-        self.font_size_slider.setValue(16)
         apply_theme_style(self.font_size_slider, "slider")
 
-        self.font_size_label = QLabel("16")
-        apply_theme_style(self.font_size_label, "label", auto_register=True)  # تطبيق السمة هنا
+        self.font_size_label = QLabel(str(self.font_size_slider.value()))
+        apply_theme_style(self.font_size_label, "label", auto_register=True)
         self.font_size_slider.valueChanged.connect(
             lambda v: self.font_size_label.setText(str(v))
         )
@@ -587,28 +721,54 @@ class SettingsUI(ThemeAwareDialog):
         font_size_layout.addWidget(self.font_size_slider, 3)
         font_size_layout.addWidget(self.font_size_label, 1)
         font_size_label2 = QLabel(tr("font_size_label"))
-        apply_theme_style(font_size_label2, "label", auto_register=True)  # تطبيق السمة هنا
+        apply_theme_style(font_size_label2, "label", auto_register=True)
         font_layout.addRow(font_size_label2, font_size_layout)
 
-        # نوع الخط
-        self.font_family_combo = FocusAwareComboBox()
+        # حجم خط العناوين
+        title_font_size_layout = QHBoxLayout()
+        apply_theme_style(self.title_font_size_slider, "slider")
+
+        self.title_font_size_label = QLabel(str(self.title_font_size_slider.value()))
+        apply_theme_style(self.title_font_size_label, "label", auto_register=True)
+        self.title_font_size_slider.valueChanged.connect(
+            lambda v: self.title_font_size_label.setText(str(v))
+        )
+        self.title_font_size_slider.valueChanged.connect(self.mark_as_changed)
+
+        title_font_size_layout.addWidget(self.title_font_size_slider, 3)
+        title_font_size_layout.addWidget(self.title_font_size_label, 1)
+        title_font_size_label2 = QLabel("حجم خط العناوين")
+        apply_theme_style(title_font_size_label2, "label", auto_register=True)
+        font_layout.addRow(title_font_size_label2, title_font_size_layout)
+
+        # حجم خط القوائم
+        menu_font_size_layout = QHBoxLayout()
+        apply_theme_style(self.menu_font_size_slider, "slider")
+
+        self.menu_font_size_label = QLabel(str(self.menu_font_size_slider.value()))
+        apply_theme_style(self.menu_font_size_label, "label", auto_register=True)
+        self.menu_font_size_slider.valueChanged.connect(
+            lambda v: self.menu_font_size_label.setText(str(v))
+        )
+        self.menu_font_size_slider.valueChanged.connect(self.mark_as_changed)
+
+        menu_font_size_layout.addWidget(self.menu_font_size_slider, 3)
+        menu_font_size_layout.addWidget(self.menu_font_size_label, 1)
+        menu_font_size_label2 = QLabel("حجم خط القوائم")
+        apply_theme_style(menu_font_size_label2, "label", auto_register=True)
+        font_layout.addRow(menu_font_size_label2, menu_font_size_layout)
+
+        # نوع الخط (استخدام العنصر الموجود)
         self.font_family_combo.addItems([
-            tr("system_default_font"), "Arial", "Tahoma", "Segoe UI",
-            "Cairo", "Amiri", "Noto Sans Arabic"
+            "Cairo", "Amiri", "Noto Sans Arabic"  # إضافة خطوط عربية فقط
         ])
-        # تطبيق النمط الموحد للقوائم المنسدلة
         apply_theme_style(self.font_family_combo, "combo")
         self.font_family_combo.currentTextChanged.connect(self.mark_as_changed)
         font_family_label = QLabel(tr("font_family_label"))
         apply_theme_style(font_family_label, "label")
         font_layout.addRow(font_family_label, self.font_family_combo)
 
-        # وزن الخط
-        self.font_weight_combo = FocusAwareComboBox()
-        self.font_weight_combo.addItems([
-            tr("font_weight_normal"), tr("font_weight_bold"), tr("font_weight_extrabold")
-        ])
-        # تطبيق النمط الموحد للقوائم المنسدلة
+        # وزن الخط (استخدام العنصر الموجود)
         apply_theme_style(self.font_weight_combo, "combo")
         self.font_weight_combo.currentTextChanged.connect(self.mark_as_changed)
         font_weight_label = QLabel(tr("font_weight_label"))
@@ -623,25 +783,18 @@ class SettingsUI(ThemeAwareDialog):
         text_layout = QFormLayout(text_group)
         text_layout.setSpacing(15)
 
-        # إظهار التلميحات (منقول من المظهر)
-        self.show_tooltips_check = QCheckBox(tr("show_tooltips_check"))
+        # إظهار التلميحات (استخدام العنصر الموجود)
         apply_theme_style(self.show_tooltips_check, "checkbox", auto_register=True)
         self.show_tooltips_check.stateChanged.connect(self.mark_as_changed)
         text_layout.addRow(self.show_tooltips_check)
 
-        # تمكين الحركات (منقول من المظهر)
-        self.enable_animations_check = QCheckBox(tr("enable_animations_check"))
+        # تمكين الحركات (استخدام العنصر الموجود)
         apply_theme_style(self.enable_animations_check, "checkbox", auto_register=True)
         self.enable_animations_check.setChecked(True)
         self.enable_animations_check.stateChanged.connect(self.mark_as_changed)
         text_layout.addRow(self.enable_animations_check)
 
-        # اتجاه النص
-        self.text_direction_combo = FocusAwareComboBox()
-        self.text_direction_combo.addItems([
-            tr("text_direction_auto"), tr("text_direction_rtl"), tr("text_direction_ltr")
-        ])
-        # تطبيق النمط الموحد للقوائم المنسدلة
+        # اتجاه النص (استخدام العنصر الموجود)
         apply_theme_style(self.text_direction_combo, "combo")
         self.text_direction_combo.currentTextChanged.connect(self.mark_as_changed)
         text_direction_label = QLabel(tr("text_direction_label"))
@@ -676,91 +829,36 @@ class SettingsUI(ThemeAwareDialog):
         self.font_weight_combo.currentTextChanged.connect(self.update_font_preview)
 
         # تطبيق فوري للخطوط عند التغيير
-        self.font_size_slider.valueChanged.connect(self.apply_fonts_immediately)
-        self.font_family_combo.currentTextChanged.connect(self.apply_fonts_immediately)
-        self.font_weight_combo.currentTextChanged.connect(self.apply_fonts_immediately)
+        self.font_size_slider.valueChanged.connect(self._on_font_changed)
+        self.font_family_combo.currentTextChanged.connect(self._on_font_changed)
+        self.font_weight_combo.currentTextChanged.connect(self._on_font_changed)
 
         # تحديث المعاينة الأولية
         QTimer.singleShot(100, self.update_font_preview)
 
         return page
 
-    def apply_fonts_immediately(self):
-        """تطبيق إعدادات الخطوط فوراً على التطبيق"""
-        try:
-            # حفظ إعدادات الخطوط مؤقتاً
-            from modules import settings
-            settings_data = settings.load_settings()
-            ui_settings = settings_data.get("ui_settings", {})
 
-            if hasattr(self, 'font_size_slider'):
-                ui_settings["font_size"] = self.font_size_slider.value()
-            if hasattr(self, 'font_family_combo'):
-                ui_settings["font_family"] = self.font_family_combo.currentText()
-            if hasattr(self, 'font_weight_combo'):
-                ui_settings["font_weight"] = self.font_weight_combo.currentText()
-
-            settings_data["ui_settings"] = ui_settings
-            settings.save_settings(settings_data)
-
-            # تطبيق الخطوط فوراً
-            from .theme_manager import refresh_all_fonts
-            refresh_all_fonts()
-
-        except Exception as e:
-            print(tr("error_applying_fonts", e=e))
 
     def update_font_preview(self):
-        """تحديث معاينة الخط"""
+        """تحديث معاينة الخط (مبسط)"""
         try:
             if not hasattr(self, 'font_preview_label'):
                 return
 
-            from .theme_manager import global_theme_manager
-            from PySide6.QtGui import QColor
+            # تطبيق السمة الحالية على المعاينة
+            apply_theme_style(self.font_preview_label, "label")
 
-            colors = global_theme_manager.get_current_colors()
-            text_color_q = QColor(colors.get('text', '#ffffff'))
+            # تحديث النص
+            font_size = self.font_size_slider.value()
+            font_family = self.font_family_combo.currentText()
+            font_weight = self.font_weight_combo.currentText()
 
-            # الحصول على القيم الحالية
-            font_size = self.font_size_slider.value() if hasattr(self, 'font_size_slider') else 16
-            font_family = self.font_family_combo.currentText() if hasattr(self, 'font_family_combo') else "النظام الافتراضي"
-            font_weight = self.font_weight_combo.currentText() if hasattr(self, 'font_weight_combo') else "عادي"
-
-            # تحويل نوع الخط
-            if font_family == tr("system_default_font"):
-                font_family_css = "system-ui, -apple-system, sans-serif"
-            else:
-                font_family_css = font_family
-
-            # تحويل وزن الخط
-            weight_map = {
-                tr("font_weight_normal"): "normal",
-                tr("font_weight_bold"): "bold",
-                tr("font_weight_extrabold"): "900"
-            }
-            font_weight_css = weight_map.get(font_weight, "normal")
-
-            # تطبيق النمط
-            style = f"""
-                QLabel {{
-                    background: rgba({text_color_q.red()}, {text_color_q.green()}, {text_color_q.blue()}, 0.05);
-                    border: 1px solid rgba({text_color_q.red()}, {text_color_q.green()}, {text_color_q.blue()}, 0.1);
-                    border-radius: 8px;
-                    padding: 20px;
-                    text-align: center;
-                    line-height: 1.5;
-                    font-family: {font_family_css};
-                    font-size: {font_size}px;
-                    font-weight: {font_weight_css};
-                    color: {colors.get('text_body', '#ffffff')};
-                }}
-            """
-
-            self.font_preview_label.setStyleSheet(style)
+            preview_text = f"معاينة الخط - {font_family} - {font_size}px - {font_weight}"
+            self.font_preview_label.setText(preview_text)
 
         except Exception as e:
-            print(tr("error_updating_font_preview", e=e))
+            print(f"خطأ في تحديث معاينة الخط: {e}")
 
 
 
@@ -817,22 +915,24 @@ class SettingsUI(ThemeAwareDialog):
         # أزرار الحفظ
         save_buttons_layout = QHBoxLayout()
 
-        # زر إرجاع الإعدادات الافتراضية
+        # زر إرجاع الإعدادات الافتراضية (أصفر)
         self.reset_defaults_btn = QPushButton(tr("reset_to_defaults_button"))
-        self.reset_defaults_btn.setStyleSheet(self.get_special_button_style("108, 117, 125"))
+        self.reset_defaults_btn.setStyleSheet(self.get_special_button_style("255, 193, 7"))  # أصفر
         self.reset_defaults_btn.clicked.connect(self.reset_to_defaults)
 
-        # زر حفظ الإعدادات الحالية كافتراضية
+        # زر حفظ الإعدادات الحالية كافتراضية (أخضر)
         self.save_as_default_btn = QPushButton(tr("save_as_default_button"))
-        self.save_as_default_btn.setStyleSheet(self.get_special_button_style())
+        self.save_as_default_btn.setStyleSheet(self.get_special_button_style("40, 167, 69"))  # أخضر
         self.save_as_default_btn.clicked.connect(self.save_current_as_default)
 
+        # زر حفظ جميع التغييرات (أخضر)
         self.save_all_btn = QPushButton(tr("save_all_changes_button"))
-        self.save_all_btn.setStyleSheet(self.get_special_button_style())
+        self.save_all_btn.setStyleSheet(self.get_special_button_style("40, 167, 69"))  # أخضر
         self.save_all_btn.clicked.connect(self.save_all_settings)
 
+        # زر إلغاء التغييرات (أحمر)
         self.cancel_btn = QPushButton(tr("cancel_changes_button"))
-        self.cancel_btn.setStyleSheet(self.get_special_button_style())
+        self.cancel_btn.setStyleSheet(self.get_special_button_style("220, 53, 69"))  # أحمر
         self.cancel_btn.clicked.connect(self.cancel_changes)
 
         save_buttons_layout.addWidget(self.reset_defaults_btn)
@@ -868,6 +968,10 @@ class SettingsUI(ThemeAwareDialog):
         # تطبيق نمط الرسالة
         apply_theme_style(msg, "dialog")
 
+        # تخصيص ألوان الأزرار
+        reset_btn.setStyleSheet(self.get_special_button_style("255, 193, 7"))  # أصفر للتراجع
+        cancel_btn.setStyleSheet(self.get_special_button_style("220, 53, 69"))  # أحمر للإلغاء
+
         msg.exec()
 
         if msg.clickedButton() == reset_btn:
@@ -879,12 +983,10 @@ class SettingsUI(ThemeAwareDialog):
                     self.load_current_settings_to_ui()
 
                     # تطبيق الإعدادات الافتراضية على التطبيق
-                    from .theme_manager import refresh_all_fonts
-                    from .theme_manager import global_theme_manager
+                    from .theme_manager import refresh_all_themes
 
-                    # تطبيق السمة الافتراضية
-                    global_theme_manager.change_theme("dark", "#ff6f00")
-                    refresh_all_fonts()
+                    # إعادة تطبيق السمة على جميع العناصر والنوافذ
+                    refresh_all_themes()
 
                     # تحديث تقرير التغييرات
                     self.update_changes_report()
@@ -910,7 +1012,7 @@ class SettingsUI(ThemeAwareDialog):
                 # رسالة خطأ
                 error_msg = QMessageBox(self)
                 error_msg.setWindowTitle(tr("error_title"))
-                error_msg.setText(tr("generic_error_message", error=str(e)))
+                error_msg.setText(f"حدث خطأ: {str(e)}")
                 error_msg.setIcon(QMessageBox.Critical)
                 apply_theme_style(error_msg, "dialog")
                 error_msg.exec()
@@ -932,6 +1034,10 @@ class SettingsUI(ThemeAwareDialog):
 
         # تطبيق نمط الرسالة
         apply_theme_style(msg, "dialog")
+
+        # تخصيص ألوان الأزرار
+        save_btn.setStyleSheet(self.get_special_button_style("40, 167, 69"))  # أخضر للحفظ
+        cancel_btn.setStyleSheet(self.get_special_button_style("220, 53, 69"))  # أحمر للإلغاء
 
         msg.exec()
 
@@ -962,7 +1068,7 @@ class SettingsUI(ThemeAwareDialog):
                 # رسالة خطأ
                 error_msg = QMessageBox(self)
                 error_msg.setWindowTitle(tr("error_title"))
-                error_msg.setText(tr("generic_error_message", error=str(e)))
+                error_msg.setText(f"حدث خطأ: {str(e)}")
                 error_msg.setIcon(QMessageBox.Critical)
                 apply_theme_style(error_msg, "dialog")
                 error_msg.exec()
@@ -976,7 +1082,7 @@ class SettingsUI(ThemeAwareDialog):
         from PySide6.QtWidgets import QColorDialog
         from PySide6.QtGui import QColor
 
-        current_color = QColor(self.accent_color_input.text() or "#ff6f00")
+        current_color = QColor(self.accent_color_input.text() or "#056a51")
         color = QColorDialog.getColor(current_color, self, tr("choose_accent_color_dialog_title"))
 
         if color.isValid():
@@ -993,7 +1099,7 @@ class SettingsUI(ThemeAwareDialog):
                 self.settings_data[key] = value
 
         except Exception as e:
-            print(tr("error_saving_temp_settings", e=e))
+            print(f"خطأ في حفظ الإعدادات المؤقتة: {e}")
 
     def go_to_step(self, step):
         """الانتقال إلى خطوة محددة مع حفظ التغييرات"""
@@ -1069,7 +1175,7 @@ class SettingsUI(ThemeAwareDialog):
                     original_theme = self.original_settings.get("theme", "dark")
                     current_theme = self.theme_combo.currentText()
                     if original_theme != current_theme:
-                        changes.append(tr("change_report_theme", original=original_theme, current=current_theme))
+                        changes.append(f"السمة: {original_theme} ← {current_theme}")
             except Exception as e:
                 print(f"خطأ في مقارنة السمة: {e}")
 
@@ -1078,14 +1184,14 @@ class SettingsUI(ThemeAwareDialog):
                     original_color = self.original_settings.get("accent_color", "#ff6f00")
                     current_color = self.accent_color_input.text() or "#ff6f00"
                     if original_color != current_color:
-                        changes.append(tr("change_report_accent_color", original=original_color, current=current_color))
+                        changes.append(f"لون التمييز: {original_color} ← {current_color}")
             except Exception as e:
                 print(f"خطأ في مقارنة لون التمييز: {e}")
 
             # مقارنة إعدادات الخطوط الجديدة
             try:
                 if hasattr(self, 'font_size_slider') and self.font_size_slider:
-                    original_font_size = self.original_settings.get("ui_settings", {}).get("font_size", 16)
+                    original_font_size = self.original_settings.get("ui_settings", {}).get("font_size", 14)
                     current_font_size = self.font_size_slider.value()
                     if original_font_size != current_font_size:
                         changes.append(tr("change_report_font_size", original=original_font_size, current=current_font_size))
@@ -1214,44 +1320,37 @@ class SettingsUI(ThemeAwareDialog):
                 self.changes_report.setText(error_msg)
 
     def get_current_settings(self):
-        """الحصول على الإعدادات الحالية من الواجهة"""
+        """الحصول على الإعدادات الحالية من الواجهة (محسن بدون hasattr مفرط)"""
         current = {}
 
         try:
-            if hasattr(self, 'theme_combo'):
-                current["theme"] = self.theme_combo.currentText()
-                current["accent_color"] = self.accent_color_input.text() or "#ff6f00"
-                
-                if hasattr(self, 'language_combo'):
-                    current["language"] = "ar" if self.language_combo.currentText() == "العربية" else "en"
+            # إعدادات المظهر الأساسية (مضمونة الوجود)
+            current["theme"] = self.theme_combo.currentText()
+            current["accent_color"] = self.accent_color_input.text() or "#ff6f00"
+            current["language"] = "ar" if self.language_combo.currentText() == "العربية" else "en"
 
-                ui_settings = {}
+            # إعدادات الواجهة (مضمونة الوجود)
+            ui_settings = {
                 # إعدادات الخطوط
-                if hasattr(self, 'font_size_slider'):
-                    ui_settings["font_size"] = self.font_size_slider.value()
-                if hasattr(self, 'font_family_combo'):
-                    ui_settings["font_family"] = self.font_family_combo.currentText()
-                if hasattr(self, 'font_weight_combo'):
-                    ui_settings["font_weight"] = self.font_weight_combo.currentText()
-                if hasattr(self, 'text_direction_combo'):
-                    ui_settings["text_direction"] = self.text_direction_combo.currentText()
+                "font_size": self.font_size_slider.value(),
+                "title_font_size": self.title_font_size_slider.value(),
+                "menu_font_size": self.menu_font_size_slider.value(),
+                "font_family": self.font_family_combo.currentText(),
+                "font_weight": self.font_weight_combo.currentText(),
+                "text_direction": self.text_direction_combo.currentText(),
 
                 # إعدادات النصوص
-                if hasattr(self, 'show_tooltips_check'):
-                    ui_settings["show_tooltips"] = self.show_tooltips_check.isChecked()
-                if hasattr(self, 'enable_animations_check'):
-                    ui_settings["enable_animations"] = self.enable_animations_check.isChecked()
+                "show_tooltips": self.show_tooltips_check.isChecked(),
+                "enable_animations": self.enable_animations_check.isChecked(),
 
                 # إعدادات السمة المتقدمة
-                if hasattr(self, 'transparency_slider'):
-                    ui_settings["transparency"] = self.transparency_slider.value()
-                if hasattr(self, 'size_combo'):
-                    ui_settings["size"] = self.size_combo.currentText()
-                if hasattr(self, 'contrast_combo'):
-                    ui_settings["contrast"] = self.contrast_combo.currentText()
+                "transparency": self.transparency_slider.value(),
+                "size": self.size_combo.currentText(),
+                "contrast": self.contrast_combo.currentText()
+            }
+            current["ui_settings"] = ui_settings
 
-                current["ui_settings"] = ui_settings
-
+            # إعدادات إضافية (قد تكون غير موجودة في بعض الصفحات)
             if hasattr(self, 'compression_slider'):
                 current["compression_level"] = self.compression_slider.value()
 
@@ -1263,21 +1362,21 @@ class SettingsUI(ThemeAwareDialog):
                 current["merge_settings"] = merge_settings
 
             if hasattr(self, 'max_memory_slider'):
-                performance_settings = {
+                current["performance_settings"] = {
                     "max_memory_usage": self.max_memory_slider.value(),
                     "enable_multithreading": self.enable_multithreading_check.isChecked()
                 }
-                current["performance_settings"] = performance_settings
 
             if hasattr(self, 'enable_password_check'):
-                security_settings = {
+                current["security_settings"] = {
                     "enable_password_protection": self.enable_password_check.isChecked(),
                     "privacy_mode": self.privacy_mode_check.isChecked()
                 }
-                current["security_settings"] = security_settings
 
         except Exception as e:
-            print(tr("error_getting_settings", e=e))
+            print(f"خطأ في قراءة الإعدادات: {e}")
+            # عرض إشعار خطأ
+            show_error(self, f"{tr('error_reading_settings')}: {str(e)}", duration=5000)
 
         return current
 
@@ -1290,9 +1389,9 @@ class SettingsUI(ThemeAwareDialog):
         if hasattr(self, 'theme_combo') and hasattr(self, 'accent_color_input'):
             return {
                 'theme': self.theme_combo.currentText(),
-                'accent_color': self.accent_color_input.text() or "#ff6f00"
+                'accent_color': self.accent_color_input.text() or "#056a51"
             }
-        return {'theme': 'dark', 'accent_color': '#ff6f00'}
+        return {'theme': 'blue', 'accent_color': '#056a51'}
 
     def apply_theme_safely(self, theme_name=None, accent_color=None):
         """تطبيق السمة بشكل آمن - دالة مساعدة"""
@@ -1305,7 +1404,7 @@ class SettingsUI(ThemeAwareDialog):
             # التحقق من صحة اللون
             is_valid, _ = self.validate_color(accent_color)
             if not is_valid:
-                accent_color = "#ff6f00"  # لون افتراضي آمن
+                accent_color = "#056a51"  # لون افتراضي آمن
 
             from .theme_manager import global_theme_manager
             global_theme_manager.change_theme(theme_name, accent_color)
@@ -1314,23 +1413,110 @@ class SettingsUI(ThemeAwareDialog):
             print(tr("error_applying_theme", e=e))
             return False
 
-    def show_error_message(self, title, message, details=None):
-        """عرض رسالة خطأ موحدة - دالة مساعدة"""
+    def show_error_message(self, message, details=None):
+        """عرض رسالة خطأ باستخدام نظام الإشعارات المحسن"""
         full_message = message
         if details:
-            full_message += f"\n\nDetails: {details}"
-        msg = QMessageBox(QMessageBox.Critical, title, full_message, parent=self)
-        apply_theme_style(msg, "dialog")
-        msg.exec()
+            full_message += f" - {details}"
+        show_error(self, full_message, duration=5000)
 
-    def show_success_message(self, title, message, details=None):
-        """عرض رسالة نجاح موحدة - دالة مساعدة"""
+    def show_success_message(self, message, details=None):
+        """عرض رسالة نجاح باستخدام نظام الإشعارات المحسن"""
         full_message = message
         if details:
-            full_message += f"\n\n{details}"
-        msg = QMessageBox(QMessageBox.Information, title, full_message, parent=self)
-        apply_theme_style(msg, "dialog")
-        msg.exec()
+            full_message += f" - {details}"
+        show_success(self, full_message, duration=4000)
+
+    def show_warning_message(self, message, details=None):
+        """عرض رسالة تحذير باستخدام نظام الإشعارات المحسن"""
+        full_message = message
+        if details:
+            full_message += f" - {details}"
+        show_warning(self, full_message, duration=4000)
+
+    def show_info_message(self, message, details=None):
+        """عرض رسالة معلومات باستخدام نظام الإشعارات المحسن"""
+        full_message = message
+        if details:
+            full_message += f" - {details}"
+        show_info(self, full_message, duration=3000)
+
+    def _load_settings_to_ui(self):
+        """تحميل الإعدادات إلى الواجهة (محسن بدون hasattr مفرط)"""
+        try:
+            # منع إرسال الإشارات أثناء التحميل
+            self._block_signals(True)
+
+            # تحميل إعدادات المظهر الأساسية
+            self.theme_combo.setCurrentText(self.settings_data.get("theme", "blue"))
+            self.accent_color_input.setText(self.settings_data.get("accent_color", "#056a51"))
+
+            # تحميل اللغة
+            current_lang = self.settings_data.get("language", "ar")
+            self.language_combo.setCurrentText("العربية" if current_lang == "ar" else "English")
+
+            # تحميل إعدادات الواجهة
+            ui_settings = self.settings_data.get("ui_settings", {})
+
+            # إعدادات الخطوط
+            self.font_size_slider.setValue(ui_settings.get("font_size", 12))
+            self.title_font_size_slider.setValue(ui_settings.get("title_font_size", 18))
+            self.menu_font_size_slider.setValue(ui_settings.get("menu_font_size", 12))
+
+            font_family = ui_settings.get("font_family", tr("system_default_font"))
+            index = self.font_family_combo.findText(font_family)
+            if index >= 0:
+                self.font_family_combo.setCurrentIndex(index)
+
+            font_weight = ui_settings.get("font_weight", tr("font_weight_normal"))
+            index = self.font_weight_combo.findText(font_weight)
+            if index >= 0:
+                self.font_weight_combo.setCurrentIndex(index)
+
+            text_direction = ui_settings.get("text_direction", tr("text_direction_auto"))
+            index = self.text_direction_combo.findText(text_direction)
+            if index >= 0:
+                self.text_direction_combo.setCurrentIndex(index)
+
+            # إعدادات النصوص
+            self.show_tooltips_check.setChecked(ui_settings.get("show_tooltips", True))
+            self.enable_animations_check.setChecked(ui_settings.get("enable_animations", True))
+
+            # إعدادات السمة المتقدمة
+            self.transparency_slider.setValue(ui_settings.get("transparency", 80))
+
+            size = ui_settings.get("size", tr("size_medium"))
+            index = self.size_combo.findText(size)
+            if index >= 0:
+                self.size_combo.setCurrentIndex(index)
+
+            contrast = ui_settings.get("contrast", tr("contrast_normal"))
+            index = self.contrast_combo.findText(contrast)
+            if index >= 0:
+                self.contrast_combo.setCurrentIndex(index)
+
+            # تحديث معاينة الخط
+            self.update_font_preview()
+
+            # إعادة تفعيل الإشارات
+            self._block_signals(False)
+
+        except Exception as e:
+            print(f"خطأ في تحميل الإعدادات: {e}")
+            show_error(self, f"{tr('error_loading_settings')}: {str(e)}", duration=5000)
+
+    def _block_signals(self, block):
+        """منع أو تفعيل إشارات العناصر"""
+        widgets = [
+            self.theme_combo, self.accent_color_input, self.language_combo,
+            self.font_size_slider, self.title_font_size_slider, self.menu_font_size_slider,
+            self.font_family_combo, self.font_weight_combo,
+            self.text_direction_combo, self.show_tooltips_check, self.enable_animations_check,
+            self.transparency_slider, self.size_combo, self.contrast_combo
+        ]
+
+        for widget in widgets:
+            widget.blockSignals(block)
 
     # ===============================
     # دوال الحفظ والتحميل والإدارة
@@ -1341,6 +1527,9 @@ class SettingsUI(ThemeAwareDialog):
         حفظ جميع الإعدادات عن طريق تفويض المهمة إلى مدير الإعدادات.
         """
         try:
+            # إشعار بدء عملية الحفظ
+            show_info(self, tr("saving_settings_notification"), duration=2000)
+
             # 1. الحصول على الإعدادات الحالية من الواجهة
             current_settings = self.get_current_settings()
 
@@ -1352,7 +1541,7 @@ class SettingsUI(ThemeAwareDialog):
                 
                 # 4. تحديث السمة في مدير السمات مع الخيارات
                 theme_name = self.theme_combo.currentText()
-                accent_color = self.accent_color_input.text() or "#ff6f00"
+                accent_color = self.accent_color_input.text() or "#056a51"
 
                 # جمع خيارات السمة من الواجهة
                 options = {}
@@ -1368,9 +1557,9 @@ class SettingsUI(ThemeAwareDialog):
                 # تطبيق السمة مع جميع الخيارات
                 global_theme_manager.change_theme(theme_name, accent_color, options)
 
-                # تطبيق إعدادات الخطوط على جميع العناصر
-                from .theme_manager import refresh_all_fonts
-                refresh_all_fonts()
+                # تطبيق إعدادات الخطوط والسمة على جميع العناصر
+                from .theme_manager import refresh_all_themes
+                refresh_all_themes()
 
                 # 5. تحديث الحالة الداخلية للنافذة
                 self.original_settings = self.settings_data.copy()
@@ -1380,8 +1569,12 @@ class SettingsUI(ThemeAwareDialog):
                 # 6. إعلام باقي التطبيق بالتغييرات
                 self.settings_changed.emit()
 
-                # 7. عرض رسالة نجاح
-                self.show_success_message(tr("success_title"), tr("all_settings_saved_successfully"))
+                # 7. عرض رسالة نجاح مفصلة
+                success_message = tr("all_settings_saved_successfully")
+                self.show_success_message(success_message)
+
+                # إشعار إضافي للتأكيد
+                QTimer.singleShot(1000, lambda: show_info(self, tr("settings_applied_notification"), duration=2000))
                 return True
             else:
                 # مدير الإعدادات فشل في الحفظ
@@ -1395,21 +1588,17 @@ class SettingsUI(ThemeAwareDialog):
 
     def cancel_changes(self):
         """إلغاء جميع التغييرات"""
-        msg = QMessageBox(QMessageBox.Question, tr("confirm_title"),
-            tr("confirm_cancel_changes_message"),
-            QMessageBox.Yes | QMessageBox.No, parent=self)
-        msg.setDefaultButton(QMessageBox.No)
-        apply_theme_style(msg, "dialog")
-        reply = msg.exec()
+        if not self.has_unsaved_changes:
+            show_info(self, tr("no_changes_to_cancel"), duration=2000)
+            return
 
-        if reply == QMessageBox.Yes:
-            self.load_original_settings()
-            self.update_changes_report()
-            self.has_unsaved_changes = False  # إعادة تعيين حالة التغييرات
-            self.update_preview_only()  # تحديث المعاينة للإعدادات الأصلية
-            msg = QMessageBox(QMessageBox.Information, tr("done_title"), tr("all_changes_canceled_message"), parent=self)
-            apply_theme_style(msg, "dialog")
-            msg.exec()
+        # إلغاء التغييرات مباشرة مع إشعار
+        self.load_original_settings()
+        self.update_changes_report()
+        self.has_unsaved_changes = False  # إعادة تعيين حالة التغييرات
+        self.update_preview_only()  # تحديث المعاينة للإعدادات الأصلية
+
+        show_success(self, tr("all_changes_canceled_message"), duration=3000)
 
     def load_original_settings(self):
         """تحميل الإعدادات الأصلية"""
@@ -1430,7 +1619,7 @@ class SettingsUI(ThemeAwareDialog):
 
                 # تحميل إعدادات الخطوط الأصلية
                 if hasattr(self, 'font_size_slider'):
-                    self.font_size_slider.setValue(ui_settings.get("font_size", 16))
+                    self.font_size_slider.setValue(ui_settings.get("font_size", 14))
                 if hasattr(self, 'font_family_combo'):
                     font_family = ui_settings.get("font_family", tr("system_default_font"))
                     index = self.font_family_combo.findText(font_family)
@@ -1510,9 +1699,11 @@ class SettingsUI(ThemeAwareDialog):
         
         # Mark changes and show restart message
         self.mark_as_changed()
-        QMessageBox.information(self, 
-                                tr("language_changed_title"), 
-                                tr("language_changed_message"))
+
+        # إشعار جميع المكونات بتغيير اللغة لإعادة ترتيب الأزرار
+        reload_translations()
+
+        show_info(self, tr("language_changed_message"), duration=4000)
 
     def load_current_settings_to_ui(self):
         """تحميل الإعدادات المؤقتة إلى الواجهة"""
@@ -1543,7 +1734,7 @@ class SettingsUI(ThemeAwareDialog):
                 # تحميل إعدادات الخطوط
                 if hasattr(self, 'font_size_slider'):
                     self.font_size_slider.blockSignals(True)
-                    self.font_size_slider.setValue(ui_settings.get("font_size", 16))
+                    self.font_size_slider.setValue(ui_settings.get("font_size", 14))
                     self.font_size_slider.blockSignals(False)
                 if hasattr(self, 'font_family_combo'):
                     self.font_family_combo.blockSignals(True)
@@ -1640,6 +1831,10 @@ class SettingsUI(ThemeAwareDialog):
 
     def mark_as_changed(self):
         """تسجيل أن هناك تغييرات غير محفوظة وتحديث التقرير"""
+        if not self.has_unsaved_changes:
+            # إشعار أول تغيير فقط
+            show_info(self, tr("settings_modified_notification"), duration=2000)
+
         self.has_unsaved_changes = True
         # تحديث تقرير التغييرات فوراً
         QTimer.singleShot(100, self.update_changes_report)
@@ -1651,7 +1846,9 @@ class SettingsUI(ThemeAwareDialog):
         """Update styles for widgets that need custom, theme-aware styling."""
         try:
             from .theme_manager import global_theme_manager
+            from .global_styles import get_font_settings
             from PySide6.QtGui import QColor
+            font_settings = get_font_settings()
             colors = global_theme_manager.get_current_colors()
             text_color_q = QColor(colors.get('text', '#ffffff'))
 
@@ -1659,7 +1856,7 @@ class SettingsUI(ThemeAwareDialog):
             if hasattr(self, 'changes_report') and self.changes_report:
                 self.changes_report.setStyleSheet(f"""
                     QLabel {{
-                        font-size: 13px;
+                        font-size: {int(font_settings['size'] * 0.9)}px;
                         line-height: 1.6;
                         padding: 15px;
                         background: rgba({text_color_q.red()}, {text_color_q.green()}, {text_color_q.blue()}, 0.05);
@@ -1732,9 +1929,8 @@ class SettingsUI(ThemeAwareDialog):
 
         except Exception as e:
             print(tr("error_updating_preview", e=e))
-            # في حالة الخطأ، تأكد من إعادة السمة الأصلية
-            if 'original_theme' in locals():
-                global_theme_manager.change_theme(original_theme, original_accent, original_options)
+            # في حالة الخطأ، عرض إشعار
+            show_error(self, f"{tr('error_updating_preview')}: {str(e)}", duration=4000)
 
     def get_accent_button_style(self):
         """تنسيق زر بلون التمييز الزجاجي"""
@@ -1773,11 +1969,17 @@ class SettingsUI(ThemeAwareDialog):
         self.transparency_value.setText(f"{value}%")
         self.preview_current_theme()
 
+        # إشعار عند تغيير الشفافية بشكل كبير
+        if value <= 30:
+            show_info(self, tr("low_transparency_warning"), duration=2000)
+        elif value >= 90:
+            show_info(self, tr("high_transparency_info"), duration=2000)
+
     def on_theme_options_changed(self):
         """تغيير خيارات السمة - النظام الجديد"""
         try:
             theme_name = self.theme_combo.currentText()
-            accent_color = self.accent_color_input.text() or "#ff6f00"
+            accent_color = self.accent_color_input.text() or "#056a51"
 
             # جمع الخيارات الجديدة
             options = {

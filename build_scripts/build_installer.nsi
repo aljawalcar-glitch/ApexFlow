@@ -24,12 +24,12 @@ RequestExecutionLevel admin
 ; Modern UI Configuration
 ; =================================================================
 
-!define MUI_ICON "assets\icons\ApexFlow.ico"
-!define MUI_UNICON "assets\icons\ApexFlow.ico"
+!define MUI_ICON "..\assets\icons\ApexFlow.ico"
+!define MUI_UNICON "..\assets\icons\ApexFlow.ico"
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "docs\LICENSE.txt"
+!insertmacro MUI_PAGE_LICENSE "..\docs\LICENSE.txt"
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
@@ -50,11 +50,36 @@ RequestExecutionLevel admin
 ; =================================================================
 
 Function .onInit
-  ; Check if a previous version is installed and uninstall it silently
+  ; Check if a previous version is installed and uninstall it
   ReadRegStr $R0 HKLM "${UNINSTALL_KEY}" "UninstallString"
+  ReadRegStr $R1 HKLM "${UNINSTALL_KEY}" "DisplayName"
+  ReadRegStr $R2 HKLM "${UNINSTALL_KEY}" "DisplayVersion"
+
   ${If} $R0 != ""
-    ; Run the uninstaller silently. The _?= parameter ensures it's silent.
-    ExecWait '"$R0" _?=$INSTDIR'
+    ; Show message about previous version
+    MessageBox MB_YESNO|MB_ICONQUESTION \
+      "Previous version of ${APP_NAME} ($R2) found.$\n$\nDo you want to remove it before installing the new version?" \
+      IDYES uninstall_previous IDNO skip_uninstall
+
+    uninstall_previous:
+      ; Show progress message
+      DetailPrint "Removing previous version..."
+
+      ; Run the uninstaller silently
+      ExecWait '"$R0" /S _?=$INSTDIR' $3
+
+      ; Check if uninstall was successful
+      ${If} $3 == 0
+        DetailPrint "Previous version removed successfully"
+        ; Clean up any remaining registry entries
+        DeleteRegKey HKLM "${UNINSTALL_KEY}"
+        DeleteRegKey HKLM "Software\${APP_NAME}"
+      ${Else}
+        MessageBox MB_OK|MB_ICONEXCLAMATION \
+          "Failed to remove previous version. Installation will continue."
+      ${EndIf}
+
+    skip_uninstall:
   ${EndIf}
 FunctionEnd
 
@@ -64,25 +89,39 @@ FunctionEnd
 
 Section "Main Application (Required)" SecApp
   SectionIn RO ; Required section
-  
+
   SetOutPath "$INSTDIR"
-  
+
+  ; Show installation progress
+  DetailPrint "Installing main application files..."
+
   ; Copy all application files from the dist folder
   ; IMPORTANT: Your compiled app must be in 'dist\ApexFlow'
-File /r "dist\ApexFlow\*.*"
-  
+  File /r "dist\ApexFlow\*.*"
+
+  ; Show progress for additional components
+  DetailPrint "Installing translation and settings files..."
+
   ; Write installation information to the registry
   WriteRegStr HKLM "Software\${APP_NAME}" "InstallDir" "$INSTDIR"
-  
+  WriteRegStr HKLM "Software\${APP_NAME}" "Version" "${VERSION}"
+  WriteRegStr HKLM "Software\${APP_NAME}" "InstallDate" "$%DATE%"
+
   ; Write uninstaller information
   WriteUninstaller "$INSTDIR\Uninstall.exe"
-  WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayName" "${APP_NAME}"
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayName" "${APP_NAME} - PDF Processing Tool"
   WriteRegStr HKLM "${UNINSTALL_KEY}" "UninstallString" '"$INSTDIR\Uninstall.exe"'
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "QuietUninstallString" '"$INSTDIR\Uninstall.exe" /S'
   WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayVersion" "${VERSION}"
   WriteRegStr HKLM "${UNINSTALL_KEY}" "Publisher" "${COMPANY_NAME}"
   WriteRegStr HKLM "${UNINSTALL_KEY}" "DisplayIcon" "$INSTDIR\${EXE_NAME}"
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKLM "${UNINSTALL_KEY}" "InstallDate" "$%DATE%"
   WriteRegDWORD HKLM "${UNINSTALL_KEY}" "NoModify" 1
   WriteRegDWORD HKLM "${UNINSTALL_KEY}" "NoRepair" 1
+  WriteRegDWORD HKLM "${UNINSTALL_KEY}" "EstimatedSize" 150000 ; Size in KB (approximately 150MB)
+
+  DetailPrint "Application installed successfully!"
 SectionEnd
 
 Section "Start Menu Shortcut" SecStartMenu
@@ -100,19 +139,38 @@ SectionEnd
 ; =================================================================
 
 Section "Uninstall"
-  ; Remove files and directories
+  ; Show uninstall progress
+  DetailPrint "Removing application files..."
+
+  ; Remove main executable and uninstaller
   Delete "$INSTDIR\${EXE_NAME}"
   Delete "$INSTDIR\Uninstall.exe"
-  
-  ; Use RMDir to remove all files and subdirectories
-  RMDir /r "$INSTDIR"
-  
+
+  ; Remove all application directories and files
+  DetailPrint "Removing data and settings files..."
+  RMDir /r "$INSTDIR\assets"
+  RMDir /r "$INSTDIR\data"
+  RMDir /r "$INSTDIR\modules"
+  RMDir /r "$INSTDIR\docs"
+  RMDir /r "$INSTDIR\_internal"
+
+  ; Remove any remaining files
+  Delete "$INSTDIR\*.*"
+
+  ; Remove the installation directory
+  RMDir "$INSTDIR"
+
   ; Remove shortcuts
+  DetailPrint "Removing shortcuts..."
   Delete "$SMPROGRAMS\${APP_NAME}\*.*"
   RMDir "$SMPROGRAMS\${APP_NAME}"
   Delete "$DESKTOP\${APP_NAME}.lnk"
-  
+
   ; Remove registry keys
+  DetailPrint "Cleaning registry..."
   DeleteRegKey HKLM "${UNINSTALL_KEY}"
   DeleteRegKey HKLM "Software\${APP_NAME}"
+
+  ; Show completion message
+  DetailPrint "Uninstallation completed successfully!"
 SectionEnd

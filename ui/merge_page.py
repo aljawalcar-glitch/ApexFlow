@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QMessageBox, QC
 from .base_page import BasePageWidget
 from .ui_helpers import create_button
 from .theme_manager import apply_theme_style
+from .notification_system import show_success, show_warning, show_error, show_info
 from modules.translator import tr
 
 class MergePage(BasePageWidget):
@@ -80,12 +81,28 @@ class MergePage(BasePageWidget):
         # --- إخفاء إطار الملفات افتراضيًا ---
         self.file_list_frame.setVisible(False)
 
-        self.load_printers()
+        # تأجيل تحميل الطابعات حتى الحاجة إليها
+        self._printers_loaded = False
 
     def load_printers(self):
-        """تحميل قائمة الطابعات المتاحة في القائمة المنسدلة"""
-        printers = self.operations_manager.get_available_printers()
-        self.printer_combo.addItems(printers)
+        """تحميل قائمة الطابعات المتاحة في القائمة المنسدلة (عند الحاجة فقط)"""
+        if self._printers_loaded:
+            return  # تم التحميل مسبقاً
+
+        try:
+            if self.operations_manager:
+                # تحميل الطابعات بدون إظهار رسائل خطأ
+                printers = self.operations_manager.get_available_printers()
+                self.printer_combo.addItems(printers)
+            else:
+                # في حالة عدم توفر operations_manager
+                self.printer_combo.addItems(["Microsoft Print to PDF"])
+            self._printers_loaded = True
+        except Exception as e:
+            # إضافة طابعة افتراضية في حالة أي خطأ (بدون إظهار رسالة)
+            print(f"تحذير: لا يمكن تحميل الطابعات - {e}")
+            self.printer_combo.addItems(["Microsoft Print to PDF"])
+            self._printers_loaded = True
 
     def select_files(self):
         """فتح حوار لاختيار ملفات PDF وتحديث القائمة."""
@@ -111,40 +128,67 @@ class MergePage(BasePageWidget):
                 self.on_files_changed(self.file_list_frame.get_valid_files())
 
     def execute_merge(self):
-        """تنفيذ عملية الدمج بعد تأكيد المستخدم."""
-        files_to_merge = self.file_list_frame.get_valid_files()
-        reply = QMessageBox.question(self, tr("confirm_merge_title"), 
-                                     tr("confirm_merge_message", count=len(files_to_merge)),
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if reply == QMessageBox.Yes:
-            # تمرير الويدجت الأصل (self) لإظهار حوار التقدم
-            self.operations_manager.merge_files(self)
+        """تنفيذ عملية الدمج مع إشعارات للمستخدم."""
+        try:
+            files_to_merge = self.file_list_frame.get_valid_files()
+
+            if len(files_to_merge) < 2:
+                show_warning(self, tr("select_at_least_two_files_for_merge"))
+                return
+
+            # إشعار بدء عملية الدمج
+            show_info(self, f"{tr('merging_started')} ({len(files_to_merge)} ملف)", duration=3000)
+
+            # تنفيذ عملية الدمج
+            success = self.operations_manager.merge_files(self)
+
+            if success:
+                show_success(self, f"{tr('merging_completed_successfully')} ({len(files_to_merge)} ملف)", duration=4000)
+            else:
+                show_error(self, tr("merging_failed"))
+
+        except Exception as e:
+            show_error(self, f"{tr('merging_error')}: {str(e)}")
 
     def execute_print(self):
         """تنفيذ عملية الطباعة بعد تأكيد المستخدم."""
-        selected_files = self.file_list_frame.get_valid_files()
-        if not selected_files:
-            QMessageBox.warning(self, tr("error_title"), tr("select_one_file_message"))
-            return
+        try:
+            # تحميل الطابعات عند الحاجة فقط
+            self.load_printers()
 
-        printer_name = self.printer_combo.currentText()
-        if not printer_name:
-            QMessageBox.warning(self, tr("error_title"), tr("select_printer_message"))
-            return
+            selected_files = self.file_list_frame.get_valid_files()
+            if not selected_files:
+                show_warning(self, tr("select_one_file_message"))
+                return
 
-        reply = QMessageBox.question(self, tr("confirm_print_title"), 
-                                     tr("confirm_print_message", count=len(selected_files), printer=printer_name),
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            printer_name = self.printer_combo.currentText()
+            if not printer_name:
+                show_warning(self, tr("select_printer_message"))
+                return
 
-        if reply == QMessageBox.Yes:
-            # تمرير الويدجت الأصل (self) لإظهار حوار التقدم
-            self.operations_manager.print_files(selected_files, printer_name, self)
+            # إشعار بدء عملية الطباعة
+            show_info(self, f"{tr('printing_started')} ({len(selected_files)} ملف) - {printer_name}", duration=3000)
+
+            # تنفيذ عملية الطباعة
+            success = self.operations_manager.print_files(selected_files, printer_name, self)
+
+            if success:
+                show_success(self, f"{tr('printing_completed_successfully')} ({len(selected_files)} ملف)", duration=4000)
+            else:
+                show_error(self, tr("printing_failed"))
+
+        except Exception as e:
+            show_error(self, f"{tr('printing_error')}: {str(e)}")
 
     def on_files_changed(self, files):
         """إظهار أو إخفاء العناصر بناءً على وجود الملفات."""
         has_files = len(files) > 0
         self.file_list_frame.setVisible(has_files)
         self.action_widget.setVisible(has_files)
-        
+
+        # تحميل الطابعات عند إظهار عناصر التحكم لأول مرة
+        if has_files and not self._printers_loaded:
+            self.load_printers()
+
         self.merge_button.setEnabled(len(files) > 1)
         self.print_button.setEnabled(has_files)

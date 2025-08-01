@@ -13,6 +13,7 @@ from PySide6.QtCore import Qt, Signal, QMimeData, QPoint, QPropertyAnimation, QE
 from PySide6.QtGui import QDrag, QPainter, QPixmap, QIcon, QFont
 from .svg_icon_button import create_action_button
 from .theme_manager import make_theme_aware
+from .notification_system import show_success, show_warning, show_error, show_info
 from modules.translator import tr
 
 class FileListItem(QListWidgetItem):
@@ -383,19 +384,16 @@ class FileListFrame(QFrame):
 
     def show_file_info(self, item):
         """عرض معلومات الملف"""
-        from PySide6.QtWidgets import QMessageBox
-
-        info_text = f"""
-        {tr("file_info_name")} {os.path.basename(item.file_path)}
-        {tr("file_info_path")} {item.file_path}
-        {tr("file_info_size")} {item.format_file_size(item.file_size)}
-        {tr("file_info_status")} {tr("file_info_status_valid") if item.is_valid else tr("file_info_status_invalid")}
-        """
+        info_text = f"{tr('file_info_name')} {os.path.basename(item.file_path)}\n"
+        info_text += f"{tr('file_info_path')} {item.file_path}\n"
+        info_text += f"{tr('file_info_size')} {item.format_file_size(item.file_size)}\n"
+        info_text += f"{tr('file_info_status')} {tr('file_info_status_valid') if item.is_valid else tr('file_info_status_invalid')}"
 
         if not item.is_valid:
             info_text += f"\n{tr('file_info_error')} {item.error_message}"
-
-        QMessageBox.information(self, tr("file_info_title"), info_text)
+            show_warning(self, info_text, duration=6000)
+        else:
+            show_info(self, info_text, duration=5000)
 
     def refresh_files(self):
         """تحديث معلومات جميع الملفات"""

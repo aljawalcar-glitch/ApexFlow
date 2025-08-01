@@ -106,7 +106,7 @@ def __getattr__(name):
 
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
-__version__ = "v5.2.1"
+__version__ = "v5.3.0"
 __author__ = "ApexFlow Team"
 __description__ = "PDF processing modules for ApexFlow application"
 

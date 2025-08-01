@@ -1,14 +1,16 @@
 """
-ApexFlow - تطبيق معالجة ملفات PDF
-الملف الرئيسي المبسط والمنظم
+ApexFlow - PDF file processing application
+Main simplified and organized file
 """
 
-# استيرادات المكتبات الأساسية
+# Basic library imports
 import sys
 import os
-import traceback
 
-# استيرادات PySide6
+# Add config folder to path
+sys.path.append(os.path.join(os.path.dirname(__file__), 'config'))
+
+# PySide6 imports
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QMessageBox, QVBoxLayout, QHBoxLayout,
     QWidget, QStackedWidget, QListWidget, QLabel, QScrollArea
@@ -16,40 +18,40 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QIcon, QKeySequence, QShortcut
 from PySide6.QtCore import Qt, QSharedMemory, QSystemSemaphore
 
-# استيرادات الوحدات المحلية
-from modules.settings import load_settings, set_setting  # استيراد مباشر لتجنب تحميل وحدات PDF
+# Local module imports
+from modules.settings import load_settings, set_setting  # Direct import to avoid loading PDF modules
 from modules.app_utils import get_icon_path
 from modules.logger import debug, info, warning, error
 from ui import WelcomePage, apply_theme_style
 from modules.translator import tr
 
 # ===============================
-# فئات التطبيق الرئيسية
+# Main application classes
 # ===============================
 
 class SingleApplication(QApplication):
-    """تطبيق بنافذة واحدة فقط"""
+    """Single window application only"""
 
     def __init__(self, argv):
         super().__init__(argv)
 
-        # إنشاء معرف فريد للتطبيق
+        # Create unique identifier for the application
         self._key = "ApexFlow_SingleInstance_Key"
         self._memory = QSharedMemory(self._key)
         self._semaphore = QSystemSemaphore(self._key, 1)
 
-        # محاولة إنشاء shared memory
+        # Try to create shared memory
         if self._memory.attach():
-            # التطبيق يعمل بالفعل
+            # Application is already running
             self._is_running = True
         else:
-            # أول مرة يتم تشغيل التطبيق
+            # First time running the application
             self._is_running = False
             if not self._memory.create(1):
                 self._is_running = True
 
     def is_running(self):
-        """فحص إذا كان التطبيق يعمل بالفعل"""
+        """Check if the application is already running"""
         return self._is_running
 
 class ApexFlow(QMainWindow):
@@ -57,118 +59,187 @@ class ApexFlow(QMainWindow):
         super().__init__()
         self._settings_ui_module = None
 
-        # تحميل الإعدادات الأساسية فقط (تسريع البدء)
+        # Load basic settings only (speed up startup)
         self.settings_data = load_settings()
 
-        # تأجيل التحقق من صحة الإعدادات وطباعة المعلومات
-        from PySide6.QtCore import QTimer
-        QTimer.singleShot(200, self.validate_settings_delayed)
+        # Create all required managers
+        self._setup_managers()
 
-        # إنشاء المدراء الموحدين
-        from ui.theme_manager import WindowManager
-        from modules.app_utils import FileManager, MessageManager, OperationsManager
+        # Apply unified window properties
+        self.window_manager.set_window_properties(self, tr("main_window_title"))
+        self.setGeometry(200, 100, 1000, 600)
+
+        # Create interface first
+        self.initUI()
+
+        # Apply theme and settings in a deferred manner
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(100, self._initialize_delayed)
+
+    def _setup_managers(self):
+        """Setup all required managers"""
+        # Basic managers
+        from ui.theme_manager import WindowManager, global_theme_manager
+        from modules.app_utils import FileManager, MessageManager
+        from ui.notification_system import global_notification_manager
+        from ui.pdf_worker import WorkerManager
 
         self.window_manager = WindowManager(self)
         self.file_manager = FileManager(self)
         self.message_manager = MessageManager(self)
-        self.operations_manager = OperationsManager(self, self.file_manager, self.message_manager)
 
-        # تطبيق خصائص النافذة الموحدة
-        self.window_manager.set_window_properties(self, tr("main_window_title"))
-        self.setGeometry(200, 100, 1000, 600)
+        # Defer creating OperationsManager until needed (to avoid pywin32 error messages)
+        self.operations_manager = None
+        self._operations_manager_creation_attempted = False
 
-        # حفظ إعدادات السمة للتطبيق المؤجل (تسريع البدء)
-        self.theme = self.settings_data.get("theme", "dark")
-        self.accent_color = self.settings_data.get("accent_color", "#ff6f00")
+        # Specialized managers
+        self.theme_manager = global_theme_manager
+        self.notification_manager = global_notification_manager
+        self.worker_manager = WorkerManager()
 
-        # إنشاء الواجهة أولاً
-        self.initUI()
+        # Setup page manager (use existing variables)
+        self.pages_loaded = [True, False, False, False, False, False, False, False]
 
-        # تطبيق السمة بعد إنشاء الواجهة (تحسين الأداء)
-        from PySide6.QtCore import QTimer
-        QTimer.singleShot(100, self.apply_theme_delayed)  # تأجيل 100ms
+    def get_operations_manager(self):
+        """Create or return OperationsManager (lazy loading)"""
+        if self.operations_manager is None and not self._operations_manager_creation_attempted:
+            self._operations_manager_creation_attempted = True
+            try:
+                from modules.app_utils import OperationsManager
+                self.operations_manager = OperationsManager(self, self.file_manager, self.message_manager)
+                debug("OperationsManager created successfully (lazy)")
+            except Exception as e:
+                error(f"Error creating OperationsManager: {e}")
+                # Create dummy operations manager
+                class DummyOperationsManager:
+                    """Dummy operations manager in case of pywin32 failure"""
+                    def get_available_printers(self):
+                        return ["Microsoft Print to PDF"]
+                    def print_files(self, files, printer_name=None, parent_widget=None):
+                        # Dummy manager - doesn't actually print
+                        return False
+                    def merge_files(self, parent_widget):
+                        # Dummy manager - doesn't actually merge
+                        return False
+                self.operations_manager = DummyOperationsManager()
 
-        # تطبيق اتجاه الواجهة
+        return self.operations_manager
+
+    def _initialize_delayed(self):
+        """Delayed initialization of heavy components"""
+        # Load theme from settings
+        self.theme_manager.load_theme_from_settings()
+
+        # Apply interface direction
         self.apply_layout_direction()
 
+        # Validate settings
+        self._validate_settings_delayed()
+
     def apply_layout_direction(self):
-        """تطبيق اتجاه الواجهة بناءً على اللغة الحالية"""
+        """Apply interface direction based on current language"""
         language = self.settings_data.get("language", "ar")
         if language == "ar":
             self.setLayoutDirection(Qt.RightToLeft)
         else:
             self.setLayoutDirection(Qt.LeftToRight)
 
-    def apply_theme_delayed(self):
-        """تطبيق السمة بشكل مؤجل لتحسين سرعة البدء"""
+    def refresh_main_window_theme(self):
+        """إعادة تطبيق السمة على النافذة الرئيسية وجميع عناصرها"""
         try:
-            # تحديث السمة في المدير المركزي أولاً
-            from ui.theme_manager import global_theme_manager
-            global_theme_manager.change_theme(self.theme, self.accent_color)
+            # إعادة تحميل الإعدادات
+            self.settings_data = load_settings()
 
-            # تسجيل النافذة في النظام الذكي
-            from ui import make_theme_aware
-            self.theme_handler = make_theme_aware(self, "main_window")
+            # تطبيق السمة على النافذة الرئيسية
+            apply_theme_style(self, "main_window", auto_register=True)
 
-            print(f"تم تطبيق السمة {self.theme} على النافذة الرئيسية (مؤجل)")
+            # تطبيق السمة على القائمة الجانبية
+            if hasattr(self, 'menu_list'):
+                apply_theme_style(self.menu_list, "menu", auto_register=True)
+
+            # تطبيق السمة على معلومات التطبيق
+            if hasattr(self, 'app_info'):
+                apply_theme_style(self.app_info, "info_widget", auto_register=True)
+
+            # تطبيق السمة على المحتوى المكدس
+            if hasattr(self, 'stacked_widget'):
+                apply_theme_style(self.stacked_widget, "stacked_widget", auto_register=True)
+
+                # تطبيق السمة على جميع الصفحات
+                for i in range(self.stacked_widget.count()):
+                    page = self.stacked_widget.widget(i)
+                    if page:
+                        apply_theme_style(page, "page", auto_register=True)
+                        # تطبيق السمة على جميع العناصر الفرعية
+                        for child in page.findChildren(object):
+                            if hasattr(child, 'setStyleSheet'):
+                                try:
+                                    apply_theme_style(child, "auto", auto_register=True)
+                                except:
+                                    pass
+
+            debug("تم إعادة تطبيق السمة على النافذة الرئيسية")
 
         except Exception as e:
-            print(f"خطأ في تطبيق السمة المؤجلة: {e}")
+            error(f"خطأ في إعادة تطبيق السمة على النافذة الرئيسية: {e}")
 
-    def validate_settings_delayed(self):
-        """التحقق من صحة الإعدادات بشكل مؤجل"""
+    def _validate_settings_delayed(self):
+        """Validate settings in a deferred manner using managers"""
         try:
-            # التحقق من صحة الإعدادات
-            if not self.validate_settings(self.settings_data):
-                warning("تم اكتشاف مشاكل في الإعدادات، سيتم استخدام القيم الافتراضية")
-                self.settings_data = self.get_default_settings()
+            # Validate settings
+            if not self._validate_settings(self.settings_data):
+                self.notification_manager.show_notification(
+                    self, "Settings issues detected, default values will be used",
+                    "warning"
+                )
+                self.settings_data = self._get_default_settings()
 
-            # طباعة معلومات الإعدادات (مؤجل)
+            # Print settings information (deferred)
             from modules.settings import print_settings_info
             print_settings_info()
 
-            debug("تم التحقق من الإعدادات بشكل مؤجل")
+            debug("Settings validated in deferred manner")
         except Exception as e:
-            error(f"خطأ في التحقق المؤجل من الإعدادات: {e}")
+            error(f"Error in deferred settings validation: {e}")
 
     @property
     def settings_ui(self):
-        """تحميل واجهة الإعدادات عند الحاجة"""
+        """Load settings interface when needed"""
         if self._settings_ui_module is None:
             from ui.settings_ui import SettingsUI
             self._settings_ui_module = SettingsUI
         return self._settings_ui_module
 
     def initUI(self):
-        # مسح التخطيط القديم إذا كان موجوداً
+        # Clear old layout if it exists
         if hasattr(self, 'centralWidget') and self.centralWidget():
             old_widget = self.centralWidget()
             old_widget.setParent(None)
             old_widget.deleteLater()
             QApplication.processEvents()
-        
+
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         central_widget.setStyleSheet("background: transparent;")
 
-        # تحديد مسار الأيقونة بشكل صحيح
+        # Set icon path correctly
         icon_path = get_icon_path()
         if icon_path and os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
 
-        # تخطيط أفقي رئيسي
+        # Main horizontal layout
         main_layout = QHBoxLayout(central_widget)
         main_layout.setSpacing(10)
         main_layout.setContentsMargins(10, 10, 10, 10)
 
-        # إنشاء الشريط الجانبي مع معلومات البرنامج
+        # Create sidebar with program information
         sidebar_widget = QWidget()
         sidebar_widget.setFixedWidth(180)
         sidebar_layout = QVBoxLayout(sidebar_widget)
         sidebar_layout.setContentsMargins(0, 0, 0, 0)
         sidebar_layout.setSpacing(0)
 
-        # القائمة الجانبية
+        # Sidebar menu
         self.menu_list = QListWidget()
         self.menu_list.addItems([
             tr("menu_home"), tr("menu_merge_print"), tr("menu_split"),
@@ -176,26 +247,23 @@ class ApexFlow(QMainWindow):
             tr("menu_security"), tr("menu_settings")
         ])
 
-        # إعدادات التحديد والتفاعل
+        # Selection and interaction settings
         self.menu_list.setFocusPolicy(Qt.NoFocus)
         self.menu_list.setSelectionMode(QListWidget.SingleSelection)
 
-        # تعيين العنصر الأول كمحدد افتراضياً
+        # Set first item as default selection
         self.menu_list.setCurrentRow(0)
 
-        # ربط إشارة التغيير
+        # Connect change signal
         self.menu_list.currentRowChanged.connect(self.on_menu_selection_changed)
 
-        # استخدام نظام السمات الموحد
+        # Use unified theme system
         apply_theme_style(self.menu_list, "menu")
 
-        # تعطيل تأثير اللمعان مؤقتاً لحل مشكلة التحليل
-        # self.setup_shine_effect()
-
-        # إضافة القائمة للشريط الجانبي
+        # Add menu to sidebar
         sidebar_layout.addWidget(self.menu_list)
 
-        # إضافة معلومات البرنامج أسفل القائمة
+        # Add program information below menu
         from ui.app_info_widget import AppInfoWidget
         self.app_info = AppInfoWidget()
         sidebar_layout.addWidget(self.app_info)
@@ -224,15 +292,16 @@ class ApexFlow(QMainWindow):
         # إضافة صفحة الترحيب إلى المكدس
         self.stack.addWidget(scroll)  # الفهرس 0
 
-        # إضافة عناصر نائبة للصفحات الأخرى (سيتم تحميلها عند الحاجة)
-        self.pages_loaded = [True, False, False, False, False, False, False, False]  # تتبع الصفحات المحملة
-
         # إنشاء صفحات نائبة مع محتوى بسيط
         page_names = [
             tr("menu_merge_print"), tr("menu_split"), tr("menu_compress"),
             tr("menu_stamp_rotate"), tr("menu_convert"), tr("menu_security"),
             tr("menu_settings")
         ]
+
+        # إضافة عناصر نائبة للصفحات الأخرى (سيتم تحميلها عند الحاجة)
+        # عدد الصفحات ديناميكي: صفحة الترحيب + الصفحات الأخرى
+        self.pages_loaded = [True] + [False] * len(page_names)  # تتبع الصفحات المحملة
         for page_name in page_names:
             placeholder = QWidget()
             layout = QVBoxLayout(placeholder)
@@ -240,7 +309,7 @@ class ApexFlow(QMainWindow):
 
             label = QLabel(tr("loading_page_message", page_name=page_name))
             label.setAlignment(Qt.AlignCenter)
-            label.setStyleSheet("color: #cccccc; font-size: 16px; font-weight: normal;")
+            label.setStyleSheet("color: #cccccc; font-size: 12px; font-weight: normal;")
             layout.addWidget(label)
 
             self.stack.addWidget(placeholder)
@@ -327,205 +396,141 @@ class ApexFlow(QMainWindow):
         if current_row >= 0:
             self.load_page_on_demand(current_row)
 
-    def setup_shine_effect(self):
-        """إعداد تأثير اللمعان المتحرك مع الماوس"""
-        from PySide6.QtCore import QTimer
 
-        # تفعيل تتبع الماوس
-        self.menu_list.setMouseTracking(True)
-
-        # ربط أحداث الماوس
-        self.menu_list.mouseMoveEvent = self.on_mouse_move
-        self.menu_list.enterEvent = self.on_mouse_enter
-        self.menu_list.leaveEvent = self.on_mouse_leave
-
-        # متغيرات تأثير اللمعان
-        self.shine_position = 0
-        self.shine_timer = QTimer()
-        self.shine_timer.timeout.connect(self.update_shine)
-
-    def on_mouse_move(self, event):
-        """تحديث موقع اللمعان مع حركة الماوس"""
-        if hasattr(event, 'position'):
-            mouse_x = event.position().x()
-        else:
-            mouse_x = event.x()
-
-        # حساب موقع اللمعان كنسبة مئوية
-        widget_width = self.menu_list.width()
-        if widget_width > 0:
-            self.shine_position = (mouse_x / widget_width) * 100
-            self.update_shine_style()
-
-    def on_mouse_enter(self, event):
-        """بدء تأثير اللمعان عند دخول الماوس"""
-        del event  # تجاهل المتغير لتجنب التحذير
-        self.shine_timer.start(16)  # 60 FPS
-
-    def on_mouse_leave(self, event):
-        """إيقاف تأثير اللمعان عند خروج الماوس"""
-        del event  # تجاهل المتغير لتجنب التحذير
-        self.shine_timer.stop()
-        # إزالة تأثير اللمعان
-        self.menu_list.setStyleSheet(self.menu_list.styleSheet().replace(
-            self.get_shine_style(), ""
-        ))
-
-    def update_shine(self):
-        """تحديث تأثير اللمعان"""
-        self.update_shine_style()
-
-    def update_shine_style(self):
-        """تحديث نمط اللمعان بناءً على موقع الماوس"""
-        try:
-            shine_style = self.get_shine_style()
-
-            # إزالة النمط القديم وإضافة الجديد
-            current_style = self.menu_list.styleSheet()
-            # إزالة أي نمط لمعان سابق
-            lines = current_style.split('\n')
-            filtered_lines = [line for line in lines if 'shine-gradient' not in line]
-            base_style = '\n'.join(filtered_lines)
-
-            # تطبيق النمط الجديد مع معالجة الأخطاء
-            new_style = base_style + shine_style
-            self.menu_list.setStyleSheet(new_style)
-        except Exception as e:
-            print(f"خطأ في تحديث نمط اللمعان: {e}")
-            # في حالة الخطأ، استخدم النمط الأساسي فقط
-            try:
-                from ui.theme_manager import apply_theme_style
-                apply_theme_style(self.menu_list, "menu")
-            except:
-                pass
-
-    def get_shine_style(self):
-        """إنشاء نمط اللمعان بسيط بلون أبيض واحد"""
-        # تبسيط التدرج لتجنب أخطاء التحليل
-        start_pos = max(0.0, (self.shine_position - 10) / 100)
-        shine_pos = self.shine_position / 100
-        end_pos = min(1.0, (self.shine_position + 10) / 100)
-
-        return f"""
-            QListWidget::item:hover {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0.0 transparent,
-                    stop:{start_pos:.2f} transparent,
-                    stop:{shine_pos:.2f} rgba(255, 255, 255, 0.4),
-                    stop:{end_pos:.2f} transparent,
-                    stop:1.0 transparent) !important; /* shine-gradient */
-            }}
-        """
 
     def load_page_on_demand(self, index):
-        """تحميل الصفحات عند الطلب (التحميل الكسول)"""
+        """تحميل الصفحات عند الطلب باستخدام المدراء"""
         if index < 0 or index >= len(self.pages_loaded):
             return
+
+        # إعادة تعيين جميع الصفحات المحملة عند التنقل
+        self._reset_all_loaded_pages()
 
         # إذا كانت الصفحة محملة بالفعل، انتقل إليها مباشرة
         if self.pages_loaded[index]:
             self.stack.setCurrentIndex(index)
             return
 
-        # تحميل الصفحة المطلوبة
+        # تحميل الصفحة باستخدام WorkerManager للصفحات الثقيلة
         try:
-            page = None
+            page = self._create_page(index)
 
-            if index == 1:  # صفحة الدمج
-                from ui.merge_page import MergePage
-                page = MergePage(self.file_manager, self.operations_manager)
-
-            elif index == 2:  # صفحة التقسيم
-                from ui.split_page import SplitPage
-                page = SplitPage(self.file_manager, self.operations_manager)
-
-            elif index == 3:  # صفحة الضغط
-                from ui.compress_page import CompressPage
-                page = CompressPage(self.file_manager, self.operations_manager)
-
-            elif index == 4:  # صفحة التدوير
-                from ui.rotate_page import RotatePage
-                # إنشاء صفحة التدوير مع parent للتناسق مع باقي الصفحات
-                page = RotatePage(file_path=None, parent=self)
-
-            elif index == 5:  # صفحة التحويل
-                from ui.convert_page import ConvertPage
-                page = ConvertPage(self.file_manager, self.operations_manager)
-
-            elif index == 6:  # صفحة الحماية
-                from ui.security_page import SecurityPage
-                page = SecurityPage(self.file_manager, self.operations_manager)
-
-            elif index == 7:  # صفحة الإعدادات
-                SettingsUI = self.settings_ui
-                if SettingsUI:
-                    settings_widget = SettingsUI(self) # Pass parent
-                    settings_widget.settings_changed.connect(self.on_settings_changed)
-
-                    # إنشاء منطقة تمرير لجعل المحتوى ديناميكيًا
-                    scroll_area = QScrollArea()
-                    scroll_area.setWidgetResizable(True)
-                    scroll_area.setWidget(settings_widget)
-                    apply_theme_style(scroll_area, "scroll") # تطبيق نمط التمرير
-                    page = scroll_area
-                else:
-                    # إنشاء صفحة خطأ
-                    error_widget = QWidget()
-                    layout = QVBoxLayout(error_widget)
-                    label = QLabel(tr("error_loading_settings_page"))
-                    label.setAlignment(Qt.AlignCenter)
-                    label.setStyleSheet("color: white; font-size: 16px;")
-                    layout.addWidget(label)
-                    page = error_widget
-
-            # استبدال الصفحة بطريقة آمنة للذاكرة
             if page:
                 self._replace_page_safely(index, page)
                 self.pages_loaded[index] = True
+                # تطبيق السمة باستخدام ThemeManager
+                self.theme_manager.apply_theme(page, "dialog")
 
-                # تطبيق السمة الحالية على الصفحة الجديدة
-                self._apply_current_theme_to_page(page, index)
-
-        except ImportError as e:
-            page_names = [
-                "", tr("menu_merge_print"), tr("menu_split"), tr("menu_compress"),
-                tr("menu_stamp_rotate"), tr("menu_convert"), tr("menu_security"),
-                tr("menu_settings")
-            ]
-            page_name = page_names[index] if index < len(page_names) else f"Page {index}"
-            error(f"Error importing module for page {page_name} (index {index}): {e}")
-            error(f"Error details: {type(e).__name__} - {str(e)}")
-            self._create_error_page(index, tr("error_importing_module", page_name=page_name),
-                                  tr("error_importing_module_details", e=str(e)))
-        except AttributeError as e:
-            page_names = [
-                "", tr("menu_merge_print"), tr("menu_split"), tr("menu_compress"),
-                tr("menu_stamp_rotate"), tr("menu_convert"), tr("menu_security"),
-                tr("menu_settings")
-            ]
-            page_name = page_names[index] if index < len(page_names) else f"Page {index}"
-            error(f"Attribute error in page {page_name} (index {index}): {e}")
-            error(f"Error details: {type(e).__name__} - {str(e)}")
-            self._create_error_page(index, tr("error_page_structure", page_name=page_name),
-                                  tr("error_page_structure_details", e=str(e)))
         except Exception as e:
-            page_names = [
-                "", tr("menu_merge_print"), tr("menu_split"), tr("menu_compress"),
-                tr("menu_stamp_rotate"), tr("menu_convert"), tr("menu_security"),
-                tr("menu_settings")
-            ]
-            page_name = page_names[index] if index < len(page_names) else f"Page {index}"
-            error(f"General error loading page {page_name} (index {index}): {e}")
-            error(f"Error details: {type(e).__name__} - {str(e)}")
-            error(f"Traceback: {traceback.format_exc()}")
-            self._create_error_page(index, tr("error_unexpected_page_load", page_name=page_name),
-                                  tr("error_unexpected_page_load_details", e=str(e)))
+            self._handle_page_load_error(index, e)
 
         # الانتقال إلى الصفحة
         self.stack.setCurrentIndex(index)
 
+    def _reset_all_loaded_pages(self):
+        """إعادة تعيين جميع الصفحات المحملة عند التنقل بين التبويبات"""
+        try:
+            for i in range(1, self.stack.count()):
+                if self.pages_loaded[i]:
+                    widget = self.stack.widget(i)
+                    if widget and hasattr(widget, 'widget'):
+                        # إذا كان scroll area، احصل على الويدجت الداخلي
+                        inner_widget = widget.widget()
+                        if inner_widget and hasattr(inner_widget, 'reset_ui'):
+                            inner_widget.reset_ui()
+                    elif widget and hasattr(widget, 'reset_ui'):
+                        # إذا كان الويدجت مباشرة
+                        widget.reset_ui()
+        except Exception as e:
+            debug(f"خطأ في إعادة تعيين الصفحات: {e}")
+
+    def _create_page(self, index):
+        """إنشاء الصفحة المطلوبة"""
+        page_creators = {
+            1: lambda: self._create_merge_page(),
+            2: lambda: self._create_split_page(),
+            3: lambda: self._create_compress_page(),
+            4: lambda: self._create_rotate_page(),
+            5: lambda: self._create_convert_page(),
+            6: lambda: self._create_security_page(),
+            7: lambda: self._create_settings_page()
+        }
+
+        creator = page_creators.get(index)
+        return creator() if creator else None
+
+    def _create_merge_page(self):
+        from ui.merge_page import MergePage
+        # استخدام التحميل الكسول لـ OperationsManager
+        operations_manager = self.get_operations_manager()
+        return MergePage(self.file_manager, operations_manager)
+
+    def _create_split_page(self):
+        from ui.split_page import SplitPage
+        return SplitPage(self.file_manager, self.get_operations_manager())
+
+    def _create_compress_page(self):
+        from ui.compress_page import CompressPage
+        return CompressPage(self.file_manager, self.get_operations_manager())
+
+    def _create_rotate_page(self):
+        from ui.rotate_page import RotatePage
+        return RotatePage(file_path=None, parent=self)
+
+    def _create_convert_page(self):
+        from ui.convert_page import ConvertPage
+        return ConvertPage(self.file_manager, self.get_operations_manager())
+
+    def _create_security_page(self):
+        from ui.security_page import SecurityPage
+        return SecurityPage(self.file_manager, self.get_operations_manager())
+
+    def _create_settings_page(self):
+        SettingsUI = self.settings_ui
+        if SettingsUI:
+            settings_widget = SettingsUI(self)
+            settings_widget.settings_changed.connect(self.on_settings_changed)
+
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setWidget(settings_widget)
+            apply_theme_style(scroll_area, "scroll")
+            return scroll_area
+        else:
+            return self._create_error_widget(tr("error_loading_settings_page"))
+
+    def _create_error_widget(self, message):
+        """إنشاء ويدجت خطأ بسيط"""
+        error_widget = QWidget()
+        layout = QVBoxLayout(error_widget)
+        label = QLabel(message)
+        label.setAlignment(Qt.AlignCenter)
+        label.setStyleSheet("color: white; font-size: 12px;")
+        layout.addWidget(label)
+        return error_widget
+
+    def _handle_page_load_error(self, index, error):
+        """معالجة أخطاء تحميل الصفحات باستخدام NotificationManager"""
+        page_names = [
+            "", tr("menu_merge_print"), tr("menu_split"), tr("menu_compress"),
+            tr("menu_stamp_rotate"), tr("menu_convert"), tr("menu_security"),
+            tr("menu_settings")
+        ]
+        page_name = page_names[index] if index < len(page_names) else f"Page {index}"
+
+        # عرض إشعار خطأ
+        self.notification_manager.show_notification(
+            self, f"خطأ في تحميل {page_name}: {str(error)}", "error"
+        )
+
+        # تسجيل الخطأ
+        error(f"Error loading page {page_name} (index {index}): {error}")
+
+        # إنشاء صفحة خطأ
+        self._create_error_page(index, f"خطأ في تحميل {page_name}", str(error))
+
     def _create_error_page(self, index, title, message):
-        """إنشاء صفحة خطأ موحدة مع معلومات مفصلة"""
+        """إنشاء صفحة خطأ باستخدام المدراء"""
         error_page = QWidget()
         error_layout = QVBoxLayout(error_page)
         error_layout.setAlignment(Qt.AlignCenter)
@@ -539,120 +544,47 @@ class ApexFlow(QMainWindow):
         # رسالة الخطأ
         message_label = QLabel(message)
         message_label.setAlignment(Qt.AlignCenter)
-        message_label.setStyleSheet("color: #cccccc; font-size: 14px;")
+        message_label.setStyleSheet("color: #cccccc; font-size: 12px;")
         message_label.setWordWrap(True)
 
-        # زر إعادة المحاولة - نفس طريقة أزرار الإعدادات
+        # زر إعادة المحاولة
         from ui.svg_icon_button import create_action_button
         retry_button = create_action_button("reset", 24, tr("retry_button"))
-        retry_button.update_theme_colors()  # نفس ما يحدث في الإعدادات
-        retry_button.clicked.connect(lambda: self.retry_load_page(index))
+        retry_button.clicked.connect(lambda: self._retry_load_page(index))
 
         error_layout.addWidget(title_label)
         error_layout.addWidget(message_label)
         error_layout.addWidget(retry_button)
 
+        # تطبيق السمة باستخدام ThemeManager
+        self.theme_manager.apply_theme(error_page, "dialog")
+
         self.stack.removeWidget(self.stack.widget(index))
         self.stack.insertWidget(index, error_page)
 
-    def retry_load_page(self, index):
-        """إعادة محاولة تحميل الصفحة"""
-        self.pages_loaded[index] = False  # إعادة تعيين حالة التحميل
-        self.load_page_on_demand(index)  # محاولة التحميل مرة أخرى
+    def _retry_load_page(self, index):
+        """إعادة محاولة تحميل الصفحة مع إشعار"""
+        self.pages_loaded[index] = False
+        self.notification_manager.show_notification(self, "جاري إعادة تحميل الصفحة...", "info")
+        self.load_page_on_demand(index)
 
     def refresh_all_loaded_pages(self):
-        """إعادة تطبيق السمة على جميع الصفحات والعناصر المحملة"""
+        """إعادة تطبيق السمة على جميع الصفحات باستخدام ThemeManager"""
         try:
-            apply_theme_style(self.menu_list, "menu")
-            for i in range(1, self.stack.count()):  # Start from 1 to skip welcome page
+            # تطبيق السمة على القائمة الجانبية
+            self.theme_manager.apply_theme(self.menu_list, "menu")
+
+            # تطبيق السمة على جميع الصفحات المحملة
+            for i in range(1, self.stack.count()):
                 if self.pages_loaded[i]:
                     widget = self.stack.widget(i)
-                    self._apply_current_theme_to_page(widget, i)
+                    self.theme_manager.apply_theme(widget, "dialog")
+
             info("تم إعادة تطبيق السمة على جميع الصفحات المحملة")
         except Exception as e:
             error(f"خطأ في إعادة تطبيق السمة على الصفحات: {e}")
 
-    def _refresh_page_theme(self, page_widget, page_type):
-        """إعادة تطبيق السمة على صفحة معينة"""
-        try:
-            from ui.theme_manager import apply_theme_style
-
-            # تطبيق السمة على الصفحة نفسها
-            apply_theme_style(page_widget, page_type, auto_register=False)
-
-            # تطبيق السمة على العناصر الفرعية
-            from PySide6.QtWidgets import QPushButton, QFrame
-
-            # تطبيق السمة على جميع الأزرار
-            for button in page_widget.findChildren(QPushButton):
-                apply_theme_style(button, "button", auto_register=False)
-
-            # تطبيق السمة على التسميات مع الحفاظ على العناوين
-            for label in page_widget.findChildren(QLabel):
-                # فحص إذا كانت التسمية عنوان (حجم خط كبير أو خط عريض)
-                if self._is_title_label(label):
-                    apply_theme_style(label, "title_text", auto_register=False)
-                else:
-                    apply_theme_style(label, "label", auto_register=False)
-
-            # تطبيق السمة على جميع الإطارات
-            for frame in page_widget.findChildren(QFrame):
-                apply_theme_style(frame, "frame", auto_register=False)
-
-        except Exception as e:
-            error(f"خطأ في إعادة تطبيق السمة على {page_type}: {e}")
-
-    def _is_title_label(self, label):
-        """فحص إذا كانت التسمية عنوان بناءً على خصائصها"""
-        try:
-            # فحص النمط الحالي للتسمية
-            style = label.styleSheet()
-
-            # إذا كان حجم الخط كبير (18px أو أكثر) أو الخط عريض
-            if ("font-size: 2" in style or "font-size: 3" in style or
-                "font-weight: bold" in style or "font-weight: 700" in style):
-                return True
-
-            # فحص خصائص الخط
-            font = label.font()
-            if font.pointSize() >= 18 or font.bold():
-                return True
-
-            # فحص النص - إذا كان قصير ويحتوي على كلمات مثل "صفحة" أو أسماء الوظائف
-            text = label.text()
-            title_keywords = ["صفحة", "دمج", "تقسيم", "ضغط", "تدوير", "تحويل", "PDF"]
-            if any(keyword in text for keyword in title_keywords) and len(text) < 50:
-                return True
-
-            return False
-
-        except Exception:
-            return False
-
-
-
-    def _apply_current_theme_to_page(self, page, index):
-        """تطبيق السمة الحالية على صفحة جديدة تم تحميلها"""
-        page_theme_keys = {
-            1: "merge_page", 2: "split_page", 3: "compress_page",
-            4: "rotate_page", 5: "convert_page", 6: "security_page",
-            7: "settings_page"
-        }
-        theme_key = page_theme_keys.get(index)
-        if theme_key:
-            try:
-                # For pages within a QScrollArea, apply theme to the page widget itself
-                if isinstance(page, QScrollArea):
-                    content_widget = page.widget()
-                    if content_widget:
-                        apply_theme_style(content_widget, "dialog")
-                else:
-                    apply_theme_style(page, "dialog")
-                debug(f"تم تطبيق السمة الحالية على الصفحة الجديدة {index}")
-            except Exception as e:
-                error(f"خطأ في تطبيق السمة على الصفحة الجديدة {index}: {e}")
-
-    def validate_settings(self, settings_data):
+    def _validate_settings(self, settings_data):
         """التحقق من صحة بيانات الإعدادات"""
         if not isinstance(settings_data, dict):
             error("الإعدادات ليست من نوع dictionary")
@@ -693,13 +625,13 @@ class ApexFlow(QMainWindow):
         debug("تم التحقق من صحة الإعدادات بنجاح")
         return True
 
-    def get_default_settings(self):
+    def _get_default_settings(self):
         """الحصول على الإعدادات الافتراضية"""
         return {
-            "theme": "dark",
-            "accent_color": "#ff6f00",
+            "theme": "blue",
+            "accent_color": "#056a51",
             "ui_settings": {
-                "font_size": 14,
+                "font_size": 12,
                 "language": "ar"
             },
             "keyboard_shortcuts": {
@@ -760,7 +692,7 @@ class ApexFlow(QMainWindow):
         # باقي الاختصارات ستُحمل عند تحميل الوحدات
 
     def on_settings_changed(self):
-        """التعامل مع تغيير الإعدادات"""
+        """التعامل مع تغيير الإعدادات باستخدام المدراء"""
         # إعادة تحميل الإعدادات
         self.settings_data = load_settings()
 
@@ -768,9 +700,7 @@ class ApexFlow(QMainWindow):
         import importlib
         from modules import translator
         importlib.reload(translator)
-        # We need to re-import `tr` as the module has been reloaded
-        from modules.translator import tr
-        
+
         # تطبيق اتجاه الواجهة الجديد
         language = self.settings_data.get("language", "ar")
         if language == "ar":
@@ -779,43 +709,43 @@ class ApexFlow(QMainWindow):
         else:
             QApplication.instance().setLayoutDirection(Qt.LeftToRight)
             self.setLayoutDirection(Qt.LeftToRight)
-        
-        # إعادة بناء الواجهة الرئيسية لعكس الشريط الجانبي وتحديث النصوص
-        self.initUI()
-        # إعادة ترتيب التخطيط إذا كانت العناصر موجودة
-        if hasattr(self, 'arrange_layout'):
-            self.arrange_layout()
-        # تحديث اتجاه شريط التمرير
-        if hasattr(self, 'update_scrollbars_direction'):
-            self.update_scrollbars_direction()
-        self.apply_theme_delayed()
 
-        # تطبيق الإعدادات الجديدة على الواجهة
-        self.apply_ui_settings()
+        # إعادة بناء الواجهة الرئيسية
+        self.initUI()
+        self.arrange_layout()
+        self.update_scrollbars_direction()
+
+        # تطبيق الإعدادات الجديدة باستخدام المدراء
+        self._apply_ui_settings()
 
         # إعادة تطبيق السمة على جميع العناصر المحملة
         self.refresh_all_loaded_pages()
 
-    def apply_ui_settings(self):
-        """تطبيق إعدادات الواجهة باستخدام النظام المحسن"""
+        # عرض إشعار نجاح
+        self.notification_manager.show_notification(
+            self, "تم تطبيق الإعدادات بنجاح", "success"
+        )
+
+    def _apply_ui_settings(self):
+        """تطبيق إعدادات الواجهة باستخدام ThemeManager"""
         ui_settings = self.settings_data.get("ui_settings", {})
+        font_size = ui_settings.get("font_size", 12)
 
-        # تحضير خيارات السمة مع حجم الخط
-        font_size = ui_settings.get("font_size", 16)
-
-        # تحديد حجم العناصر بناءً على حجم الخط
-        if font_size <= 12:
-            size_option = "صغير (مدمج)"
+        # تحديد حجم العناصر بناءً على حجم الخط الأساسي
+        if font_size <= 10:
+            size_option = "صغير جداً (مدمج)"
+        elif font_size <= 12:
+            size_option = "صغير (افتراضي)"
         elif font_size <= 14:
-            size_option = "متوسط (افتراضي)"
+            size_option = "متوسط (مريح)"
         elif font_size <= 16:
-            size_option = "كبير (مريح)"
+            size_option = "كبير (واضح)"
         else:
             size_option = "كبير جداً (إمكانية وصول)"
 
         # تطبيق السمة مع الخيارات المحدثة
-        theme = self.settings_data.get("theme", "dark")
-        accent_color = self.settings_data.get("accent_color", "#ff6f00")
+        theme = self.settings_data.get("theme", "blue")
+        accent_color = self.settings_data.get("accent_color", "#056a51")
 
         options = {
             "transparency": 80,
@@ -824,36 +754,34 @@ class ApexFlow(QMainWindow):
         }
 
         try:
-            # تحديث السمة في المدير المركزي أولاً
-            from ui.theme_manager import global_theme_manager
-            global_theme_manager.change_theme(theme, accent_color, options)
+            # تحديث السمة باستخدام ThemeManager
+            self.theme_manager.change_theme(theme, accent_color, options)
 
             # تطبيق النمط على النافذة الرئيسية
-            apply_theme_style(
-                widget=self,
-                widget_type="main_window",
-                auto_register=False  # لا نحتاج تسجيل مرة أخرى
-            )
+            self.theme_manager.apply_theme(self, "main_window")
 
             # إعادة تطبيق السمة على جميع العناصر
             self.refresh_all_loaded_pages()
-            info(f"تم تطبيق إعدادات الواجهة بنجاح:")
-            info(f"  - السمة: {theme}")
-            info(f"  - لون التمييز: {accent_color}")
-            info(f"  - حجم الخط: {font_size}px")
-            info(f"  - حجم العناصر: {size_option}")
-            debug(f"خيارات السمة المطبقة: {options}")
+
+            info(f"تم تطبيق إعدادات الواجهة بنجاح: {theme}, {accent_color}, {size_option}")
+
         except Exception as e:
-            error(f"خطأ في تطبيق إعدادات الواجهة:")
-            error(f"  - نوع الخطأ: {type(e).__name__}")
-            error(f"  - رسالة الخطأ: {str(e)}")
-            error(f"  - السمة المحاولة: {theme}")
-            error(f"  - لون التمييز المحاول: {accent_color}")
-            error(f"تتبع الخطأ: {traceback.format_exc()}")
+            error(f"خطأ في تطبيق إعدادات الواجهة: {e}")
+            # عرض إشعار خطأ
+            self.notification_manager.show_notification(
+                self, f"خطأ في تطبيق الإعدادات: {str(e)}", "error"
+            )
 
 def main():
     """الدالة الرئيسية لتشغيل التطبيق"""
     app = SingleApplication(sys.argv)
+
+    # إعداد أول تشغيل للتطبيق
+    try:
+        from modules.default_settings import setup_first_run
+        setup_first_run()
+    except Exception as e:
+        print(f"تحذير: خطأ في إعداد أول تشغيل: {e}")
 
     # التحقق من التشغيل الأول وعرض واجهة الإعداد
     settings_data = load_settings()
@@ -885,9 +813,7 @@ def main():
     settings_data = load_settings()
     language = settings_data.get("language", "ar")
     
-    # تعيين اللغة في المترجم أولاً
-    from modules.translator import translator
-    # translator.set_language(language) # تم إزالة هذه الدالة، الترجمة تعتمد على الإعدادات عند التحميل
+    # تعيين اللغة في المترجم (الترجمة تعتمد على الإعدادات عند التحميل)
     
     if language == "ar":
         app.setLayoutDirection(Qt.RightToLeft)

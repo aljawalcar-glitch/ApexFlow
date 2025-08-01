@@ -23,14 +23,18 @@ class LazyPageLoader(QObject):
         self.file_path = ""
         self.doc = None
         self.total_pages = 0
-        
+
         # تخزين مؤقت للصفحات المحملة
         self.page_cache: Dict[int, QPixmap] = {}
         self.max_cached_pages = max_cached_pages
         self.access_order: List[int] = []  # ترتيب الوصول للـ LRU
+
+        # إحصائيات الأداء
+        self._cache_hits = 0
+        self._cache_requests = 0
         
         # إعدادات التحميل
-        self.default_matrix = fitz.Matrix(1.2, 1.2)  # دقة محسنة
+        self.default_matrix = self._get_adaptive_matrix()  # دقة تكيفية
         self.loading_queue: List[int] = []
         self.is_loading = False
         
@@ -38,6 +42,24 @@ class LazyPageLoader(QObject):
         self.load_timer = QTimer()
         self.load_timer.setSingleShot(True)
         self.load_timer.timeout.connect(self._process_loading_queue)
+
+    def _get_adaptive_matrix(self):
+        """حساب دقة تكيفية حسب حجم الشاشة"""
+        try:
+            from PySide6.QtWidgets import QApplication
+            app = QApplication.instance()
+            if app:
+                screen = app.primaryScreen()
+                if screen:
+                    dpi_ratio = screen.devicePixelRatio()
+                    # تكييف الدقة حسب DPI
+                    scale = max(1.0, min(2.0, 1.0 * dpi_ratio))  # بين 1.0 و 2.0
+                    return fitz.Matrix(scale, scale)
+        except:
+            pass
+
+        # القيمة الافتراضية في حالة الفشل
+        return fitz.Matrix(1.2, 1.2)
     
     def set_pdf_file(self, file_path: str) -> bool:
         """تعيين ملف PDF الجديد"""
@@ -65,11 +87,15 @@ class LazyPageLoader(QObject):
         """الحصول على صفحة - إما من التخزين المؤقت أو تحميل جديد"""
         if not self.doc or page_number >= self.total_pages or page_number < 0:
             return None
-        
+
+        # تتبع طلبات التخزين المؤقت
+        self._cache_requests += 1
+
         # فحص التخزين المؤقت أولاً
         if page_number in self.page_cache:
             # تحديث ترتيب الوصول
             self._update_access_order(page_number)
+            self._cache_hits += 1  # تسجيل إصابة التخزين المؤقت
             return self.page_cache[page_number]
         
         # إضافة للطابور إذا لم تكن محملة
@@ -162,12 +188,21 @@ class LazyPageLoader(QObject):
     
     def get_cache_info(self) -> dict:
         """معلومات التخزين المؤقت للتشخيص"""
+        # حساب استخدام الذاكرة الفعلي
+        memory_usage = 0
+        for pixmap in self.page_cache.values():
+            if pixmap:
+                # تقدير حجم الصورة بالبايت
+                memory_usage += pixmap.width() * pixmap.height() * 4  # 4 bytes per pixel (RGBA)
+
         return {
             "cached_pages": len(self.page_cache),
             "max_pages": self.max_cached_pages,
             "queue_length": len(self.loading_queue),
             "total_pages": self.total_pages,
-            "memory_usage_mb": len(self.page_cache) * 2  # تقدير تقريبي
+            "memory_usage_mb": round(memory_usage / (1024 * 1024), 2),  # تحويل للميجابايت
+            "cache_hit_ratio": getattr(self, '_cache_hits', 0) / max(getattr(self, '_cache_requests', 1), 1),
+            "is_loading": self.is_loading
         }
     
     def cleanup(self):
@@ -177,6 +212,16 @@ class LazyPageLoader(QObject):
         if self.doc:
             self.doc.close()
             self.doc = None
+
+    def print_performance_stats(self):
+        """طباعة إحصائيات الأداء للتشخيص"""
+        info = self.get_cache_info()
+        print(f"📊 إحصائيات LazyPageLoader:")
+        print(f"   الصفحات المحملة: {info['cached_pages']}/{info['max_pages']}")
+        print(f"   طابور التحميل: {info['queue_length']} صفحة")
+        print(f"   استخدام الذاكرة: {info['memory_usage_mb']} MB")
+        print(f"   معدل إصابة التخزين المؤقت: {info['cache_hit_ratio']:.2%}")
+        print(f"   حالة التحميل: {'نشط' if info['is_loading'] else 'خامل'}")
 
 class LazyImageLoader(QObject):
     """محمل كسول للصور"""

@@ -8,6 +8,9 @@ import os
 from .settings import load_settings
 from .logger import debug, error
 
+# إشارة عالمية لتغيير اللغة
+language_changed_callbacks = []
+
 class Translator:
     """
     A simple translator class that loads strings from a JSON file.
@@ -80,3 +83,27 @@ def get_current_language() -> str:
     إرجاع رمز اللغة الحالية.
     """
     return translator.language
+
+def register_language_change_callback(callback):
+    """
+    تسجيل دالة ليتم استدعاؤها عند تغيير اللغة
+    """
+    if callback not in language_changed_callbacks:
+        language_changed_callbacks.append(callback)
+
+def notify_language_changed():
+    """
+    إشعار جميع المكونات المسجلة بتغيير اللغة
+    """
+    for callback in language_changed_callbacks:
+        try:
+            callback()
+        except Exception as e:
+            error(f"Error in language change callback: {e}")
+
+def reload_translations():
+    """
+    إعادة تحميل الترجمات وإشعار المكونات
+    """
+    translator.load_translations()
+    notify_language_changed()

@@ -7,7 +7,9 @@
     "font_sizes": {
         "small": 10,
         "normal": 12,
-        "large": 16,
-        "title": 24
-    }
+        "large": 14,
+        "title": 18,
+        "menu": 12
+    },
+    "note": "هذا الملف للمرجع فقط - الأحجام الفعلية تأتي من modules/settings.py"
 }

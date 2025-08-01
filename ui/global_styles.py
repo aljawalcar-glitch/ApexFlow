@@ -1,13 +1,17 @@
 from PySide6.QtWidgets import QWidget
 
 def get_font_settings():
-    """الحصول على إعدادات الخطوط من الملف"""
+    """الحصول على إعدادات الخطوط من الملف مع دعم الأحجام المنفصلة"""
     try:
         from modules import settings
         settings_data = settings.load_settings()
         ui_settings = settings_data.get("ui_settings", {})
 
-        font_size = ui_settings.get("font_size", 14)
+        # أحجام الخطوط المنفصلة
+        font_size = ui_settings.get("font_size", 12)
+        title_font_size = ui_settings.get("title_font_size", 18)
+        menu_font_size = ui_settings.get("menu_font_size", 12)
+
         font_family = ui_settings.get("font_family", "النظام الافتراضي")
         font_weight = ui_settings.get("font_weight", "عادي")
 
@@ -19,9 +23,21 @@ def get_font_settings():
         weight_map = {"عادي": "normal", "سميك": "bold", "سميك جداً": "900"}
         font_weight_css = weight_map.get(font_weight, "normal")
 
-        return {"size": font_size, "family": font_family_css, "weight": font_weight_css}
+        return {
+            "size": font_size,
+            "title_size": title_font_size,
+            "menu_size": menu_font_size,
+            "family": font_family_css,
+            "weight": font_weight_css
+        }
     except:
-        return {"size": 14, "family": "'Segoe UI', 'Tahoma', 'Arial Unicode MS', 'Cairo', sans-serif", "weight": "normal"}
+        return {
+            "size": 12,
+            "title_size": 18,
+            "menu_size": 12,
+            "family": "'Segoe UI', 'Tahoma', 'Arial Unicode MS', 'Cairo', sans-serif",
+            "weight": "normal"
+        }
 
 def get_widget_style(widget_type, colors, accent_color):
     """مولد الأنماط الموحد لجميع العناصر"""
@@ -59,16 +75,16 @@ def get_widget_style(widget_type, colors, accent_color):
                 background: transparent;
             }}
             QLabel#about_app_name {{
-                font-size: 24px;
+                font-size: {font_settings["title_size"]}px;
                 font-weight: bold;
                 color: {accent_color};
             }}
             QLabel#about_version {{
-                font-size: 14px;
+                font-size: {font_settings["size"]}px;
                 color: {colors["text_secondary"]};
             }}
             QLabel#about_author {{
-                font-size: 12px;
+                font-size: {int(font_settings["size"] * 0.85)}px;
                 color: {colors["text_muted"]};
             }}
             QFrame#about_separator {{
@@ -83,7 +99,7 @@ def get_widget_style(widget_type, colors, accent_color):
                 color: {colors["text_body"]};
                 padding: 10px;
                 font-family: 'Consolas', 'Monaco', monospace;
-                font-size: 11px;
+                font-size: {int(font_settings["size"] * 0.8)}px;
             }}
             QTextEdit QScrollBar:vertical {{
                 background: {colors["surface"]};
@@ -142,7 +158,7 @@ def get_widget_style(widget_type, colors, accent_color):
                 background-color: {colors["surface"]};
                 color: {colors["text_body"]};
                 font-family: {font_settings['family']};
-                font-size: {int(font_settings['size'] * 1.1)}px;
+                font-size: {font_settings['menu_size']}px;
                 border: 1px solid {colors["border"]};
                 border-radius: 8px;
             }}
@@ -200,7 +216,7 @@ def get_widget_style(widget_type, colors, accent_color):
                 background: transparent;
                 border: none;
                 outline: none;
-                font-size: 16px;
+                font-size: {font_settings["size"]}px;
                 font-weight: normal;
                 padding: 15px 25px;
                 color: {colors["text_body"]};
@@ -248,7 +264,7 @@ def get_widget_style(widget_type, colors, accent_color):
         return f"""
             QLabel {{
                 color: {accent_color};
-                font-size: 13px;
+                font-size: {int(font_settings["size"] * 0.9)}px;
                 font-weight: bold;
                 background: transparent;
                 border: none;
@@ -269,7 +285,7 @@ def get_widget_style(widget_type, colors, accent_color):
         return f"""
             QLabel {{
                 color: {colors["text_title"]}; background: transparent;
-                font-size: {int(font_settings["size"] * 1.7)}px; font-family: {font_settings["family"]}; font-weight: bold;
+                font-size: {font_settings["title_size"]}px; font-family: {font_settings["family"]}; font-weight: bold;
                 border: none; outline: none;
             }}
         """
@@ -466,7 +482,7 @@ def get_widget_style(widget_type, colors, accent_color):
     elif widget_type == "group_box":
         return f"""
             QGroupBox {{
-                font-size: {int(font_settings["size"] * 1.1)}px;
+                font-size: {font_settings["menu_size"]}px;
                 font-family: {font_settings["family"]};
                 font-weight: bold;
                 color: {colors.get("text_title", "white")};
@@ -540,6 +556,30 @@ def lighten_color(color, factor=0.2):
     l = min(255, int(l * (1 + factor)))
     color.setHsl(h, s, l, a)
     return color.name()
+
+def apply_dynamic_font_style(widget, style_type="base"):
+    """تطبيق أنماط الخطوط الديناميكية على العناصر"""
+    font_settings = get_font_settings()
+
+    style_map = {
+        "base": f"font-size: {font_settings['size']}px; font-family: {font_settings['family']}; font-weight: {font_settings['weight']};",
+        "title": f"font-size: {font_settings['title_size']}px; font-family: {font_settings['family']}; font-weight: bold;",
+        "menu": f"font-size: {font_settings['menu_size']}px; font-family: {font_settings['family']}; font-weight: {font_settings['weight']};",
+        "small": f"font-size: {int(font_settings['size'] * 0.85)}px; font-family: {font_settings['family']}; font-weight: {font_settings['weight']};",
+        "large": f"font-size: {int(font_settings['size'] * 1.2)}px; font-family: {font_settings['family']}; font-weight: {font_settings['weight']};"
+    }
+
+    style = style_map.get(style_type, style_map["base"])
+    current_style = widget.styleSheet()
+
+    # إزالة أي أنماط خطوط موجودة وإضافة الجديدة
+    import re
+    current_style = re.sub(r'font-size:\s*[^;]+;', '', current_style)
+    current_style = re.sub(r'font-family:\s*[^;]+;', '', current_style)
+    current_style = re.sub(r'font-weight:\s*[^;]+;', '', current_style)
+
+    widget.setStyleSheet(f"{current_style} {style}")
+    return widget
 
 # Keep compatibility functions if they are used elsewhere
 def get_button_style(colors, accent_color):

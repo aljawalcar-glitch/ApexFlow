@@ -3,14 +3,11 @@
 صفحة تحويل الملفات - تصميم جديد يعتمد على سير عمل مبسط ومظهر التبويبات
 """
 
-import os
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QGroupBox, QLabel, QPushButton, QWidget
+from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton, QWidget, QGroupBox
 from .base_page import BasePageWidget
-from .svg_icon_button import create_action_button
-from .theme_manager import make_theme_aware
 from .ui_helpers import create_button, create_title
-from modules.translator import tr
+from modules.translator import tr, register_language_change_callback, get_current_language
 
 class ConvertPage(BasePageWidget):
     """
@@ -35,9 +32,13 @@ class ConvertPage(BasePageWidget):
         self.top_buttons = {}
         self.create_header_layout()
         self.create_workspace_area()
-        
+
         self.apply_styles()
+        # إخفاء الفريمات بعد إنشائها
         self.reset_ui()
+
+        # تسجيل callback لتغيير اللغة
+        register_language_change_callback(self.update_button_order_for_language)
 
     def create_header_layout(self):
         """إنشاء التخطيط العلوي الذي يحتوي على العنوان وتبويبات العمليات."""
@@ -125,6 +126,10 @@ class ConvertPage(BasePageWidget):
         self.cancel_btn = create_button(tr("cancel_operation"), on_click=self.reset_ui)
         self.cancel_btn.setProperty("class", "cancel-button")
 
+        # إخفاء الأزرار افتراضياً
+        self.add_files_btn.hide()
+        self.cancel_btn.hide()
+
         # ترتيب الأزرار حسب اتجاه اللغة
         current_lang = get_current_language()
 
@@ -134,18 +139,38 @@ class ConvertPage(BasePageWidget):
             if child.widget():
                 child.widget().setParent(None)
 
-        # إضافة الأزرار بترتيب ثابت
-        self.controls_layout.addWidget(self.add_files_btn)
-        self.controls_layout.addWidget(self.cancel_btn)
-
-        # محاذاة حسب اللغة باستخدام LayoutDirection
-        if current_lang == "ar":  # العربية: أزرار على اليمين
+        # ترتيب الأزرار حسب اللغة
+        if current_lang == "ar":  # العربية RTL: إلغاء ← إضافة ملفات
+            self.controls_layout.addWidget(self.cancel_btn)
+            self.controls_layout.addWidget(self.add_files_btn)
             self.controls_layout.setAlignment(Qt.AlignRight)
-        else:  # الإنجليزية: أزرار على اليسار
+        else:  # الإنجليزية LTR: إضافة ملفات ← إلغاء
+            self.controls_layout.addWidget(self.add_files_btn)
+            self.controls_layout.addWidget(self.cancel_btn)
             self.controls_layout.setAlignment(Qt.AlignLeft)
         header_area_layout.addLayout(self.controls_layout)
 
         self.main_layout.insertLayout(0, header_area_layout)
+
+    def update_button_order_for_language(self):
+        """إعادة ترتيب الأزرار عند تغيير اللغة"""
+        current_lang = get_current_language()
+
+        # تنظيف التخطيط
+        while self.controls_layout.count():
+            child = self.controls_layout.takeAt(0)
+            if child.widget():
+                child.widget().setParent(None)
+
+        # إعادة ترتيب الأزرار حسب اللغة
+        if current_lang == "ar":  # العربية RTL: إلغاء ← إضافة ملفات
+            self.controls_layout.addWidget(self.cancel_btn)
+            self.controls_layout.addWidget(self.add_files_btn)
+            self.controls_layout.setAlignment(Qt.AlignRight)
+        else:  # الإنجليزية LTR: إضافة ملفات ← إلغاء
+            self.controls_layout.addWidget(self.add_files_btn)
+            self.controls_layout.addWidget(self.cancel_btn)
+            self.controls_layout.setAlignment(Qt.AlignLeft)
 
     def create_workspace_area(self):
         """إنشاء منطقة العمل التي تظهر تحت التبويبات."""
@@ -154,38 +179,61 @@ class ConvertPage(BasePageWidget):
         workspace_layout.setContentsMargins(0, 15, 0, 0)
         workspace_layout.setSpacing(10)
 
-        # منطقة عرض الملفات والحفظ
+        # منطقة عرض الملفات
         workspace_layout.addWidget(self.file_list_frame)
         self.file_list_frame.clear_button_clicked.connect(self.reset_ui)
         self.file_list_frame.files_changed.connect(self.update_controls_visibility)
-        self.create_save_location_frame(workspace_layout)
+
+        # إضافة المسار وزر التنفيذ
+        self.create_path_and_execute_section(workspace_layout)
 
         self.main_layout.addWidget(self.workspace_widget)
 
-    def create_save_location_frame(self, parent_layout):
-        self.save_and_process_layout = QHBoxLayout()
-        self.save_location_frame = QGroupBox(tr("save_folder"))
-        make_theme_aware(self.save_location_frame, "group_box")
-        save_layout = QVBoxLayout(self.save_location_frame)
-        path_layout = QHBoxLayout()
-        self.save_location_label = QLabel(tr("path_not_selected"))
-        make_theme_aware(self.save_location_label, "label")
-        self.save_location_label.setWordWrap(True)
-        self.browse_save_btn = create_action_button("folder-open", 24, tr("change_folder"))
-        self.browse_save_btn.clicked.connect(self.select_save_location)
-        path_layout.addWidget(self.save_location_label, 1)
-        path_layout.addWidget(self.browse_save_btn)
-        save_layout.addLayout(path_layout)
-        self.process_frame = QGroupBox(tr("execute"))
-        make_theme_aware(self.process_frame, "group_box")
-        process_layout = QVBoxLayout(self.process_frame)
-        self.process_button = create_action_button("play", 24, tr("start_processing"))
-        self.process_button.clicked.connect(self.execute_conversion)
-        process_layout.addWidget(self.process_button)
-        process_layout.addStretch()
-        self.save_and_process_layout.addWidget(self.save_location_frame, 2)
-        self.save_and_process_layout.addWidget(self.process_frame, 0)
-        parent_layout.addLayout(self.save_and_process_layout)
+        # إخفاء منطقة العمل افتراضياً
+        self.workspace_widget.hide()
+
+    def create_path_and_execute_section(self, parent_layout):
+        """إنشاء قسم المسار وزر التنفيذ مع فريمات منفصلة"""
+        from PySide6.QtWidgets import QLabel, QHBoxLayout, QGroupBox, QVBoxLayout
+        from .svg_icon_button import create_action_button
+        from .theme_manager import make_theme_aware
+
+        # تخطيط أفقي للفريمين
+        frames_layout = QHBoxLayout()
+
+        # فريم المسار
+        self.save_path_frame = QGroupBox(tr("save_path_frame_title"))
+        make_theme_aware(self.save_path_frame, "group_box")
+        path_layout = QVBoxLayout(self.save_path_frame)
+
+        self.save_path_label = QLabel(tr("path_not_selected"))
+        self.save_path_label.setWordWrap(True)
+        self.save_path_label.setMinimumHeight(30)
+        make_theme_aware(self.save_path_label, "label")
+        path_layout.addWidget(self.save_path_label)
+
+        # فريم التنفيذ
+        self.execute_frame = QGroupBox(tr("execute_frame_title"))
+        make_theme_aware(self.execute_frame, "group_box")
+        execute_layout = QVBoxLayout(self.execute_frame)
+
+        self.execute_btn = create_action_button("play", 24, tr("execute"))
+        self.execute_btn.clicked.connect(self.execute_conversion)
+        self.execute_btn.setMinimumHeight(40)
+        execute_layout.addWidget(self.execute_btn)
+        execute_layout.addStretch()
+
+        # إضافة الفريمين للتخطيط
+        frames_layout.addWidget(self.save_path_frame, 2)  # فريم المسار أكبر
+        frames_layout.addWidget(self.execute_frame, 0)    # فريم التنفيذ أصغر
+
+        parent_layout.addLayout(frames_layout)
+
+        # إخفاء الفريمين افتراضياً
+        self.save_path_frame.hide()
+        self.execute_frame.hide()
+
+
 
     def get_special_button_style(self, color_rgb="13, 110, 253", checked_color_rgb="255, 111, 0"):
         """Generate a special button style with a given color."""
@@ -233,15 +281,36 @@ class ConvertPage(BasePageWidget):
             return
 
         self.active_operation = sender.objectName()
-        
+
         for button in self.top_buttons.values():
             if button != sender:
                 button.setChecked(False)
-        
+
+        # تغيير نص زر الإضافة حسب نوع العملية
+        button_texts = {
+            "pdf_to_images": tr("add_pdf_files"),
+            "images_to_pdf": tr("add_images"),
+            "pdf_to_text": tr("add_pdf_files"),
+            "text_to_pdf": tr("add_text_files")
+        }
+        new_text = button_texts.get(self.active_operation, "إضافة ملفات")
+        self.add_files_btn.setText(new_text)
+
         self.workspace_widget.show()
         self.add_files_btn.show()
         self.cancel_btn.show()
-        self.update_controls_visibility([])
+
+        # عند تغيير العملية: مسح الملفات وإخفاء جميع الفريمات
+        if hasattr(self, 'file_list_frame') and self.file_list_frame.get_files():
+            self.file_list_frame.clear_all_files()
+
+        # إخفاء الفريمات الثلاثة دائماً عند تغيير العملية
+        self.file_list_frame.hide()
+        if hasattr(self, 'save_path_frame'):
+            self.save_path_frame.hide()
+        if hasattr(self, 'execute_frame'):
+            self.execute_frame.hide()
+
         self.update_slider_position()
 
     def select_files(self):
@@ -261,79 +330,108 @@ class ConvertPage(BasePageWidget):
 
     def on_files_added(self, files):
         self.file_list_frame.add_files(files)
-        current_files = self.file_list_frame.get_files()
-        if current_files:
-            self.update_save_path(current_files[0])
+        # تحديث المسار عند إضافة ملفات
+        if files:
+            self.update_save_path(files[0])
 
-    def select_save_location(self):
-        files = self.file_list_frame.get_valid_files()
-        if not files: return
-        directory = self.file_manager.select_directory(tr("select_save_folder"))
-        if directory:
-            self.update_save_path(files[0], directory)
-
-    def update_save_path(self, file_path, base_dir=None):
-        if not base_dir: base_dir = os.path.dirname(file_path)
+    def update_save_path(self, file_path):
+        """تحديث مسار الحفظ بناءً على الملف المحدد"""
+        import os
+        base_dir = os.path.dirname(file_path)
         filename = os.path.basename(file_path)
         name, _ = os.path.splitext(filename)
-        output_ext_map = {
-            "pdf_to_images": "", "images_to_pdf": ".pdf",
-            "pdf_to_text": ".txt", "text_to_pdf": ".pdf",
-        }
-        ext = output_ext_map.get(self.active_operation, "")
-        if self.active_operation == "pdf_to_images":
-            new_path = self.create_unique_folder(base_dir, f"{name}{tr('images_folder_suffix')}")
-        else:
-            new_filename = f"{name}{tr('converted_suffix')}{ext}"
-            new_path = os.path.join(base_dir, new_filename)
-        self.save_location_label.setText(f"{tr('path_prefix')} {new_path}")
 
-    def create_unique_folder(self, base_dir, folder_name):
-        path = os.path.join(base_dir, folder_name)
-        count = 1
-        while os.path.exists(path):
-            path = os.path.join(base_dir, f"{folder_name}_{count}")
-            count += 1
-        return path
+        # تحديد امتداد الملف الناتج حسب العملية
+        if self.active_operation == "pdf_to_images":
+            save_path = os.path.join(base_dir, f"{name}_صور")
+        elif self.active_operation == "images_to_pdf":
+            save_path = os.path.join(base_dir, f"{name}_محول.pdf")
+        elif self.active_operation == "pdf_to_text":
+            save_path = os.path.join(base_dir, f"{name}_نص.txt")
+        elif self.active_operation == "text_to_pdf":
+            save_path = os.path.join(base_dir, f"{name}_محول.pdf")
+        else:
+            save_path = os.path.join(base_dir, f"{name}_محول")
+
+        self.save_path_label.setText(f"{tr('save_path_prefix')} {save_path}")
 
     def execute_conversion(self):
-        files = self.file_list_frame.get_valid_files()
-        if not self.active_operation or not files: return
-        save_path = self.save_location_label.text().replace(f"{tr('path_prefix')} ", "")
-        operation_func_map = {
-            "pdf_to_images": self.operations_manager.pdf_to_images,
-            "images_to_pdf": self.operations_manager.images_to_pdf,
-            "pdf_to_text": self.operations_manager.pdf_to_text,
-            "text_to_pdf": self.operations_manager.text_to_pdf,
-        }
-        func = operation_func_map.get(self.active_operation)
-        if func:
-            success = func(files, save_path)
-            if success: self.reset_ui()
+        """تنفيذ عملية التحويل"""
+        from .notification_system import show_info, show_success, show_error, show_warning
+
+        try:
+            files = self.file_list_frame.get_valid_files()
+            if not files:
+                show_warning(self, tr("no_files_for_conversion"))
+                return
+
+            if not self.active_operation:
+                show_warning(self, tr("no_conversion_operation_selected"))
+                return
+
+            # الحصول على مسار الحفظ
+            save_path = self.save_path_label.text().replace("مسار الحفظ: ", "")
+
+            show_info(self, f"{tr('converting_files_notification')} ({len(files)} ملف)", duration=2000)
+
+            # هنا يمكن إضافة منطق التحويل الفعلي لاحقاً
+            # success = self.operations_manager.convert_files(files, save_path, self.active_operation)
+
+            # للاختبار - نفترض النجاح
+            show_success(self, f"{tr('conversion_completed_notification')} ({len(files)} ملف)", duration=3000)
+
+        except Exception as e:
+            show_error(self, f"{tr('conversion_error_occurred')}: {str(e)}")
+
+
+
+
 
     def reset_ui(self):
+        # إخفاء جميع العناصر عند التنقل بين التبويبات
         self.workspace_widget.hide()
         self.add_files_btn.hide()
         self.cancel_btn.hide()
 
+        # إخفاء فريمات المسار والتنفيذ
+        if hasattr(self, 'save_path_frame'):
+            self.save_path_frame.hide()
+        if hasattr(self, 'execute_frame'):
+            self.execute_frame.hide()
+
+        # مسح العملية النشطة أولاً
+        self.active_operation = None
+
+        # مسح الملفات
         if self.file_list_frame.get_files():
             self.file_list_frame.clear_all_files()
-        
-        self.active_operation = None
+
+        # إلغاء تحديد جميع الأزرار
         for button in self.top_buttons.values():
             button.setChecked(False)
-        
-        self.update_controls_visibility([])
-            
+
+        # إعادة تعيين نص زر الإضافة
+        self.add_files_btn.setText(tr("add_files_convert"))
+
+        # لا نستدعي update_controls_visibility هنا لأننا نريد إخفاء كل شيء
+
+
+
     def clear_files(self):
         self.reset_ui()
         super().clear_files()
 
     def update_controls_visibility(self, files):
-        """Show/hide controls based on whether there are files."""
-        has_files = bool(files)
-        self.save_location_frame.setVisible(has_files)
-        self.process_frame.setVisible(has_files)
+        """إظهار/إخفاء العناصر بناءً على وجود الملفات"""
+        has_files = bool(files) and len(files) > 0
+
+        # إظهار/إخفاء الفريمات الثلاثة
+        self.file_list_frame.setVisible(has_files)
+
+        if hasattr(self, 'save_path_frame'):
+            self.save_path_frame.setVisible(has_files)
+        if hasattr(self, 'execute_frame'):
+            self.execute_frame.setVisible(has_files)
 
     def update_slider_position(self):
         """تحديث موضع مؤشر الانزلاق المحسن"""

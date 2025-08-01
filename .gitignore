@@ -154,4 +154,9 @@ logs/
 *.temp
 *.bak
 *.backup
-README.md
+
+# Keep important files
+!README.md
+!README_AR.md
+!assets/logo.png
+!config/requirements.txt

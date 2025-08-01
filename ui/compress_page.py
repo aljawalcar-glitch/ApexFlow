@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from .theme_manager import apply_theme_style, make_theme_aware
 from .svg_icon_button import create_action_button
+from .notification_system import show_success, show_warning, show_error, show_info
 from modules.translator import tr
 import os
 
@@ -230,22 +231,35 @@ class CompressPage(BasePageWidget):
     def select_files_for_compression(self):
         is_batch = self.batch_mode_checkbox.isChecked()
         title = tr("select_pdfs_for_batch_compression") if is_batch else tr("select_pdf_to_compress_single")
-        files = self.file_manager.select_pdf_files(title=title, multiple=is_batch)
 
-        if not files: return
-        
-        self.selected_files = files if is_batch else [files]
-        if is_batch:
-            self.file_list_frame.add_files(self.selected_files)
-            base_dir = os.path.dirname(self.selected_files[0])
-            new_folder = self.create_unique_folder(base_dir, tr("compressed_files"))
-            self.batch_save_label.setText(f"{tr('path_prefix')} {new_folder}")
-        else:
-            self.current_file_path = self.selected_files[0]
-            self.current_file_size = os.path.getsize(self.current_file_path) if os.path.exists(self.current_file_path) else 0
-            self.update_save_path(self.current_file_path)
+        try:
+            files = self.file_manager.select_pdf_files(title=title, multiple=is_batch)
 
-        self.on_files_changed(self.selected_files)
+            if not files: return
+
+            self.selected_files = files if is_batch else [files]
+            if is_batch:
+                self.file_list_frame.add_files(self.selected_files)
+                base_dir = os.path.dirname(self.selected_files[0])
+                new_folder = self.create_unique_folder(base_dir, tr("compressed_files"))
+                self.batch_save_label.setText(f"{tr('path_prefix')} {new_folder}")
+
+                # إشعار بنجاح تحديد الملفات للضغط المجمع
+                show_info(self, f"{tr('files_selected_for_batch_compression')} ({len(files)} ملف)", duration=3000)
+
+            else:
+                self.current_file_path = self.selected_files[0]
+                self.current_file_size = os.path.getsize(self.current_file_path) if os.path.exists(self.current_file_path) else 0
+                self.update_save_path(self.current_file_path)
+
+                # إشعار بنجاح تحديد الملف
+                file_name = os.path.basename(self.current_file_path)
+                show_info(self, f"{tr('file_selected_for_compression')}: {file_name}", duration=3000)
+
+            self.on_files_changed(self.selected_files)
+
+        except Exception as e:
+            show_error(self, f"{tr('error_selecting_files')}: {str(e)}")
 
     def on_files_changed(self, files):
         if not files:
@@ -304,6 +318,55 @@ class CompressPage(BasePageWidget):
         return path
 
     def execute_compress(self):
-        print("Executing compression...")
-        # Dummy implementation for now
-        pass
+        """تنفيذ عملية ضغط الملفات مع إشعارات للمستخدم"""
+        try:
+            # التحقق من وجود ملفات للضغط
+            if self.batch_mode_checkbox.isChecked():
+                files = self.selected_files
+                if not files:
+                    show_warning(self, tr("no_files_selected_for_compression"))
+                    return
+            else:
+                if not self.current_file_path or not os.path.exists(self.current_file_path):
+                    show_warning(self, tr("no_file_selected_for_compression"))
+                    return
+                files = [self.current_file_path]
+
+            # التحقق من مسار الحفظ
+            save_path = ""
+            if self.batch_mode_checkbox.isChecked():
+                # للوضع المجمع، استخدم مسار الحفظ المحدد
+                if hasattr(self, 'batch_save_location_label'):
+                    save_path = self.batch_save_location_label.text().replace(f"{tr('path_prefix')} ", "")
+            else:
+                # للملف الواحد، استخدم مسار الحفظ المحدد
+                if hasattr(self, 'save_location_label'):
+                    save_path = self.save_location_label.text().replace(f"{tr('path_prefix')} ", "")
+
+            if not save_path or not os.path.exists(os.path.dirname(save_path)):
+                show_warning(self, tr("invalid_save_path"))
+                return
+
+            # إشعار بدء العملية
+            show_info(self, tr("compression_started"), duration=2000)
+
+            # تنفيذ عملية الضغط
+            compression_level = self.compression_slider.value()
+
+            # استدعاء مدير العمليات لتنفيذ الضغط
+            if hasattr(self.operations_manager, 'compress_files'):
+                success = self.operations_manager.compress_files(files, save_path, compression_level)
+
+                if success:
+                    file_count = len(files)
+                    show_success(self, f"{tr('compression_completed_successfully')} ({file_count} ملف)", duration=4000)
+                    # إعادة تعيين الواجهة بعد النجاح
+                    self.clear_files()
+                else:
+                    show_error(self, tr("compression_failed"))
+            else:
+                # في حالة عدم توفر دالة الضغط في مدير العمليات
+                show_warning(self, tr("compression_feature_not_available"))
+
+        except Exception as e:
+            show_error(self, f"{tr('compression_error')}: {str(e)}")

@@ -214,12 +214,17 @@ class NotificationManager:
         # إزالة الإشعارات الزائدة
         while len(self.active_notifications) >= self.max_notifications:
             old_notification = self.active_notifications.pop(0)
-            if old_notification and not old_notification.isHidden():
-                old_notification.hide_notification()
+            try:
+                if old_notification and not old_notification.isHidden():
+                    old_notification.hide_notification()
+            except RuntimeError:
+                # Widget was already deleted, just ignore since it has been popped.
+                pass
         
         # إنشاء إشعار جديد
         notification = NotificationWidget(message, notification_type, parent)
         notification.finished.connect(lambda: self.remove_notification(notification))
+        notification.destroyed.connect(lambda: self.remove_notification(notification))
         
         # إضافة للقائمة النشطة
         self.active_notifications.append(notification)
@@ -237,8 +242,12 @@ class NotificationManager:
     def clear_all(self):
         """إزالة جميع الإشعارات"""
         for notification in self.active_notifications[:]:
-            if notification and not notification.isHidden():
-                notification.hide_notification()
+            try:
+                if notification and not notification.isHidden():
+                    notification.hide_notification()
+            except RuntimeError:
+                # Widget was already deleted, just ignore.
+                pass
         self.active_notifications.clear()
 
 
@@ -248,6 +257,16 @@ global_notification_manager = NotificationManager()
 
 def show_notification(parent, message, notification_type="info", duration=4000):
     """دالة مساعدة لعرض الإشعارات"""
+    try:
+        # Check if the underlying C++ object of the parent is still valid.
+        # Accessing any attribute will raise RuntimeError if it's deleted.
+        if parent is not None:
+            _ = parent.isWidgetType()
+    except RuntimeError:
+        # The parent widget has been deleted, so we can't show a notification attached to it.
+        print(f"INFO: Notification parent widget has been deleted. Aborting notification: '{message}'")
+        return None
+        
     return global_notification_manager.show_notification(parent, message, notification_type, duration)
 
 

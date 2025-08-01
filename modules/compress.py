@@ -4,8 +4,18 @@
 """
 
 import os
-import fitz  # PyMuPDF
 from typing import Dict, Any
+
+# تحميل كسول لمكتبة PyMuPDF الثقيلة
+_fitz = None
+
+def _get_fitz():
+    """تحميل كسول لمكتبة PyMuPDF"""
+    global _fitz
+    if _fitz is None:
+        import fitz  # PyMuPDF
+        _fitz = fitz
+    return _fitz
 
 def get_compression_settings(level: int) -> Dict[str, Any]:
     """
@@ -88,6 +98,9 @@ def compress_pdf(input_file: str, output_file: str, compression_level: int = 3) 
 
         if not input_file.lower().endswith('.pdf'):
             raise ValueError(f"الملف ليس PDF: {input_file}")
+
+        # تحميل كسول لمكتبة PyMuPDF
+        fitz = _get_fitz()
 
         # فتح الملف باستخدام fitz
         doc = fitz.open(input_file)

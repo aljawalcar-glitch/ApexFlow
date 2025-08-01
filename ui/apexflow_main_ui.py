@@ -14,7 +14,7 @@ try:
     from version import get_full_version_string
 except ImportError:
     def get_full_version_string():
-        return tr("version_fallback", version="v5.2.1")
+        return tr("version_fallback", version="v5.3.0")
 
 # تم حذف TransparentBorderLabel لأنه كان يسبب ظهور إطارات حول النصوص
 
@@ -175,15 +175,9 @@ class WelcomePage(QWidget):
         quick_start_layout = QVBoxLayout(quick_start_frame)
 
         quick_start_title = QLabel(tr("quick_start"))
-        quick_start_title.setStyleSheet("""
-            font-size: 20px !important;
-            font-weight: bold !important;
-            color: #e2e8f0 !important;
-            margin-bottom: 15px !important;
-            text-align: center !important;
-            background: transparent !important;
-            border: none !important;
-        """)
+        # استخدام نظام السمات بدلاً من الأنماط الثابتة
+        from .theme_manager import apply_theme_style
+        apply_theme_style(quick_start_title, "title_text", auto_register=True)
         quick_start_title.setAlignment(Qt.AlignCenter)
         quick_start_layout.addWidget(quick_start_title)
 

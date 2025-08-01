@@ -306,6 +306,25 @@ class MessageManager:
 
         return msg_box.exec() == QMessageBox.Yes
 
+    def show_warning(self, message, title="تحذير"):
+        """عرض رسالة تحذير"""
+        from PySide6.QtWidgets import QMessageBox
+        from PySide6.QtGui import QIcon
+
+        msg_box = QMessageBox(self.main_window)
+        msg_box.setWindowTitle(f"ApexFlow - {title}")
+        msg_box.setText(message)
+        msg_box.setIcon(QMessageBox.Warning)
+
+        # تطبيق السمة
+        try:
+            from ui.theme_manager import apply_theme
+            apply_theme(msg_box, "dialog")
+        except:
+            pass
+
+        return msg_box.exec()
+
 
 class OperationsManager:
     """
@@ -585,18 +604,40 @@ class OperationsManager:
             self.message_manager.show_error(f"حدث خطأ غير متوقع: {str(e)}")
             return False
 
+    def _check_pywin32_available(self):
+        """فحص توفر pywin32 بهدوء"""
+        try:
+            import win32print
+            return True
+        except ImportError:
+            return False
+
     def get_available_printers(self):
         """الحصول على قائمة بأسماء الطابعات المتاحة"""
         try:
             import win32print
             printers = win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS)
-            return [printer[2] for printer in printers]
+            printer_names = [printer[2] for printer in printers]
+
+            return printer_names if printer_names else ["Microsoft Print to PDF"]
+
         except ImportError:
-            self.message_manager.show_error("مكتبة pywin32 غير مثبتة. لا يمكن جلب قائمة الطابعات.")
-            return []
+            # تسجيل الخطأ بهدوء بدون إظهار رسائل للمستخدم
+            from modules.logger import debug
+            debug("pywin32 غير متوفر - استخدام طابعة افتراضية")
+            return ["Microsoft Print to PDF"]  # طابعة افتراضية
+
         except Exception as e:
-            self.message_manager.show_error(f"فشل في جلب قائمة الطابعات: {str(e)}")
-            return []
+            from modules.logger import warning
+            warning(f"فشل في جلب قائمة الطابعات: {str(e)}")
+
+            # عرض تحذير بسيط
+            try:
+                self.message_manager.show_warning(f"تحذير: لا يمكن الوصول لجميع الطابعات")
+            except:
+                print(f"تحذير: مشكلة في الطابعات - {str(e)}")
+
+            return ["Microsoft Print to PDF"]  # طابعة افتراضية
 
     def print_files(self, files, printer_name=None, parent_widget=None):
         """طباعة ملفات PDF المحددة مع إظهار حوار التقدم"""
@@ -644,10 +685,23 @@ class OperationsManager:
             return True
 
         except ImportError:
-            self.message_manager.show_error("مكتبة pywin32 غير مثبتة. لا يمكن تنفيذ الطباعة.")
+            # إظهار رسالة خطأ فقط عند الطباعة الفعلية
+            error_msg = """مكتبة pywin32 غير مثبتة أو لا تعمل بشكل صحيح.
+
+لحل هذه المشكلة:
+1. افتح موجه الأوامر كمدير
+2. نفذ: pip install pywin32
+
+إذا استمرت المشكلة:
+pip uninstall pywin32
+pip install pywin32==306"""
+
+            self.message_manager.show_error(error_msg)
             return False
         except Exception as e:
-            self.message_manager.show_error(f"حدث خطأ غير متوقع أثناء الطباعة: {str(e)}")
+            from modules.logger import error
+            error(f"خطأ غير متوقع أثناء الطباعة: {str(e)}")
+            self.message_manager.show_error(f"حدث خطأ غير متوقع أثناء الطباعة:\n{str(e)}")
             return False
 
     def get_output_path(self, file_path, suffix):

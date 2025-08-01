@@ -75,11 +75,15 @@ def hex_to_rgba(color, alpha=1.0):
 
 def get_button_style(color, min_width=120):
     """إنشاء نمط زجاجي محسن للأزرار"""
+    # الحصول على حجم الخط من الإعدادات
+    from .global_styles import get_font_settings
+    font_settings = get_font_settings()
+
     # تحويل اللون إلى rgba للشفافية
     rgba_color = hex_to_rgba(color, 0.4)
     rgba_hover = hex_to_rgba(color, 0.6)
     rgba_pressed = hex_to_rgba(color, 0.3)
-    
+
     return f"""
         QPushButton {{
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
@@ -89,7 +93,7 @@ def get_button_style(color, min_width=120):
             border: 1px solid rgba(180, 180, 180, 0.3);
             border-radius: 12px;
             color: white;
-            font-size: 14px;
+            font-size: {font_settings['size']}px;
             font-weight: bold;
             min-width: {min_width}px;
             padding: 12px 24px;
@@ -112,17 +116,21 @@ def get_button_style(color, min_width=120):
 
 def get_combo_style():
     """تنسيق القوائم المنسدلة - محدث للتوحيد مع النمط الجديد"""
-    return """
-        QComboBox {
+    # الحصول على حجم الخط من الإعدادات
+    from .global_styles import get_font_settings
+    font_settings = get_font_settings()
+
+    return f"""
+        QComboBox {{
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px;
             padding: 8px 12px;
             color: rgba(255, 255, 255, 0.9);
-            font-size: 14px;
+            font-size: {font_settings['menu_size']}px;
             min-height: 20px;
             min-width: 150px;
-        }
+        }}
         QComboBox:hover {
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 111, 0, 0.5);
@@ -174,16 +182,20 @@ def get_combo_style():
 
 def get_input_style():
     """تنسيق حقول الإدخال"""
-    return """
-        QLineEdit {
+    # الحصول على حجم الخط من الإعدادات
+    from .global_styles import get_font_settings
+    font_settings = get_font_settings()
+
+    return f"""
+        QLineEdit {{
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 6px;
             color: white;
             padding: 8px 12px;
-            font-size: 13px;
+            font-size: {font_settings['size']}px;
             min-width: 150px;
-        }
+        }}
         QLineEdit:hover {
             background: rgba(255, 255, 255, 0.12);
             border: 1px solid rgba(255, 255, 255, 0.25);
@@ -233,16 +245,20 @@ def get_scroll_style():
 
 def get_menu_style():
     """تنسيق القائمة الجانبية"""
-    return """
-        QListWidget {
+    # الحصول على حجم الخط من الإعدادات
+    from .global_styles import get_font_settings
+    font_settings = get_font_settings()
+
+    return f"""
+        QListWidget {{
             background-color: #2d3748;
             border: 1px solid #4a5568;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: {font_settings['menu_size']}px;
             color: white;
             padding: 5px;
             text-align: right;
-        }
+        }}
         QListWidget::item {
             padding: 12px;
             margin: 2px;

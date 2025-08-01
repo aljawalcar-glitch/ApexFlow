@@ -11,6 +11,7 @@ from PySide6.QtGui import QIcon
 from .base_page import BasePageWidget as BasePage
 from .ui_helpers import create_section_label, create_info_label, create_button
 from .global_styles import get_scroll_style
+from .notification_system import show_success, show_warning, show_error, show_info
 from modules.logger import info, error
 from modules.app_utils import get_icon_path
 from modules.translator import tr
@@ -209,12 +210,21 @@ class SecurityPage(BasePage):
 
     def select_file(self):
         """فتح مربع حوار لاختيار ملف PDF"""
-        file_path, _ = QFileDialog.getOpenFileName(self, tr("select_pdf_file_title"), "", tr("pdf_files_filter_rotate"))
-        if file_path:
-            self.source_file = file_path
-            self.file_label.setText(tr("selected_file_label", path=self.source_file))
-            self.load_pdf_properties(self.source_file)
-            self.update_ui_state()
+        try:
+            file_path, _ = QFileDialog.getOpenFileName(self, tr("select_pdf_file_title"), "", tr("pdf_files_filter_rotate"))
+            if file_path:
+                self.source_file = file_path
+                # إصلاح استخدام tr() - استخدام f-string بدلاً من معاملات
+                file_name = os.path.basename(file_path)
+                self.file_label.setText(f"الملف المحدد: {file_name}")
+                self.load_pdf_properties(self.source_file)
+                self.update_ui_state()
+
+                # إشعار بنجاح تحديد الملف
+                show_info(self, f"{tr('file_selected_successfully')}: {file_name}", duration=3000)
+
+        except Exception as e:
+            show_error(self, f"{tr('error_selecting_file')}: {str(e)}")
 
     def save_file_with_selected_action(self):
         """تنفيذ الإجراء المختار وحفظ الملف"""
@@ -311,11 +321,13 @@ class SecurityPage(BasePage):
                 self.subject_input.setText(properties.get('/Subject', ''))
                 self.keywords_input.setText(properties.get('/Keywords', ''))
                 info("تم تحميل الخصائص بنجاح.")
+                show_info(self, tr("pdf_properties_loaded_successfully"), duration=2000)
             else:
                 self.clear_properties_fields()
+                show_warning(self, tr("no_properties_found_in_pdf"))
         except Exception as e:
             error(f"فشل في تحميل خصائص PDF: {e}")
-            # self.message_manager.show_error("خطأ", f"لا يمكن تحميل خصائص الملف: {e}")
+            show_error(self, f"{tr('pdf_properties_update_error')}: {str(e)}")
             self.clear_properties_fields()
 
     def clear_properties_fields(self):
@@ -411,20 +423,32 @@ class SecurityPage(BasePage):
 
     def update_properties(self):
         """تحديث خصائص ملف PDF"""
-        if not self.source_file:
-            # self.message_manager.show_warning("لم يتم تحديد ملف", "الرجاء تحديد ملف لتحديث خصائصه.")
-            return
+        try:
+            if not self.source_file:
+                show_warning(self, tr("no_file_selected_for_properties_update"))
+                return
 
-        output_path = self.get_save_path(tr("properties_updated_suffix"))
-        if not output_path:
-            return
+            output_path = self.get_save_path(tr("properties_updated_suffix"))
+            if not output_path:
+                return
 
-        properties = {
-            '/Title': self.title_input.text(),
-            '/Author': self.author_input.text(),
-            '/Subject': self.subject_input.text(),
-            '/Keywords': self.keywords_input.text(),
-        }
-        
-        info(f"بدء عملية تحديث الخصائص للملف: {self.source_file}")
-        self.operations_manager.update_pdf_properties(self.source_file, output_path, properties)
+            properties = {
+                '/Title': self.title_input.text(),
+                '/Author': self.author_input.text(),
+                '/Subject': self.subject_input.text(),
+                '/Keywords': self.keywords_input.text(),
+            }
+
+            # إشعار بدء العملية
+            show_info(self, tr("updating_pdf_properties"), duration=2000)
+
+            info(f"بدء عملية تحديث الخصائص للملف: {self.source_file}")
+            success = self.operations_manager.update_pdf_properties(self.source_file, output_path, properties)
+
+            if success:
+                show_success(self, tr("pdf_properties_updated_successfully"), duration=4000)
+            else:
+                show_error(self, tr("pdf_properties_update_failed"))
+
+        except Exception as e:
+            show_error(self, f"{tr('pdf_properties_update_error')}: {str(e)}")

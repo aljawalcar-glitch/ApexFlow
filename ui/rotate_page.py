@@ -11,7 +11,7 @@ from .svg_icon_button import create_navigation_button, create_action_button
 from .theme_aware_widget import make_theme_aware
 from .notification_system import show_success, show_warning, show_error, show_info
 from PySide6.QtWidgets import QWidget
-from modules.translator import tr
+from modules.translator import tr, register_language_change_callback
 
 # استيراد الأنظمة الجديدة للأداء
 from .lazy_loader import global_page_loader
@@ -169,13 +169,24 @@ class RotatePage(QWidget):
         # تخطيط الأزرار أفقي
         buttons_layout = QHBoxLayout()
 
-        # أقصى الشمال: التنقل
-        buttons_layout.addWidget(self.prev_btn)         # ⬅️ السابق
-        buttons_layout.addWidget(self.next_btn)         # ➡️ التالي
+        # ترتيب أزرار التنقل والتدوير حسب اللغة
+        from modules.translator import get_current_language
+        current_lang = get_current_language()
 
-        # شمال: أزرار التدوير والختم
-        buttons_layout.addWidget(self.rotate_left_btn)  # ↺ تدوير يسار
-        buttons_layout.addWidget(self.rotate_right_btn) # ↻ تدوير يمين
+        if current_lang == "ar":  # العربية RTL
+            # أزرار التنقل: التالي ← السابق
+            buttons_layout.addWidget(self.next_btn)         # ➡️ التالي
+            buttons_layout.addWidget(self.prev_btn)         # ⬅️ السابق
+            # أزرار التدوير: تدوير يمين ← تدوير يسار
+            buttons_layout.addWidget(self.rotate_right_btn) # ↻ تدوير يمين
+            buttons_layout.addWidget(self.rotate_left_btn)  # ↺ تدوير يسار
+        else:  # الإنجليزية LTR
+            # أزرار التنقل: السابق ← التالي
+            buttons_layout.addWidget(self.prev_btn)         # ⬅️ السابق
+            buttons_layout.addWidget(self.next_btn)         # ➡️ التالي
+            # أزرار التدوير: تدوير يسار ← تدوير يمين
+            buttons_layout.addWidget(self.rotate_left_btn)  # ↺ تدوير يسار
+            buttons_layout.addWidget(self.rotate_right_btn) # ↻ تدوير يمين
         buttons_layout.addWidget(self.stamp_btn)        # 🏷️ إضافة ختم
         buttons_layout.addWidget(self.zoom_in_btn)      # 🔍+ تكبير ختم
         buttons_layout.addWidget(self.zoom_out_btn)     # 🔍- تصغير ختم
@@ -195,6 +206,39 @@ class RotatePage(QWidget):
         main_layout.addWidget(self.view)
         main_layout.addWidget(self.page_label, 0, Qt.AlignmentFlag.AlignCenter)
         main_layout.addLayout(buttons_layout)
+
+        # حفظ مرجع للتخطيط لإعادة الترتيب لاحقاً
+        self.buttons_layout = buttons_layout
+
+        # تسجيل callback لتغيير اللغة
+        register_language_change_callback(self.update_button_order_for_language)
+
+    def update_button_order_for_language(self):
+        """إعادة ترتيب أزرار التنقل والتدوير عند تغيير اللغة"""
+        from modules.translator import get_current_language
+        current_lang = get_current_language()
+
+        # إزالة أزرار التنقل والتدوير من التخطيط
+        self.buttons_layout.removeWidget(self.prev_btn)
+        self.buttons_layout.removeWidget(self.next_btn)
+        self.buttons_layout.removeWidget(self.rotate_left_btn)
+        self.buttons_layout.removeWidget(self.rotate_right_btn)
+
+        # إعادة إدراجها بالترتيب الصحيح حسب اللغة
+        if current_lang == "ar":  # العربية RTL
+            # أزرار التنقل: التالي ← السابق
+            self.buttons_layout.insertWidget(0, self.next_btn)
+            self.buttons_layout.insertWidget(1, self.prev_btn)
+            # أزرار التدوير: تدوير يمين ← تدوير يسار
+            self.buttons_layout.insertWidget(2, self.rotate_right_btn)
+            self.buttons_layout.insertWidget(3, self.rotate_left_btn)
+        else:  # الإنجليزية LTR
+            # أزرار التنقل: السابق ← التالي
+            self.buttons_layout.insertWidget(0, self.prev_btn)
+            self.buttons_layout.insertWidget(1, self.next_btn)
+            # أزرار التدوير: تدوير يسار ← تدوير يمين
+            self.buttons_layout.insertWidget(2, self.rotate_left_btn)
+            self.buttons_layout.insertWidget(3, self.rotate_right_btn)
 
 
 

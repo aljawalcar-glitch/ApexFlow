@@ -76,8 +76,8 @@ DEFAULT_SETTINGS = {
     "compression_level": 3,  # مستوى الضغط (1-5)
     "rotation_angle": 90,  # زاوية التدوير الافتراضية
     "language": "ar",  # اللغة
-    "theme": "dark",  # السمة (dark, light, blue, green, purple)
-    "accent_color": "#ff6f00",  # لون التمييز
+    "theme": "blue",  # السمة (dark, light, blue, green, purple)
+    "accent_color": "#056a51",  # لون التمييز
     "auto_backup": True,  # النسخ الاحتياطي التلقائي
     "backup_path": "",  # مسار النسخ الاحتياطي
     "max_file_size": 100,  # الحد الأقصى لحجم الملف (ميجابايت)
@@ -101,7 +101,9 @@ DEFAULT_SETTINGS = {
     "ui_settings": {
         "show_tooltips": True,  # إظهار التلميحات
         "animation_speed": 300,  # سرعة الحركة (مللي ثانية)
-        "font_size": 16,  # حجم الخط
+        "font_size": 12,  # حجم الخط الأساسي (مثالي للقراءة)
+        "title_font_size": 18,  # حجم خط العناوين
+        "menu_font_size": 12,  # حجم خط القوائم
         "show_progress": True  # إظهار شريط التقدم
     },
     "security_settings": {
@@ -347,12 +349,12 @@ def validate_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
         
         # التحقق من السمة
         if validated.get("theme") not in ["dark", "light", "blue", "green", "purple"]:
-            validated["theme"] = "dark"
+            validated["theme"] = "blue"
 
         # التحقق من لون التمييز
-        accent_color = validated.get("accent_color", "#ff6f00")
+        accent_color = validated.get("accent_color", "#056a51")
         if not isinstance(accent_color, str) or not accent_color.startswith("#"):
-            validated["accent_color"] = "#ff6f00"
+            validated["accent_color"] = "#056a51"
         
         # التحقق من الحد الأقصى لحجم الملف
         max_size = validated.get("max_file_size", 100)
@@ -684,7 +686,7 @@ if __name__ == "__main__":
     
     # الحصول على إعداد محدد
     # compression_level = get_setting("compression_level", 3)
-    # font_size = get_setting("ui_settings.font_size", 16)
+    # font_size = get_setting("ui_settings.font_size", 14)
     
     # إضافة ملف أخير
     # add_recent_file("example.pdf")
