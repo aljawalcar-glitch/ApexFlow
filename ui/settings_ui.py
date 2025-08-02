@@ -197,9 +197,34 @@ class SettingsUI(ThemeAwareDialog):
             import traceback
             traceback.print_exc()
 
+    def _get_main_window(self):
+        """الحصول على النافذة الرئيسية للتطبيق"""
+        # محاولة الحصول على النافذة الرئيسية من خلال التسلسل الهرمي للعناصر
+        parent = self.parent()
+        while parent:
+            # التحقق إذا كان الأصل هو النافذة الرئيسية للتطبيق
+            if parent.__class__.__name__ == 'ApexFlow':
+                return parent
+            parent = parent.parent()
+
+        # إذا لم يتم العثور على النافذة الرئيسية، محاولة البحث عنها في التطبيق
+        from PySide6.QtWidgets import QApplication
+        for widget in QApplication.topLevelWidgets():
+            if widget.__class__.__name__ == 'ApexFlow':
+                return widget
+
+        # إذا لم يتم العثور على النافذة الرئيسية، إرجاع None
+        return None
+
     def _show_welcome_notification(self):
         """إظهار رسالة ترحيب مفيدة عند فتح الإعدادات"""
-        show_info(self, tr("settings_welcome_message"), duration=4000)
+        # استخدام النافذة الرئيسية بدلاً من نافذة الإعدادات لعرض الإشعار
+        main_window = self._get_main_window()
+        if main_window:
+            main_window.notification_manager.show_notification(tr("settings_welcome_message"), "info", 4000)
+        else:
+            # استخدام الإشعار العام بدلاً من الإشعار الخاص بالنافذة
+            show_info(tr("settings_welcome_message"), duration=4000)
 
     def _setup_managers(self, parent):
         """إعداد المدراء المطلوبة مع معالجة الأخطاء"""
@@ -302,14 +327,15 @@ class SettingsUI(ThemeAwareDialog):
     def _on_theme_changed(self):
         """معالجة تغيير السمة"""
         if not self.has_unsaved_changes:
-            show_info(self, tr("theme_changed_notification"), duration=3000)
+            # استخدام الإشعار العام بدلاً من الإشعار الخاص بالنافذة
+            show_info(tr("theme_changed_notification"), duration=3000)
         self.has_unsaved_changes = True
         self.update_preview_only()
 
     def _on_accent_changed(self):
         """معالجة تغيير لون التمييز"""
         if not self.has_unsaved_changes:
-            show_info(self, tr("accent_color_changed_notification"), duration=3000)
+            show_info(tr("accent_color_changed_notification"), duration=3000)
         self.has_unsaved_changes = True
         self.update_preview_only()
 
@@ -320,7 +346,7 @@ class SettingsUI(ThemeAwareDialog):
     def _on_font_changed(self):
         """معالجة تغيير الخطوط"""
         if not self.has_unsaved_changes:
-            show_info(self, tr("font_changed_notification"), duration=3000)
+            show_info(tr("font_changed_notification"), duration=3000)
         self.has_unsaved_changes = True
         self.update_font_preview()
 
@@ -336,24 +362,29 @@ class SettingsUI(ThemeAwareDialog):
         """حماية من الخروج بدون حفظ التغييرات"""
         if self.has_unsaved_changes:
             # إشعار تحذيري عن وجود تغييرات غير محفوظة
-            show_warning(self, tr("unsaved_changes_warning"), duration=4000)
+            show_warning(tr("unsaved_changes_warning"), duration=4000)
 
             result = self._show_save_confirmation()
 
             if result == "save":
                 if self.save_all_settings():
-                    show_success(self, tr("settings_saved_before_close"), duration=2000)
+                    # استخدام النافذة الرئيسية بدلاً من نافذة الإعدادات لعرض الإشعار
+                    main_window = self._get_main_window()
+                    if main_window:
+                        main_window.notification_manager.show_notification(tr("settings_saved_before_close"), "success", 2000)
+                    else:
+                        show_success(tr("settings_saved_before_close"), duration=2000)
                     super().closeEvent(event)
                 else:
                     event.ignore()
             elif result == "discard":
-                show_info(self, tr("changes_discarded"), duration=2000)
+                show_info(tr("changes_discarded"), duration=2000)
                 super().closeEvent(event)
             else:  # cancel
                 event.ignore()
         else:
             # إشعار وداع لطيف
-            show_info(self, tr("settings_closed"), duration=2000)
+            show_info(tr("settings_closed"), duration=2000)
             super().closeEvent(event)
 
     def _show_save_confirmation(self):
@@ -1417,7 +1448,7 @@ class SettingsUI(ThemeAwareDialog):
         except Exception as e:
             print(f"خطأ في قراءة الإعدادات: {e}")
             # عرض إشعار خطأ
-            show_error(self, f"{tr('error_reading_settings')}: {str(e)}", duration=5000)
+            show_error(f"{tr('error_reading_settings')}: {str(e)}", duration=5000)
 
         return current
 
@@ -1459,28 +1490,28 @@ class SettingsUI(ThemeAwareDialog):
         full_message = message
         if details:
             full_message += f" - {details}"
-        show_error(self, full_message, duration=5000)
+        show_error(full_message, duration=5000)
 
     def show_success_message(self, message, details=None):
         """عرض رسالة نجاح باستخدام نظام الإشعارات المحسن"""
         full_message = message
         if details:
             full_message += f" - {details}"
-        show_success(self, full_message, duration=4000)
+        show_success(full_message, duration=4000)
 
     def show_warning_message(self, message, details=None):
         """عرض رسالة تحذير باستخدام نظام الإشعارات المحسن"""
         full_message = message
         if details:
             full_message += f" - {details}"
-        show_warning(self, full_message, duration=4000)
+        show_warning(full_message, duration=4000)
 
     def show_info_message(self, message, details=None):
         """عرض رسالة معلومات باستخدام نظام الإشعارات المحسن"""
         full_message = message
         if details:
             full_message += f" - {details}"
-        show_info(self, full_message, duration=3000)
+        show_info(full_message, duration=3000)
 
     def _load_settings_to_ui(self):
         """تحميل الإعدادات إلى الواجهة (محسن بدون hasattr مفرط)"""
@@ -1544,7 +1575,7 @@ class SettingsUI(ThemeAwareDialog):
 
         except Exception as e:
             print(f"خطأ في تحميل الإعدادات: {e}")
-            show_error(self, f"{tr('error_loading_settings')}: {str(e)}", duration=5000)
+            show_error(f"{tr('error_loading_settings')}: {str(e)}", duration=5000)
 
     def _block_signals(self, block):
         """منع أو تفعيل إشارات العناصر"""
@@ -1569,7 +1600,7 @@ class SettingsUI(ThemeAwareDialog):
         """
         try:
             # إشعار بدء عملية الحفظ
-            show_info(self, tr("saving_settings_notification"), duration=2000)
+            show_info(tr("saving_settings_notification"), duration=2000)
 
             # 1. الحصول على الإعدادات الحالية من الواجهة
             current_settings = self.get_current_settings()
@@ -1615,7 +1646,12 @@ class SettingsUI(ThemeAwareDialog):
                 self.show_success_message(success_message)
 
                 # إشعار إضافي للتأكيد
-                QTimer.singleShot(1000, lambda: show_info(self, tr("settings_applied_notification"), duration=2000))
+                # استخدام النافذة الرئيسية بدلاً من نافذة الإعدادات لعرض الإشعار
+                main_window = self._get_main_window()
+                if main_window:
+                    QTimer.singleShot(1000, lambda: main_window.notification_manager.show_notification(tr("settings_applied_notification"), "info", 2000))
+                else:
+                    QTimer.singleShot(1000, lambda: show_info(tr("settings_applied_notification"), duration=2000))
                 return True
             else:
                 # مدير الإعدادات فشل في الحفظ
@@ -1630,7 +1666,7 @@ class SettingsUI(ThemeAwareDialog):
     def cancel_changes(self):
         """إلغاء جميع التغييرات"""
         if not self.has_unsaved_changes:
-            show_info(self, tr("no_changes_to_cancel"), duration=2000)
+            show_info(tr("no_changes_to_cancel"), duration=2000)
             return
 
         # إلغاء التغييرات مباشرة مع إشعار
@@ -1640,7 +1676,12 @@ class SettingsUI(ThemeAwareDialog):
         self.update_preview_only()  # تحديث المعاينة للإعدادات الأصلية
         self.update_save_buttons_state()  # تحديث حالة أزرار الحفظ والإلغاء
 
-        show_success(self, tr("all_changes_canceled_message"), duration=3000)
+        # استخدام النافذة الرئيسية بدلاً من نافذة الإعدادات لعرض الإشعار
+        main_window = self._get_main_window()
+        if main_window:
+            show_success(tr("all_changes_canceled_message"), duration=3000)
+        else:
+            show_success(tr("all_changes_canceled_message"), duration=3000)
 
     def load_original_settings(self):
         """تحميل الإعدادات الأصلية"""
@@ -1745,7 +1786,7 @@ class SettingsUI(ThemeAwareDialog):
         # إشعار جميع المكونات بتغيير اللغة لإعادة ترتيب الأزرار
         reload_translations()
 
-        show_info(self, tr("language_changed_message"), duration=4000)
+        show_info(tr("language_changed_message"), duration=4000)
 
     def load_current_settings_to_ui(self):
         """تحميل الإعدادات المؤقتة إلى الواجهة"""
@@ -1875,7 +1916,13 @@ class SettingsUI(ThemeAwareDialog):
         """تسجيل أن هناك تغييرات غير محفوظة وتحديث التقرير"""
         if not self.has_unsaved_changes:
             # إشعار أول تغيير فقط
-            show_info(self, tr("settings_modified_notification"), duration=2000)
+            # استخدام النافذة الرئيسية بدلاً من نافذة الإعدادات لعرض الإشعار
+            main_window = self._get_main_window()
+            if main_window:
+                main_window.notification_manager.show_notification(tr("settings_modified_notification"), "info", 2000)
+            else:
+                # استخدام الإشعار العام بدلاً من الإشعار الخاص بالنافذة
+                show_info(tr("settings_modified_notification"), duration=2000)
 
         self.has_unsaved_changes = True
         # تحديث تقرير التغييرات فوراً
@@ -1974,7 +2021,7 @@ class SettingsUI(ThemeAwareDialog):
         except Exception as e:
             print(tr("error_updating_preview", e=e))
             # في حالة الخطأ، عرض إشعار
-            show_error(self, f"{tr('error_updating_preview')}: {str(e)}", duration=4000)
+            show_error(f"{tr('error_updating_preview')}: {str(e)}", duration=4000)
 
     def get_accent_button_style(self):
         """تنسيق زر بلون التمييز الزجاجي"""
@@ -2015,9 +2062,9 @@ class SettingsUI(ThemeAwareDialog):
 
         # إشعار عند تغيير الشفافية بشكل كبير
         if value <= 30:
-            show_info(self, tr("low_transparency_warning"), duration=2000)
+            show_info(tr("low_transparency_warning"), duration=2000)
         elif value >= 90:
-            show_info(self, tr("high_transparency_info"), duration=2000)
+            show_info(tr("high_transparency_info"), duration=2000)
 
     def on_theme_options_changed(self):
         """تغيير خيارات السمة - النظام الجديد"""

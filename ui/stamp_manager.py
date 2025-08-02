@@ -276,7 +276,7 @@ class StampManager(QDialog):
 
         except Exception as e:
             print(f"خطأ في تحميل الأختام: {e}")
-            show_error(self, f"خطأ في تحميل الأختام: {str(e)}")
+            show_error(f"خطأ في تحميل الأختام: {str(e)}")
     
     def add_stamp_item(self, image_path):
         """إضافة عنصر ختم جديد"""
@@ -336,10 +336,10 @@ class StampManager(QDialog):
                 # إضافة الختم للواجهة
                 self.add_stamp_item(destination)
                 
-                show_success(self, "تم إضافة الختم بنجاح!")
+                show_success("تم إضافة الختم بنجاح!")
 
             except Exception as e:
-                show_error(self, f"فشل في إضافة الختم: {str(e)}")
+                show_error(f"فشل في إضافة الختم: {str(e)}")
     
     def delete_stamp(self):
         """حذف الختم المحدد"""
@@ -366,10 +366,10 @@ class StampManager(QDialog):
                 self.delete_btn.setEnabled(False)
                 self.use_btn.setEnabled(False)
                 
-                show_success(self, "تم حذف الختم بنجاح!")
+                show_success("تم حذف الختم بنجاح!")
 
             except Exception as e:
-                show_error(self, f"فشل في حذف الختم: {str(e)}")
+                show_error(f"فشل في حذف الختم: {str(e)}")
     
     def use_stamp(self):
         """استخدام الختم المحدد"""

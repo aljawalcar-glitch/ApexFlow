@@ -7,19 +7,24 @@ from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QMessageBox, QC
 from .base_page import BasePageWidget
 from .ui_helpers import create_button
 from .theme_manager import apply_theme_style
-from .notification_system import show_success, show_warning, show_error, show_info
 from modules.translator import tr
 
 class MergePage(BasePageWidget):
     """
     واجهة المستخدم الخاصة بوظيفة دمج وطباعة ملفات PDF.
     """
-    def __init__(self, file_manager, operations_manager, parent=None):
+    def __init__(self, file_manager, operations_manager, notification_manager, parent=None):
         """
         :param file_manager: مدير الملفات لاختيار الملفات.
         :param operations_manager: مدير العمليات لتنفيذ الدمج والطباعة.
+        :param notification_manager: مدير الإشعارات المركزي.
         """
-        super().__init__(page_title=tr("merge_page_title"), theme_key="merge_page", parent=parent)
+        super().__init__(
+            page_title=tr("merge_page_title"),
+            theme_key="merge_page",
+            notification_manager=notification_manager,
+            parent=parent
+        )
 
         self.file_manager = file_manager
         self.operations_manager = operations_manager
@@ -133,22 +138,22 @@ class MergePage(BasePageWidget):
             files_to_merge = self.file_list_frame.get_valid_files()
 
             if len(files_to_merge) < 2:
-                show_warning(self, tr("select_at_least_two_files_for_merge"))
+                self.notification_manager.show_warning(tr("select_at_least_two_files_for_merge"))
                 return
 
             # إشعار بدء عملية الدمج
-            show_info(self, f"{tr('merging_started')} ({len(files_to_merge)} ملف)", duration=3000)
+            self.notification_manager.show_info(f"{tr('merging_started')} ({len(files_to_merge)} ملف)", duration=3000)
 
             # تنفيذ عملية الدمج
             success = self.operations_manager.merge_files(self)
 
             if success:
-                show_success(self, f"{tr('merging_completed_successfully')} ({len(files_to_merge)} ملف)", duration=4000)
+                self.notification_manager.show_success(f"{tr('merging_completed_successfully')} ({len(files_to_merge)} ملف)", duration=4000)
             else:
-                show_error(self, tr("merging_failed"))
+                self.notification_manager.show_error(tr("merging_failed"))
 
         except Exception as e:
-            show_error(self, f"{tr('merging_error')}: {str(e)}")
+            self.notification_manager.show_error(f"{tr('merging_error')}: {str(e)}")
 
     def execute_print(self):
         """تنفيذ عملية الطباعة بعد تأكيد المستخدم."""
@@ -158,27 +163,27 @@ class MergePage(BasePageWidget):
 
             selected_files = self.file_list_frame.get_valid_files()
             if not selected_files:
-                show_warning(self, tr("select_one_file_message"))
+                self.notification_manager.show_warning(tr("select_one_file_message"))
                 return
 
             printer_name = self.printer_combo.currentText()
             if not printer_name:
-                show_warning(self, tr("select_printer_message"))
+                self.notification_manager.show_warning(tr("select_printer_message"))
                 return
 
             # إشعار بدء عملية الطباعة
-            show_info(self, f"{tr('printing_started')} ({len(selected_files)} ملف) - {printer_name}", duration=3000)
+            self.notification_manager.show_info(f"{tr('printing_started')} ({len(selected_files)} ملف) - {printer_name}", duration=3000)
 
             # تنفيذ عملية الطباعة
             success = self.operations_manager.print_files(selected_files, printer_name, self)
 
             if success:
-                show_success(self, f"{tr('printing_completed_successfully')} ({len(selected_files)} ملف)", duration=4000)
+                self.notification_manager.show_success(f"{tr('printing_completed_successfully')} ({len(selected_files)} ملف)", duration=4000)
             else:
-                show_error(self, tr("printing_failed"))
+                self.notification_manager.show_error(tr("printing_failed"))
 
         except Exception as e:
-            show_error(self, f"{tr('printing_error')}: {str(e)}")
+            self.notification_manager.show_error(f"{tr('printing_error')}: {str(e)}")
 
     def on_files_changed(self, files):
         """إظهار أو إخفاء العناصر بناءً على وجود الملفات."""

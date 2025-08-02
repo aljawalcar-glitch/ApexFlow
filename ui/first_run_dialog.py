@@ -121,7 +121,7 @@ class FirstRunDialog(QDialog):
 
     def show_welcome_notification(self):
         """إظهار رسالة ترحيب مفيدة"""
-        show_info(self, "مرحباً بك في ApexFlow! يمكنك تغيير هذه الإعدادات لاحقاً من قائمة الإعدادات", duration=4000)
+        show_info("مرحباً بك في ApexFlow! يمكنك تغيير هذه الإعدادات لاحقاً من قائمة الإعدادات", duration=4000)
 
     def on_start(self):
         """Handle the start button click."""
@@ -149,7 +149,7 @@ class FirstRunDialog(QDialog):
                 theme = "blue"  # افتراضي
 
             # إشعار بحفظ الإعدادات
-            show_success(self, "تم حفظ الإعدادات بنجاح! مرحباً بك في ApexFlow", duration=3000)
+            show_success("تم حفظ الإعدادات بنجاح! مرحباً بك في ApexFlow", duration=3000)
 
             # تأخير قصير قبل إرسال الإشارة للسماح بظهور الإشعار
             QTimer.singleShot(1000, lambda: self.emit_settings_and_close(language, theme))

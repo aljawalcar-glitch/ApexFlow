@@ -9,7 +9,6 @@ from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer
 import fitz  # PyMuPDF
 from .svg_icon_button import create_navigation_button, create_action_button
 from .theme_aware_widget import make_theme_aware
-from .notification_system import show_success, show_warning, show_error, show_info
 from PySide6.QtWidgets import QWidget
 from modules.translator import tr, register_language_change_callback
 
@@ -61,10 +60,11 @@ class InteractiveGraphicsView(QGraphicsView):
         super().mousePressEvent(event)
 
 class RotatePage(QWidget):
-    def __init__(self, file_path=None, parent=None):
+    def __init__(self, notification_manager, file_path=None, parent=None):
         super().__init__(parent)
         self.theme_handler = make_theme_aware(self, "rotate_page")
         
+        self.notification_manager = notification_manager
         self.file_path = file_path
         self.current_page = 0
         self.page_rotations = {}  # قاموس لتخزين زاوية دوران كل صفحة
@@ -360,7 +360,7 @@ class RotatePage(QWidget):
             # إعداد التحميل الكسول
             success = global_page_loader.set_pdf_file(file_path)
             if not success:
-                show_error(self, tr("pdf_open_error"))
+                self.notification_manager.show_error(tr("pdf_open_error"))
                 return
 
             # إعداد شريط التقدم (إذا لم يكن موجوداً)
@@ -407,11 +407,11 @@ class RotatePage(QWidget):
             self.save_btn.setEnabled(True)
 
             # إشعار بالتحسينات الجديدة
-            show_success(self, tr("pdf_load_success", count=len(self.pages)), duration=3000)
+            self.notification_manager.show_success(tr("pdf_load_success", count=len(self.pages)), duration=3000)
 
         except Exception as e:
             print(f"Error loading PDF: {e}")
-            show_error(self, tr("pdf_load_error", error=str(e)))
+            self.notification_manager.show_error(tr("pdf_load_error", error=str(e)))
 
     def on_page_loaded(self, page_number: int, pixmap: QPixmap):
         """معالج تحميل الصفحة من النظام الكسول"""
@@ -610,7 +610,7 @@ class RotatePage(QWidget):
     def save_file(self):
         """حفظ الملف المُدوَّر"""
         if not self.file_path or not self.pages:
-            show_warning(self, tr("no_file_to_save"))
+            self.notification_manager.show_warning(tr("no_file_to_save"))
             return
 
         # اختيار مكان الحفظ
@@ -643,7 +643,7 @@ class RotatePage(QWidget):
             has_stamps = any(len(stamps) > 0 for stamps in self.stamps.values())
 
             if not rotations_to_apply and not has_stamps:
-                show_info(self, tr("no_changes_to_save"))
+                self.notification_manager.show_info(tr("no_changes_to_save"))
                 return
 
             # طباعة معلومات التصحيح
@@ -673,12 +673,12 @@ class RotatePage(QWidget):
 
                 message = tr("save_success_summary", path=save_path, rotated_count=len(rotations_to_apply), stamp_count=stamp_summary['total_stamps'], page_count=stamp_summary['total_pages_with_stamps'])
                 
-                show_success(self, message, duration=5000)
+                self.notification_manager.show_success(message, duration=5000)
             else:
-                show_error(self, tr("save_failed"))
+                self.notification_manager.show_error(tr("save_failed"))
 
         except Exception as e:
-            show_error(self, tr("save_error", error=str(e)))
+            self.notification_manager.show_error(tr("save_error", error=str(e)))
 
     def open_stamp_manager(self):
         """فتح نافذة إدارة الأختام"""
@@ -693,12 +693,12 @@ class RotatePage(QWidget):
             print(f"Error opening stamp manager: {e}")
             import traceback
             traceback.print_exc()
-            show_error(self, tr("stamp_manager_error", error=str(e)))
+            self.notification_manager.show_error(tr("stamp_manager_error", error=str(e)))
 
     def start_stamp_placement(self, stamp_path):
         """بدء وضع الختم التفاعلي"""
         if not self.pages:
-            show_warning(self, tr("load_pdf_first"))
+            self.notification_manager.show_warning(tr("load_pdf_first"))
             return
 
         self.current_stamp_path = stamp_path
@@ -717,7 +717,7 @@ class RotatePage(QWidget):
         self.view.setDragMode(QGraphicsView.DragMode.NoDrag)  # تعطيل السحب أثناء وضع الختم
 
         # إظهار إشعار توجيهي
-        show_info(self, tr("stamp_placement_guide"), duration=5000)
+        self.notification_manager.show_info(tr("stamp_placement_guide"), duration=5000)
 
 
 

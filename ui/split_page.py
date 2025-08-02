@@ -10,7 +10,6 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from .theme_manager import apply_theme_style
 from .svg_icon_button import create_action_button
-from .notification_system import show_success, show_warning, show_error, show_info
 from modules.translator import tr
 import os
 
@@ -18,12 +17,18 @@ class SplitPage(BasePageWidget):
     """
     واجهة المستخدم الخاصة بوظيفة تقسيم ملفات PDF.
     """
-    def __init__(self, file_manager, operations_manager, parent=None):
+    def __init__(self, file_manager, operations_manager, notification_manager, parent=None):
         """
         :param file_manager: مدير الملفات لاختيار الملف.
         :param operations_manager: مدير العمليات لتنفيذ التقسيم.
+        :param notification_manager: مدير الإشعارات المركزي.
         """
-        super().__init__(page_title=tr("split_page_title"), theme_key="split_page", parent=parent)
+        super().__init__(
+            page_title=tr("split_page_title"),
+            theme_key="split_page",
+            notification_manager=notification_manager,
+            parent=parent
+        )
 
         self.file_manager = file_manager
         self.operations_manager = operations_manager
@@ -124,13 +129,13 @@ class SplitPage(BasePageWidget):
 
                 # إشعار بنجاح تحديد الملف
                 file_name = os.path.basename(file)
-                show_info(self, f"{tr('file_selected_for_splitting')}: {file_name}", duration=3000)
+                self.notification_manager.show_info(f"{tr('file_selected_for_splitting')}: {file_name}", duration=3000)
 
             elif file:
-                show_error(self, f"{tr('file_not_found')}: {file}")
+                self.notification_manager.show_error(f"{tr('file_not_found')}: {file}")
 
         except Exception as e:
-            show_error(self, f"{tr('error_selecting_file')}: {str(e)}")
+            self.notification_manager.show_error(f"{tr('error_selecting_file')}: {str(e)}")
 
     def create_auto_save_path(self, file_path):
         """إنشاء مسار الحفظ التلقائي في سطح المكتب"""
@@ -199,32 +204,32 @@ class SplitPage(BasePageWidget):
         try:
             # التحقق من وجود ملف للتقسيم
             if not hasattr(self, 'current_file_path') or not self.current_file_path:
-                show_warning(self, tr("no_file_selected_for_splitting"))
+                self.notification_manager.show_warning(tr("no_file_selected_for_splitting"))
                 return
 
             if not os.path.exists(self.current_file_path):
-                show_error(self, tr("selected_file_not_found"))
+                self.notification_manager.show_error(tr("selected_file_not_found"))
                 return
 
             # التحقق من مسار الحفظ
             if not hasattr(self, 'auto_save_path') or not self.auto_save_path:
-                show_warning(self, tr("no_save_path_specified"))
+                self.notification_manager.show_warning(tr("no_save_path_specified"))
                 return
 
             # إشعار بدء عملية التقسيم
             file_name = os.path.basename(self.current_file_path)
-            show_info(self, f"{tr('splitting_started')}: {file_name}", duration=3000)
+            self.notification_manager.show_info(f"{tr('splitting_started')}: {file_name}", duration=3000)
 
             # تنفيذ عملية التقسيم
             success = self.operations_manager.split_file(self)
 
             if success:
-                show_success(self, f"{tr('splitting_completed_successfully')}: {file_name}", duration=4000)
+                self.notification_manager.show_success(f"{tr('splitting_completed_successfully')}: {file_name}", duration=4000)
             else:
-                show_error(self, tr("splitting_failed"))
+                self.notification_manager.show_error(tr("splitting_failed"))
 
         except Exception as e:
-            show_error(self, f"{tr('splitting_error')}: {str(e)}")
+            self.notification_manager.show_error(f"{tr('splitting_error')}: {str(e)}")
 
     def on_files_changed(self, files):
         """

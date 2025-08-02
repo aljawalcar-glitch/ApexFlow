@@ -11,7 +11,6 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from .theme_manager import apply_theme_style, make_theme_aware
 from .svg_icon_button import create_action_button
-from .notification_system import show_success, show_warning, show_error, show_info
 from modules.translator import tr
 import os
 
@@ -19,8 +18,13 @@ class CompressPage(BasePageWidget):
     """
     واجهة المستخدم الخاصة بوظيفة ضغط ملفات PDF.
     """
-    def __init__(self, file_manager, operations_manager, parent=None):
-        super().__init__(page_title=tr("compress_page_title"), theme_key="compress_page", parent=parent)
+    def __init__(self, file_manager, operations_manager, notification_manager, parent=None):
+        super().__init__(
+            page_title=tr("compress_page_title"),
+            theme_key="compress_page",
+            notification_manager=notification_manager,
+            parent=parent
+        )
 
         self.file_manager = file_manager
         self.operations_manager = operations_manager
@@ -245,7 +249,7 @@ class CompressPage(BasePageWidget):
                 self.batch_save_label.setText(f"{tr('path_prefix')} {new_folder}")
 
                 # إشعار بنجاح تحديد الملفات للضغط المجمع
-                show_info(self, f"{tr('files_selected_for_batch_compression')} ({len(files)} ملف)", duration=3000)
+                self.notification_manager.show_info(f"{tr('files_selected_for_batch_compression')} ({len(files)} ملف)", duration=3000)
 
             else:
                 self.current_file_path = self.selected_files[0]
@@ -254,12 +258,12 @@ class CompressPage(BasePageWidget):
 
                 # إشعار بنجاح تحديد الملف
                 file_name = os.path.basename(self.current_file_path)
-                show_info(self, f"{tr('file_selected_for_compression')}: {file_name}", duration=3000)
+                self.notification_manager.show_info(f"{tr('file_selected_for_compression')}: {file_name}", duration=3000)
 
             self.on_files_changed(self.selected_files)
 
         except Exception as e:
-            show_error(self, f"{tr('error_selecting_files')}: {str(e)}")
+            self.notification_manager.show_error(f"{tr('error_selecting_files')}: {str(e)}")
 
     def on_files_changed(self, files):
         if not files:
@@ -324,11 +328,11 @@ class CompressPage(BasePageWidget):
             if self.batch_mode_checkbox.isChecked():
                 files = self.selected_files
                 if not files:
-                    show_warning(self, tr("no_files_selected_for_compression"))
+                    self.notification_manager.show_warning(tr("no_files_selected_for_compression"))
                     return
             else:
                 if not self.current_file_path or not os.path.exists(self.current_file_path):
-                    show_warning(self, tr("no_file_selected_for_compression"))
+                    self.notification_manager.show_warning(tr("no_file_selected_for_compression"))
                     return
                 files = [self.current_file_path]
 
@@ -344,11 +348,11 @@ class CompressPage(BasePageWidget):
                     save_path = self.save_location_label.text().replace(f"{tr('path_prefix')} ", "")
 
             if not save_path or not os.path.exists(os.path.dirname(save_path)):
-                show_warning(self, tr("invalid_save_path"))
+                self.notification_manager.show_warning(tr("invalid_save_path"))
                 return
 
             # إشعار بدء العملية
-            show_info(self, tr("compression_started"), duration=2000)
+            self.notification_manager.show_info(tr("compression_started"), duration=2000)
 
             # تنفيذ عملية الضغط
             compression_level = self.compression_slider.value()
@@ -359,14 +363,14 @@ class CompressPage(BasePageWidget):
 
                 if success:
                     file_count = len(files)
-                    show_success(self, f"{tr('compression_completed_successfully')} ({file_count} ملف)", duration=4000)
+                    self.notification_manager.show_success(f"{tr('compression_completed_successfully')} ({file_count} ملف)", duration=4000)
                     # إعادة تعيين الواجهة بعد النجاح
                     self.clear_files()
                 else:
-                    show_error(self, tr("compression_failed"))
+                    self.notification_manager.show_error(tr("compression_failed"))
             else:
                 # في حالة عدم توفر دالة الضغط في مدير العمليات
-                show_warning(self, tr("compression_feature_not_available"))
+                self.notification_manager.show_warning(tr("compression_feature_not_available"))
 
         except Exception as e:
-            show_error(self, f"{tr('compression_error')}: {str(e)}")
+            self.notification_manager.show_error(f"{tr('compression_error')}: {str(e)}")

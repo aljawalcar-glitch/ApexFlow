@@ -14,13 +14,16 @@ class BasePageWidget(QWidget):
     فئة أساسية لصفحات الوظائف لتقليل تكرار الكود.
     تحتوي على العناصر المشتركة مثل العنوان، إطار قائمة الملفات، وتخطيط الأزرار.
     """
-    def __init__(self, page_title, theme_key, parent=None):
+    def __init__(self, page_title, theme_key, notification_manager, parent=None):
         """
         :param page_title: عنوان الصفحة الذي سيظهر في الأعلى.
         :param theme_key: مفتاح السمة الخاص بالصفحة (e.g., "merge_page").
+        :param notification_manager: مدير الإشعارات المركزي.
         :param parent: الويدجت الأب.
         """
         super().__init__(parent)
+        
+        self.notification_manager = notification_manager
         
         # جعل الويدجت متجاوبًا مع السمات
         self.theme_handler = make_theme_aware(self, theme_key)

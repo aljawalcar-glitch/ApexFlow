@@ -13,9 +13,14 @@ class ConvertPage(BasePageWidget):
     """
     واجهة المستخدم الخاصة بوظائف التحويل المختلفة.
     """
-    def __init__(self, file_manager, operations_manager, parent=None):
+    def __init__(self, file_manager, operations_manager, notification_manager, parent=None):
         # استدعاء المُنشئ الأصلي بدون عنوان مبدئيًا
-        super().__init__(page_title="", theme_key="convert_page", parent=parent)
+        super().__init__(
+            page_title="",
+            theme_key="convert_page",
+            notification_manager=notification_manager,
+            parent=parent
+        )
         
         self.file_manager = file_manager
         self.operations_manager = operations_manager
@@ -195,7 +200,7 @@ class ConvertPage(BasePageWidget):
     def create_path_and_execute_section(self, parent_layout):
         """إنشاء قسم المسار وزر التنفيذ مع فريمات منفصلة"""
         from PySide6.QtWidgets import QLabel, QHBoxLayout, QGroupBox, QVBoxLayout
-        from .svg_icon_button import create_action_button
+        from .svg_icon_button import SVGIconButton, create_action_button
         from .theme_manager import make_theme_aware
 
         # تخطيط أفقي للفريمين
@@ -204,13 +209,18 @@ class ConvertPage(BasePageWidget):
         # فريم المسار
         self.save_path_frame = QGroupBox(tr("save_path_frame_title"))
         make_theme_aware(self.save_path_frame, "group_box")
-        path_layout = QVBoxLayout(self.save_path_frame)
+        path_layout = QHBoxLayout(self.save_path_frame) # تغيير إلى أفقي
 
         self.save_path_label = QLabel(tr("path_not_selected"))
         self.save_path_label.setWordWrap(True)
-        self.save_path_label.setMinimumHeight(30)
         make_theme_aware(self.save_path_label, "label")
-        path_layout.addWidget(self.save_path_label)
+        
+        self.change_path_btn = SVGIconButton(icon_name="folder-open", size=22, tooltip=tr("change_save_path_tooltip"))
+        self.change_path_btn.clicked.connect(self.change_save_path)
+
+        path_layout.addWidget(self.save_path_label, 1) # إعطاء مساحة أكبر للمسار
+        path_layout.addWidget(self.change_path_btn)
+
 
         # فريم التنفيذ
         self.execute_frame = QGroupBox(tr("execute_frame_title"))
@@ -276,6 +286,9 @@ class ConvertPage(BasePageWidget):
 
     def on_tab_selected(self):
         sender = self.sender()
+        if not sender:
+            return
+        
         if not sender.isChecked():
             sender.setChecked(True)
             return
@@ -314,7 +327,10 @@ class ConvertPage(BasePageWidget):
         self.update_slider_position()
 
     def select_files(self):
-        if not self.active_operation: return
+        if not self.active_operation: 
+            self.notification_manager.show_notification(tr("select_conversion_operation_first"), "warning", 3000)
+            return
+
         file_filters = {
             "pdf_to_images": tr("pdf_files_filter"),
             "images_to_pdf": tr("image_files_filter"),
@@ -324,12 +340,16 @@ class ConvertPage(BasePageWidget):
         multiple = self.active_operation == "images_to_pdf"
         title = self.convert_options.get(self.active_operation, "")
         files = self.file_manager.select_file(title, file_filters.get(self.active_operation, tr("all_files_filter")), multiple=multiple)
-        if not files: return
+        if not files: 
+            self.notification_manager.show_notification(tr("no_files_selected"), "info", 2000)
+            return
         if not isinstance(files, list): files = [files]
         self.on_files_added(files)
 
     def on_files_added(self, files):
         self.file_list_frame.add_files(files)
+        # إشعار نجاح إضافة الملفات
+        self.notification_manager.show_notification(tr("files_added_successfully", count=len(files)), "success", 2500)
         # تحديث المسار عند إضافة ملفات
         if files:
             self.update_save_path(files[0])
@@ -343,6 +363,7 @@ class ConvertPage(BasePageWidget):
 
         # تحديد امتداد الملف الناتج حسب العملية
         if self.active_operation == "pdf_to_images":
+            # بالنسبة للصور، نقترح مجلدًا للحفظ
             save_path = os.path.join(base_dir, f"{name}_صور")
         elif self.active_operation == "images_to_pdf":
             save_path = os.path.join(base_dir, f"{name}_محول.pdf")
@@ -353,35 +374,80 @@ class ConvertPage(BasePageWidget):
         else:
             save_path = os.path.join(base_dir, f"{name}_محول")
 
-        self.save_path_label.setText(f"{tr('save_path_prefix')} {save_path}")
+        self.current_save_path = save_path
+        self.save_path_label.setText(f"{tr('save_path_prefix')} {self.current_save_path}")
+        self.save_path_label.setToolTip(self.current_save_path)
+
+    def change_save_path(self):
+        """فتح نافذة لتغيير مسار الحفظ."""
+        import os
+        # تحديد نوع الحفظ: ملف أم مجلد
+        is_saving_directory = self.active_operation == "pdf_to_images"
+        
+        # اقتراح اسم الملف/المجلد بناءً على المسار الحالي
+        current_path = os.path.dirname(self.current_save_path)
+        suggested_name = os.path.basename(self.current_save_path)
+
+        if is_saving_directory:
+            new_path = self.file_manager.select_directory(tr("select_save_directory"))
+            if new_path:
+                # إذا كانت العملية تحويل إلى صور، فالمسار هو مجلد
+                self.current_save_path = new_path
+        else:
+            # العمليات الأخرى تحفظ كملف واحد
+            file_filter = "PDF (*.pdf)" if self.active_operation.endswith("_pdf") else "Text (*.txt)"
+            new_path = self.file_manager.select_save_location(tr("select_save_path"), suggested_name, file_filter)
+            if new_path:
+                self.current_save_path = new_path
+
+        if new_path:
+            self.save_path_label.setText(f"{tr('save_path_prefix')} {self.current_save_path}")
+            self.save_path_label.setToolTip(self.current_save_path)
+
 
     def execute_conversion(self):
         """تنفيذ عملية التحويل"""
-        from .notification_system import show_info, show_success, show_error, show_warning
-
         try:
             files = self.file_list_frame.get_valid_files()
             if not files:
-                show_warning(self, tr("no_files_for_conversion"))
+                self.notification_manager.show_notification(tr("no_files_for_conversion"), "warning")
                 return
 
             if not self.active_operation:
-                show_warning(self, tr("no_conversion_operation_selected"))
+                self.notification_manager.show_notification(tr("no_conversion_operation_selected"), "warning")
                 return
 
-            # الحصول على مسار الحفظ
-            save_path = self.save_path_label.text().replace("مسار الحفظ: ", "")
+            # الحصول على مسار الحفظ من المتغير المخصص
+            if not hasattr(self, 'current_save_path') or not self.current_save_path:
+                self.notification_manager.show_notification(tr("save_path_not_set"), "error")
+                return
+            save_path = self.current_save_path
 
-            show_info(self, f"{tr('converting_files_notification')} ({len(files)} ملف)", duration=2000)
+            self.notification_manager.show_notification(tr('converting_files_notification_count', count=len(files)), "info", 2000)
 
-            # هنا يمكن إضافة منطق التحويل الفعلي لاحقاً
-            # success = self.operations_manager.convert_files(files, save_path, self.active_operation)
+            # تحديد الدالة المناسبة بناءً على العملية النشطة
+            conversion_functions = {
+                "pdf_to_images": self.operations_manager.pdf_to_images,
+                "images_to_pdf": self.operations_manager.images_to_pdf,
+                "pdf_to_text": self.operations_manager.pdf_to_text,
+                "text_to_pdf": self.operations_manager.text_to_pdf,
+            }
 
-            # للاختبار - نفترض النجاح
-            show_success(self, f"{tr('conversion_completed_notification')} ({len(files)} ملف)", duration=3000)
+            # استدعاء دالة التحويل الفعلية
+            convert_function = conversion_functions.get(self.active_operation)
+            if convert_function:
+                success = convert_function(files, save_path)
+                if success:
+                    self.notification_manager.show_notification(tr('conversion_completed_notification_count', count=len(files)), "success", 3000)
+                    # عند النجاح، قم بإعادة تعيين الواجهة
+                    self.reset_ui()
+                else:
+                    self.notification_manager.show_notification(tr('conversion_error_occurred'), "error")
+            else:
+                self.notification_manager.show_notification(tr("invalid_operation_error"), "error")
 
         except Exception as e:
-            show_error(self, f"{tr('conversion_error_occurred')}: {str(e)}")
+            self.notification_manager.show_notification(f"{tr('conversion_error_occurred')}: {str(e)}", "error")
 
 
 

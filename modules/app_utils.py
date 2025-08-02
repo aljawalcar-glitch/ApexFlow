@@ -541,7 +541,6 @@ class OperationsManager:
             
             success = self.convert_module.pdf_to_images(files[0], output_dir)
             if success:
-                self.message_manager.show_success("تم تحويل PDF إلى صور بنجاح!")
                 return True
             else:
                 self.message_manager.show_error("فشل في تحويل PDF إلى صور.")
@@ -559,7 +558,6 @@ class OperationsManager:
 
             success = self.convert_module.images_to_pdf(files, output_path)
             if success:
-                self.message_manager.show_success("تم تحويل الصور إلى PDF بنجاح!")
                 return True
             else:
                 self.message_manager.show_error("فشل في تحويل الصور إلى PDF.")
@@ -577,7 +575,6 @@ class OperationsManager:
 
             success = self.convert_module.pdf_to_text(files[0], output_path)
             if success:
-                self.message_manager.show_success("تم استخراج النص من PDF بنجاح!")
                 return True
             else:
                 self.message_manager.show_error("فشل في استخراج النص من PDF.")
@@ -595,7 +592,6 @@ class OperationsManager:
 
             success = self.convert_module.text_to_pdf(files[0], output_path, 12)
             if success:
-                self.message_manager.show_success("تم تحويل النص إلى PDF بنجاح!")
                 return True
             else:
                 self.message_manager.show_error("فشل في تحويل النص إلى PDF.")

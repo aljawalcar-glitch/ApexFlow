@@ -138,6 +138,12 @@ DEFAULT_SETTINGS = {
         "open_file": "Ctrl+O",
         "quit_app": "Ctrl+Q",
         "new_project": "Ctrl+N"
+    },
+    "notification_settings": {
+        "success": True,
+        "warning": True,
+        "error": True,
+        "info": True
     }
 }
 
@@ -428,6 +434,16 @@ def validate_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
         keyboard_shortcuts = validated.get("keyboard_shortcuts", {})
         if not isinstance(keyboard_shortcuts, dict):
             validated["keyboard_shortcuts"] = DEFAULT_SETTINGS["keyboard_shortcuts"].copy()
+
+        # التحقق من إعدادات الإشعارات
+        notification_settings = validated.get("notification_settings", {})
+        if not isinstance(notification_settings, dict):
+            validated["notification_settings"] = DEFAULT_SETTINGS["notification_settings"].copy()
+        else:
+            default_notif = DEFAULT_SETTINGS["notification_settings"]
+            for key in ["success", "warning", "error", "info"]:
+                if key not in notification_settings or not isinstance(notification_settings[key], bool):
+                    notification_settings[key] = default_notif[key]
 
         return validated
         

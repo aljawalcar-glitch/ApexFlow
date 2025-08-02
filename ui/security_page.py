@@ -11,15 +11,18 @@ from PySide6.QtGui import QIcon
 from .base_page import BasePageWidget as BasePage
 from .ui_helpers import create_section_label, create_info_label, create_button
 from .global_styles import get_scroll_style
-from .notification_system import show_success, show_warning, show_error, show_info
 from modules.logger import info, error
 from modules.app_utils import get_icon_path
 from modules.translator import tr
 import os
 
 class SecurityPage(BasePage):
-    def __init__(self, file_manager, operations_manager):
-        super().__init__(page_title=tr("security_page_title"), theme_key="security_page")
+    def __init__(self, file_manager, operations_manager, notification_manager):
+        super().__init__(
+            page_title=tr("security_page_title"),
+            theme_key="security_page",
+            notification_manager=notification_manager
+        )
         self.file_manager = file_manager
         self.operations_manager = operations_manager
         self.source_file = None
@@ -221,10 +224,10 @@ class SecurityPage(BasePage):
                 self.update_ui_state()
 
                 # إشعار بنجاح تحديد الملف
-                show_info(self, f"{tr('file_selected_successfully')}: {file_name}", duration=3000)
+                self.notification_manager.show_info(f"{tr('file_selected_successfully')}: {file_name}", duration=3000)
 
         except Exception as e:
-            show_error(self, f"{tr('error_selecting_file')}: {str(e)}")
+            self.notification_manager.show_error(f"{tr('error_selecting_file')}: {str(e)}")
 
     def save_file_with_selected_action(self):
         """تنفيذ الإجراء المختار وحفظ الملف"""
@@ -321,13 +324,13 @@ class SecurityPage(BasePage):
                 self.subject_input.setText(properties.get('/Subject', ''))
                 self.keywords_input.setText(properties.get('/Keywords', ''))
                 info("تم تحميل الخصائص بنجاح.")
-                show_info(self, tr("pdf_properties_loaded_successfully"), duration=2000)
+                self.notification_manager.show_info(tr("pdf_properties_loaded_successfully"), duration=2000)
             else:
                 self.clear_properties_fields()
-                show_warning(self, tr("no_properties_found_in_pdf"))
+                self.notification_manager.show_warning(tr("no_properties_found_in_pdf"))
         except Exception as e:
             error(f"فشل في تحميل خصائص PDF: {e}")
-            show_error(self, f"{tr('pdf_properties_update_error')}: {str(e)}")
+            self.notification_manager.show_error(f"{tr('pdf_properties_update_error')}: {str(e)}")
             self.clear_properties_fields()
 
     def clear_properties_fields(self):
@@ -425,7 +428,7 @@ class SecurityPage(BasePage):
         """تحديث خصائص ملف PDF"""
         try:
             if not self.source_file:
-                show_warning(self, tr("no_file_selected_for_properties_update"))
+                self.notification_manager.show_warning(tr("no_file_selected_for_properties_update"))
                 return
 
             output_path = self.get_save_path(tr("properties_updated_suffix"))
@@ -440,15 +443,15 @@ class SecurityPage(BasePage):
             }
 
             # إشعار بدء العملية
-            show_info(self, tr("updating_pdf_properties"), duration=2000)
+            self.notification_manager.show_info(tr("updating_pdf_properties"), duration=2000)
 
             info(f"بدء عملية تحديث الخصائص للملف: {self.source_file}")
             success = self.operations_manager.update_pdf_properties(self.source_file, output_path, properties)
 
             if success:
-                show_success(self, tr("pdf_properties_updated_successfully"), duration=4000)
+                self.notification_manager.show_success(tr("pdf_properties_updated_successfully"), duration=4000)
             else:
-                show_error(self, tr("pdf_properties_update_failed"))
+                self.notification_manager.show_error(tr("pdf_properties_update_failed"))
 
         except Exception as e:
-            show_error(self, f"{tr('pdf_properties_update_error')}: {str(e)}")
+            self.notification_manager.show_error(f"{tr('pdf_properties_update_error')}: {str(e)}")

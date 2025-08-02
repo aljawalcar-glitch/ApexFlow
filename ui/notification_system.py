@@ -1,325 +1,377 @@
 # -*- coding: utf-8 -*-
 """
-نظام الإشعارات الشفافة
-Transparent Notification System
+نظام الإشعارات المدمج الجديد
+New Integrated Notification System
 """
-
-from PySide6.QtWidgets import QWidget, QLabel, QHBoxLayout, QGraphicsOpacityEffect, QApplication
-from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, QRect, Signal
-from PySide6.QtGui import QPainter, QColor, QFont, QPixmap, QPainterPath
+from PySide6.QtWidgets import (QWidget, QLabel, QHBoxLayout, QVBoxLayout, QPushButton, 
+                               QFrame, QStackedWidget, QListWidget, QListWidgetItem,
+                               QDialog, QDialogButtonBox, QApplication, QCheckBox)
+from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, QRect, Signal, QSize
+from PySide6.QtGui import QIcon, QColor, QPainter, QPainterPath
 import os
+from modules.logger import debug
+from modules.translator import tr
+from .theme_manager import apply_theme, global_theme_manager
+from modules.settings import get_setting, set_setting
 
-class NotificationWidget(QWidget):
-    """ويدجت الإشعار الشفاف"""
-    
-    # إشارة انتهاء الإشعار
-    finished = Signal()
-    
-    def __init__(self, message, notification_type="info", parent=None):
+# --- 1. Notification Bar (The "Toast") ---
+
+class NotificationBar(QFrame):
+    """
+    شريط إشعار يظهر في الجزء السفلي من النافذة الرئيسية.
+    A notification bar that appears at the bottom of the main window.
+    """
+    closed = Signal()
+
+    def __init__(self, parent=None):
         super().__init__(parent)
-        
-        self.message = message
-        self.notification_type = notification_type
         self.parent_widget = parent
+        self.setObjectName("NotificationBar")
+        self.setFixedHeight(0) # Start hidden
+        self.setFrameShape(QFrame.NoFrame)
         
-        # إعداد النافذة
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setFixedHeight(60)
-        
-        # إعداد الواجهة
-        self.setup_ui()
-        
-        # إعداد الرسوم المتحركة
-        self.setup_animations()
-        
-        # مؤقت الإخفاء التلقائي
-        self.hide_timer = QTimer()
-        self.hide_timer.timeout.connect(self.hide_notification)
-        
-    def setup_ui(self):
-        """إعداد واجهة الإشعار"""
+        # Main layout
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(15, 10, 15, 10)
+        layout.setContentsMargins(15, 5, 15, 5)
         layout.setSpacing(10)
-        
-        # أيقونة نوع الإشعار
+
+        # Icon
         self.icon_label = QLabel()
         self.icon_label.setFixedSize(24, 24)
-        self.icon_label.setAlignment(Qt.AlignCenter)
-        
-        # تحديد الأيقونة حسب النوع
-        icon_text = self.get_icon_for_type()
-        self.icon_label.setText(icon_text)
-        self.icon_label.setStyleSheet(f"""
-            font-size: 16px;
-            color: {self.get_color_for_type()};
-            background: transparent;
-            border: none;
-        """)
-        
-        # نص الرسالة
-        self.message_label = QLabel(self.message)
-        self.message_label.setStyleSheet(f"""
-            color: white;
-            font-size: 13px;
-            font-weight: 500;
-            background: transparent;
-            border: none;
-        """)
-        self.message_label.setWordWrap(True)
-        
         layout.addWidget(self.icon_label)
-        layout.addWidget(self.message_label, 1)
-        
-    def get_icon_for_type(self):
-        """الحصول على أيقونة حسب نوع الإشعار"""
-        icons = {
-            "success": "✓",
-            "warning": "⚠",
-            "error": "✗",
-            "info": "ℹ"
-        }
-        return icons.get(self.notification_type, "ℹ")
-    
-    def get_color_for_type(self):
-        """الحصول على لون حسب نوع الإشعار"""
-        colors = {
-            "success": "#4ade80",  # أخضر
-            "warning": "#fbbf24",  # أصفر
-            "error": "#f87171",    # أحمر
-            "info": "#60a5fa"      # أزرق
-        }
-        return colors.get(self.notification_type, "#60a5fa")
-    
-    def get_background_color_for_type(self):
-        """الحصول على لون الخلفية حسب نوع الإشعار"""
-        colors = {
-            "success": "rgba(34, 197, 94, 0.9)",   # أخضر شفاف
-            "warning": "rgba(245, 158, 11, 0.9)",  # أصفر شفاف
-            "error": "rgba(239, 68, 68, 0.9)",     # أحمر شفاف
-            "info": "rgba(59, 130, 246, 0.9)"      # أزرق شفاف
-        }
-        return colors.get(self.notification_type, "rgba(59, 130, 246, 0.9)")
-    
-    def setup_animations(self):
-        """إعداد الرسوم المتحركة"""
-        # رسم متحرك للظهور
-        self.show_animation = QPropertyAnimation(self, b"geometry")
-        self.show_animation.setDuration(300)
-        self.show_animation.setEasingCurve(QEasingCurve.OutCubic)
-        
-        # رسم متحرك للإخفاء
-        self.hide_animation = QPropertyAnimation(self, b"geometry")
-        self.hide_animation.setDuration(250)
-        self.hide_animation.setEasingCurve(QEasingCurve.InCubic)
-        self.hide_animation.finished.connect(self.on_hide_finished)
-        
-        # رسم متحرك للشفافية
-        self.opacity_effect = QGraphicsOpacityEffect()
-        self.setGraphicsEffect(self.opacity_effect)
-        
-        self.fade_animation = QPropertyAnimation(self.opacity_effect, b"opacity")
-        self.fade_animation.setDuration(250)
-    
-    def paintEvent(self, event):
-        """رسم الخلفية الشفافة"""
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        
-        # رسم الخلفية المدورة الشفافة
-        rect = self.rect()
-        path = QPainterPath()
-        path.addRoundedRect(rect, 8, 8)
-        
-        # لون الخلفية حسب نوع الإشعار
-        bg_color = QColor(self.get_background_color_for_type())
-        painter.fillPath(path, bg_color)
-        
-        # إطار رفيع
-        painter.setPen(QColor(self.get_color_for_type()))
-        painter.drawPath(path)
-    
-    def show_notification(self, duration=4000):
-        """عرض الإشعار"""
-        if not self.parent_widget:
-            return
-            
-        # الحصول على حجم الشاشة
-        screen = QApplication.primaryScreen().geometry()
-        
-        # حساب الموضع (عكس اتجاه البنل)
-        notification_width = min(400, screen.width() - 40)
-        self.setFixedWidth(notification_width)
-        
-        # الحصول على اتجاه اللغة
-        try:
-            from modules.settings import load_settings
-            settings = load_settings()
-            language = settings.get("language", "ar")
-        except:
-            # في حالة فشل تحميل الإعدادات، استخدام العربية كلغة افتراضية
-            language = "ar"
-        
-        # تحديد الموضع بناءً على اتجاه اللغة
-        if language == "ar":
-            # للغة العربية: الإشعارات في الزاوية العلوية اليسرى
-            start_x = -notification_width  # خارج الشاشة من اليسار
-            end_x = 20  # هامش من اليسار
-        else:
-            # للغات الأخرى: الإشعارات في الزاوية العلوية اليمنى
-            start_x = screen.width()  # خارج الشاشة من اليمين
-            end_x = screen.width() - notification_width - 20  # هامش من اليمين
-        
-        start_y = screen.y() - self.height()  # خارج الشاشة من الأعلى
-        end_y = screen.y() + 20  # هامش من الأعلى
-        
-        # تم حساب end_y سابقاً بناءً على اتجاه اللغة
-        
-        # تعيين الموضع الابتدائي
-        self.setGeometry(start_x, start_y, notification_width, self.height())
-        
-        # إعداد الرسم المتحرك للظهور
-        self.show_animation.setStartValue(QRect(start_x, start_y, notification_width, self.height()))
-        self.show_animation.setEndValue(QRect(end_x, end_y, notification_width, self.height()))
-        
-        # عرض النافذة وبدء الرسم المتحرك
-        self.show()
-        self.show_animation.start()
-        
-        # بدء مؤقت الإخفاء
-        self.hide_timer.start(duration)
-    
-    def hide_notification(self):
-        """إخفاء الإشعار"""
-        if not self.isVisible():
-            return
-            
-        # إيقاف مؤقت الإخفاء
-        self.hide_timer.stop()
-        
-        # حساب الموضع للإخفاء
-        current_rect = self.geometry()
-        
-        # تحديد اتجاه الإخفاء بناءً على اللغة
-        try:
-            from modules.settings import load_settings
-            settings = load_settings()
-            language = settings.get("language", "ar")
-        except:
-            language = "ar"
-            
-        if language == "ar":
-            # للغة العربية: الإخفاء لليسار
-            hide_x = -current_rect.width() - 10
-        else:
-            # للغات الأخرى: الإخفاء لليمين
-            hide_x = QApplication.primaryScreen().geometry().width() + 10
-            
-        hide_y = current_rect.y()
-        
-        # إعداد الرسم المتحرك للإخفاء
-        self.hide_animation.setStartValue(current_rect)
-        self.hide_animation.setEndValue(QRect(hide_x, hide_y, current_rect.width(), current_rect.height()))
-        
-        # بدء الرسم المتحرك
-        self.hide_animation.start()
-    
-    def on_hide_finished(self):
-        """عند انتهاء رسم الإخفاء"""
-        self.hide()
-        self.finished.emit()
-        self.deleteLater()
-    
-    def mousePressEvent(self, event):
-        """إخفاء الإشعار عند النقر عليه"""
-        if event.button() == Qt.LeftButton:
-            self.hide_notification()
 
+        # Message
+        self.message_label = QLabel()
+        apply_theme(self.message_label, "notification_text")
+        self.message_label.setStyleSheet("background-color: transparent; border: none;")
+        layout.addWidget(self.message_label, 1)
+
+        # History Button
+        self.history_button = QPushButton()
+        apply_theme(self.history_button, "notification_history_button")
+        self.history_button.setFixedSize(28, 28)
+        self.history_button.setIconSize(QSize(18, 18))
+        self.history_button.setToolTip(tr("notification_history_tooltip"))
+        layout.addWidget(self.history_button)
+
+        # Close Button
+        self.close_button = QPushButton("✕")
+        apply_theme(self.close_button, "notification_close_button")
+        self.close_button.setFixedSize(28, 28)
+        self.close_button.clicked.connect(self.hide_notification)
+        layout.addWidget(self.close_button)
+
+        # Animation
+        self.animation = QPropertyAnimation(self, b"maximumHeight")
+        self.animation.setDuration(250)
+        self.animation.setEasingCurve(QEasingCurve.InOutQuad)
+
+        # Hide timer
+        self.hide_timer = QTimer(self)
+        self.hide_timer.setSingleShot(True)
+        self.hide_timer.timeout.connect(self.hide_notification)
+
+    def show_message(self, message, notification_type="info", duration=5000):
+        """Displays a notification message using the current theme."""
+        theme_colors = global_theme_manager.get_current_colors()
+        
+        # Base background from theme, with transparency
+        bg_color = QColor(theme_colors.get("frame_bg", "#2D3748"))
+        bg_color.setAlpha(210) # ~82% opacity for a glassy effect
+        
+        # Icon and border colors
+        type_styles = {
+            "success": ("✓", theme_colors.get("success", "#4ade80")),
+            "warning": ("⚠", theme_colors.get("warning", "#fbbf24")),
+            "error": ("✗", theme_colors.get("error", "#f87171")),
+            "info": ("ℹ", theme_colors.get("accent", "#60a5fa"))
+        }
+        icon_text, border_color = type_styles.get(notification_type, type_styles["info"])
+
+        # Apply styles
+        self.setStyleSheet(f"""
+            #NotificationBar {{
+                background-color: {bg_color.name(QColor.NameFormat.HexArgb)};
+                border-radius: 6px;
+                margin: 0 4px;
+            }}
+            #NotificationBar > QPushButton {{
+                background-color: transparent;
+                border: none;
+                border-radius: 4px;
+            }}
+            #NotificationBar > QPushButton:hover {{
+                background-color: rgba(255, 255, 255, 25);
+            }}
+            #NotificationBar > QPushButton:pressed {{
+                background-color: rgba(255, 255, 255, 15);
+            }}
+        """)
+        self.icon_label.setText(icon_text)
+        self.icon_label.setStyleSheet(f"color: {border_color}; font-size: 18px; font-weight: bold; background-color: transparent; border: none;")
+        self.message_label.setText(message)
+
+        # Show animation
+        self.animation.setStartValue(self.height())
+        self.animation.setEndValue(45) # Target height
+        self.animation.start()
+
+        # Start hide timer
+        if duration > 0:
+            self.hide_timer.start(duration)
+
+    def hide_notification(self):
+        """Hides the notification bar with an animation."""
+        self.hide_timer.stop()
+        self.animation.setStartValue(self.height())
+        self.animation.setEndValue(0)
+        self.animation.start()
+        self.animation.finished.connect(self.on_hide_finished)
+
+    def on_hide_finished(self):
+        self.animation.finished.disconnect(self.on_hide_finished)
+        self.closed.emit()
+
+# --- 2. Notification Center (The History) ---
+
+class NotificationCenter(QDialog):
+    """
+    A dialog window to display a history of all notifications.
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(tr("notification_center_title"))
+        self.setMinimumSize(450, 350)
+        apply_theme(self, "dialog")
+
+        # Layout
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(10, 10, 10, 10)
+
+        # List for notifications
+        self.history_list = QListWidget()
+        from PySide6.QtWidgets import QAbstractItemView
+        self.history_list.setSizeAdjustPolicy(QAbstractItemView.AdjustToContents)
+        apply_theme(self.history_list, "list_widget")
+        layout.addWidget(self.history_list)
+
+        # Buttons
+        button_box = QDialogButtonBox()
+        settings_button = button_box.addButton(tr("settings"), QDialogButtonBox.ActionRole)
+        clear_button = button_box.addButton(tr("clear_all"), QDialogButtonBox.ActionRole)
+        close_button = button_box.addButton(QDialogButtonBox.Close)
+        
+        settings_button.clicked.connect(self.show_settings_dialog)
+        clear_button.clicked.connect(self.clear_history)
+        close_button.clicked.connect(self.accept)
+        
+        layout.addWidget(button_box)
+
+    def show_settings_dialog(self):
+        """Opens the notification settings dialog."""
+        settings_dialog = NotificationSettingsDialog(self)
+        settings_dialog.exec()
+        
+    def clear_history(self):
+        """مسح جميع الإشعارات من التاريخ"""
+        self.history_list.clear()
+
+    def add_notification(self, message, notification_type):
+        """Adds a new notification to the history list."""
+        # استخدام طريقة بسيطة ومباشرة لعرض الإشعارات
+        theme_colors = global_theme_manager.get_current_colors()
+        type_styles = {
+            "success": ("✓", theme_colors.get("success", "#4ade80")),
+            "warning": ("⚠", theme_colors.get("warning", "#fbbf24")),
+            "error": ("✗", theme_colors.get("error", "#f87171")),
+            "info": ("ℹ", theme_colors.get("accent", "#60a5fa"))
+        }
+        icon_text, icon_color = type_styles.get(notification_type, type_styles["info"])
+        
+        # إنشاء نص الإشعار مع الأيقونة
+        display_text = f"{icon_text} {message}"
+        
+        # إنشاء عنصر القائمة مباشرة
+        item = QListWidgetItem(display_text)
+        item.setForeground(QColor(icon_color))
+        
+        # إضافة العنصر إلى القائمة
+        self.history_list.insertItem(0, item)
+
+# --- Custom Widget for Notification Items ---
+class NotificationItemWidget(QWidget):
+    def __init__(self, message, notification_type, parent=None):
+        super().__init__(parent)
+        self.setStyleSheet("background-color: transparent; border: none;")
+        
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(10)
+
+        theme_colors = global_theme_manager.get_current_colors()
+        type_styles = {
+            "success": ("✓", theme_colors.get("success", "#4ade80")),
+            "warning": ("⚠", theme_colors.get("warning", "#fbbf24")),
+            "error": ("✗", theme_colors.get("error", "#f87171")),
+            "info": ("ℹ", theme_colors.get("accent", "#60a5fa"))
+        }
+        icon_text, icon_color = type_styles.get(notification_type, type_styles["info"])
+
+        icon_label = QLabel(icon_text)
+        icon_label.setStyleSheet(f"color: {icon_color}; font-size: 16px; font-weight: bold;")
+        layout.addWidget(icon_label)
+
+        self.message_label = QLabel(message)
+        self.message_label.setWordWrap(True)
+        apply_theme(self.message_label, "list_item_text")
+        self.message_label.setStyleSheet("background-color: transparent; border: none;")
+        layout.addWidget(self.message_label, 1)
+
+    def sizeHint(self):
+        # Calculate the optimal height for the given width
+        if self.parent() and hasattr(self.parent(), "viewport"):
+            width = self.parent().viewport().width()
+        else:
+            width = 400
+        # Subtract margins and spacing
+        text_width = width - 20 - 30 # (margins + icon width)
+        height = self.message_label.heightForWidth(text_width)
+        return QSize(width, height + 10) # Add padding
+
+
+
+# --- 2.5. Notification Settings Dialog ---
+
+class NotificationSettingsDialog(QDialog):
+    """
+    A dialog for configuring notification visibility.
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(tr("notification_settings_title"))
+        apply_theme(self, "dialog")
+        self.setMinimumWidth(350)
+
+        self.manager = global_notification_manager
+        current_settings = self.manager.get_notification_settings()
+
+        layout = QVBoxLayout(self)
+        layout.setSpacing(15)
+
+        self.checkboxes = {}
+        notification_types = ["success", "warning", "error", "info"]
+        
+        for notif_type in notification_types:
+            checkbox = QCheckBox(tr(f"show_{notif_type}_notifications"))
+            checkbox.setChecked(current_settings.get(notif_type, True))
+            apply_theme(checkbox, "checkbox")
+            layout.addWidget(checkbox)
+            self.checkboxes[notif_type] = checkbox
+
+        # Buttons
+        button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        button_box.accepted.connect(self.save_settings)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+
+    def save_settings(self):
+        """Saves the settings to the notification manager."""
+        new_settings = {}
+        for notif_type, checkbox in self.checkboxes.items():
+            new_settings[notif_type] = checkbox.isChecked()
+        self.manager.update_notification_settings(new_settings)
+        self.accept()
+
+# --- 3. Notification Manager (The Conductor) ---
 
 class NotificationManager:
-    """مدير الإشعارات"""
-    
+    """
+    Manages the notification bar and the notification center.
+    """
     def __init__(self):
-        self.active_notifications = []
-        self.max_notifications = 3  # حد أقصى للإشعارات المتزامنة
-    
-    def show_notification(self, parent, message, notification_type="info", duration=4000):
-        """عرض إشعار جديد"""
-        # إزالة الإشعارات الزائدة
-        while len(self.active_notifications) >= self.max_notifications:
-            old_notification = self.active_notifications.pop(0)
-            try:
-                if old_notification and not old_notification.isHidden():
-                    old_notification.hide_notification()
-            except RuntimeError:
-                # Widget was already deleted, just ignore since it has been popped.
-                pass
-        
-        # إنشاء إشعار جديد
-        notification = NotificationWidget(message, notification_type, parent)
-        notification.finished.connect(lambda: self.remove_notification(notification))
-        notification.destroyed.connect(lambda: self.remove_notification(notification))
-        
-        # إضافة للقائمة النشطة
-        self.active_notifications.append(notification)
-        
-        # عرض الإشعار
-        notification.show_notification(duration)
-        
-        return notification
-    
-    def remove_notification(self, notification):
-        """إزالة إشعار من القائمة النشطة"""
-        if notification in self.active_notifications:
-            self.active_notifications.remove(notification)
-    
-    def clear_all(self):
-        """إزالة جميع الإشعارات"""
-        for notification in self.active_notifications[:]:
-            try:
-                if notification and not notification.isHidden():
-                    notification.hide_notification()
-            except RuntimeError:
-                # Widget was already deleted, just ignore.
-                pass
-        self.active_notifications.clear()
+        self.notification_bar = None
+        self.notification_center = None
+        self.load_settings()
 
+    def load_settings(self):
+        """Loads notification settings from the global settings manager."""
+        default_settings = {
+            "success": True,
+            "warning": True,
+            "error": True,
+            "info": True
+        }
+        self.notification_settings = get_setting("notification_settings", default_settings)
+        debug(f"Notification settings loaded: {self.notification_settings}")
 
-# مدير الإشعارات العام
+    def register_widgets(self, main_window, notification_bar):
+        """Registers the main UI components with the manager."""
+        self.notification_bar = notification_bar
+        self.notification_center = NotificationCenter(main_window)
+        
+        # Connect the history button on the bar to show the center
+        if self.notification_bar:
+            self.notification_bar.history_button.clicked.connect(self.show_notification_center)
+
+    def get_notification_settings(self):
+        """Returns the current notification settings."""
+        return self.notification_settings
+
+    def update_notification_settings(self, new_settings):
+        """Updates and saves the notification settings."""
+        self.notification_settings.update(new_settings)
+        set_setting("notification_settings", self.notification_settings)
+        debug(f"Notification settings updated and saved: {self.notification_settings}")
+
+    def show_notification_center(self):
+        """Shows the notification history dialog."""
+        if self.notification_center:
+            self.notification_center.exec()
+
+    def show_notification(self, message, notification_type="info", duration=5000):
+        """
+        Shows a message on the notification bar and adds it to the history,
+        respecting the user's settings.
+        """
+        # Add to history regardless of settings, so it's always logged
+        if self.notification_center:
+            self.notification_center.add_notification(message, notification_type)
+        
+        # Check if this type of notification is enabled
+        if not self.notification_settings.get(notification_type, True):
+            debug(f"Notification hidden by settings: [{notification_type}] {message}")
+            return
+
+        # Ensure widgets are registered for showing the bar
+        if not self.notification_bar:
+            debug("Notification bar not registered. Aborting display.")
+            return
+
+        # Show on the bar
+        self.notification_bar.show_message(message, notification_type, duration)
+        
+        debug(f"Notification shown: [{notification_type}] {message}")
+
+# --- Global Instance and Helper Functions ---
+
 global_notification_manager = NotificationManager()
 
+def show_notification(message, notification_type="info", duration=5000):
+    """Helper function to show notifications."""
+    global_notification_manager.show_notification(message, notification_type, duration)
 
-def show_notification(parent, message, notification_type="info", duration=4000):
-    """دالة مساعدة لعرض الإشعارات"""
-    try:
-        # Check if the underlying C++ object of the parent is still valid.
-        # Accessing any attribute will raise RuntimeError if it's deleted.
-        if parent is not None:
-            _ = parent.isWidgetType()
-    except RuntimeError:
-        # The parent widget has been deleted, so we can't show a notification attached to it.
-        print(f"INFO: Notification parent widget has been deleted. Aborting notification: '{message}'")
-        return None
-        
-    return global_notification_manager.show_notification(parent, message, notification_type, duration)
+def show_success(message, duration=4000):
+    """Shows a success notification."""
+    show_notification(message, "success", duration)
 
+def show_warning(message, duration=5000):
+    """Shows a warning notification."""
+    show_notification(message, "warning", duration)
 
-def show_success(parent, message, duration=3000):
-    """عرض إشعار نجاح"""
-    return show_notification(parent, message, "success", duration)
+def show_error(message, duration=6000):
+    """Shows an error notification."""
+    show_notification(message, "error", duration)
 
-
-def show_warning(parent, message, duration=4000):
-    """عرض إشعار تحذير"""
-    return show_notification(parent, message, "warning", duration)
-
-
-def show_error(parent, message, duration=5000):
-    """عرض إشعار خطأ"""
-    return show_notification(parent, message, "error", duration)
-
-
-def show_info(parent, message, duration=3000):
-    """عرض إشعار معلومات"""
-    return show_notification(parent, message, "info", duration)
+def show_info(message, duration=4000):
+    """Shows an info notification."""
+    show_notification(message, "info", duration)

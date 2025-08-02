@@ -391,9 +391,9 @@ class FileListFrame(QFrame):
 
         if not item.is_valid:
             info_text += f"\n{tr('file_info_error')} {item.error_message}"
-            show_warning(self, info_text, duration=6000)
+            show_warning(info_text, duration=6000)
         else:
-            show_info(self, info_text, duration=5000)
+            show_info(info_text, duration=5000)
 
     def refresh_files(self):
         """تحديث معلومات جميع الملفات"""

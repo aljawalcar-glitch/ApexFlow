@@ -13,7 +13,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'config'))
 # PySide6 imports
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QMessageBox, QVBoxLayout, QHBoxLayout,
-    QWidget, QStackedWidget, QListWidget, QLabel, QScrollArea
+    QWidget, QStackedWidget, QListWidget, QLabel, QScrollArea, QPushButton,
+    QGridLayout
 )
 from PySide6.QtGui import QIcon, QKeySequence, QShortcut
 from PySide6.QtCore import Qt, QSharedMemory, QSystemSemaphore
@@ -23,6 +24,7 @@ from modules.settings import load_settings, set_setting  # Direct import to avoi
 from modules.app_utils import get_icon_path
 from modules.logger import debug, info, warning, error
 from ui import WelcomePage, apply_theme_style
+from ui.notification_system import NotificationBar
 from modules.translator import tr
 
 # ===============================
@@ -189,7 +191,7 @@ class ApexFlow(QMainWindow):
             # Validate settings
             if not self._validate_settings(self.settings_data):
                 self.notification_manager.show_notification(
-                    self, "Settings issues detected, default values will be used",
+                    self, tr("settings_issues_detected"),
                     "warning"
                 )
                 self.settings_data = self._get_default_settings()
@@ -268,6 +270,12 @@ class ApexFlow(QMainWindow):
         self.app_info = AppInfoWidget()
         sidebar_layout.addWidget(self.app_info)
 
+        # Add notification history button
+        self.notification_history_button = QPushButton(tr("notifications_button"))
+        apply_theme_style(self.notification_history_button, "button")
+        self.notification_history_button.clicked.connect(self.notification_manager.show_notification_center)
+        sidebar_layout.addWidget(self.notification_history_button)
+
         # إنشاء منطقة المحتوى مع التحميل الكسول
         self.stack = QStackedWidget()
         self.stack.setStyleSheet("background: transparent;")
@@ -321,9 +329,32 @@ class ApexFlow(QMainWindow):
         self.sidebar_widget = sidebar_widget
         self.main_layout = main_layout
         
+        # --- New Layout Structure for Notification Bar (Overlay) ---
+        # Right panel (stack + notification bar)
+        self.right_panel_widget = QWidget()
+        # Use QGridLayout to allow widgets to overlap
+        right_panel_layout = QGridLayout(self.right_panel_widget)
+        right_panel_layout.setContentsMargins(0, 0, 0, 0)
+        right_panel_layout.setSpacing(0)
+
+        # Add stack widget to the grid
+        right_panel_layout.addWidget(self.stack, 0, 0)
+
+        # Notification System Setup
+        # Parent the bar to the right panel so it's contained within it
+        self.notification_bar = NotificationBar(self.right_panel_widget)
+        # Add the notification bar to the same grid cell to create an overlay
+        right_panel_layout.addWidget(self.notification_bar, 0, 0)
+        # Align the bar to the bottom so it appears from the bottom edge
+        right_panel_layout.setAlignment(self.notification_bar, Qt.AlignBottom)
+        
+        # Register widgets with the notification manager
+        self.notification_manager.register_widgets(self, self.notification_bar)
+        # --- End New Layout Structure ---
+
         # إضافة العناصر للتخطيط الرئيسي بالترتيب الافتراضي أولاً (للعربية)
         main_layout.addWidget(sidebar_widget)
-        main_layout.addWidget(self.stack)
+        main_layout.addWidget(self.right_panel_widget, 1) # Add the right panel with stretch factor
         
         # ترتيب التخطيط حسب اللغة
         self.arrange_layout()
@@ -342,18 +373,18 @@ class ApexFlow(QMainWindow):
         language = self.settings_data.get("language", "ar")
         
         # مسح العناصر من التخطيط
-        self.main_layout.removeWidget(self.stack)
         self.main_layout.removeWidget(self.sidebar_widget)
+        self.main_layout.removeWidget(self.right_panel_widget)
         
         # إضافة العناصر بالترتيب الصحيح (مع مراعاة RightToLeft)
         if language == "ar":
             # في RightToLeft: العنصر الأول يظهر يميناً، الثاني يساراً
-            self.main_layout.addWidget(self.sidebar_widget)  # البنل أولاً (يظهر يميناً)
-            self.main_layout.addWidget(self.stack)  # المحتوى ثانياً (يظهر يساراً)
+            self.main_layout.addWidget(self.sidebar_widget)
+            self.main_layout.addWidget(self.right_panel_widget, 1)
         else:
             # في LeftToRight: العنصر الأول يظهر يساراً، الثاني يميناً
-            self.main_layout.addWidget(self.sidebar_widget)  # البنل أولاً (يظهر يساراً)
-            self.main_layout.addWidget(self.stack)  # المحتوى ثانياً (يظهر يميناً)
+            self.main_layout.addWidget(self.sidebar_widget)
+            self.main_layout.addWidget(self.right_panel_widget, 1)
     
     def update_scrollbars_direction(self):
         """تحديث اتجاه شريط التمرير في جميع الصفحات"""
@@ -463,27 +494,27 @@ class ApexFlow(QMainWindow):
         from ui.merge_page import MergePage
         # استخدام التحميل الكسول لـ OperationsManager
         operations_manager = self.get_operations_manager()
-        return MergePage(self.file_manager, operations_manager)
+        return MergePage(self.file_manager, operations_manager, self.notification_manager)
 
     def _create_split_page(self):
         from ui.split_page import SplitPage
-        return SplitPage(self.file_manager, self.get_operations_manager())
+        return SplitPage(self.file_manager, self.get_operations_manager(), self.notification_manager)
 
     def _create_compress_page(self):
         from ui.compress_page import CompressPage
-        return CompressPage(self.file_manager, self.get_operations_manager())
+        return CompressPage(self.file_manager, self.get_operations_manager(), self.notification_manager)
 
     def _create_rotate_page(self):
         from ui.rotate_page import RotatePage
-        return RotatePage(file_path=None, parent=self)
+        return RotatePage(self.notification_manager, file_path=None, parent=self)
 
     def _create_convert_page(self):
         from ui.convert_page import ConvertPage
-        return ConvertPage(self.file_manager, self.get_operations_manager())
+        return ConvertPage(self.file_manager, self.get_operations_manager(), self.notification_manager, parent=self)
 
     def _create_security_page(self):
         from ui.security_page import SecurityPage
-        return SecurityPage(self.file_manager, self.get_operations_manager())
+        return SecurityPage(self.file_manager, self.get_operations_manager(), self.notification_manager)
 
     def _create_settings_page(self):
         SettingsUI = self.settings_ui
@@ -520,7 +551,7 @@ class ApexFlow(QMainWindow):
 
         # عرض إشعار خطأ
         self.notification_manager.show_notification(
-            self, f"خطأ في تحميل {page_name}: {str(error)}", "error"
+            tr("error_loading_page", page_name=page_name, error=str(error)), "error"
         )
 
         # تسجيل الخطأ
@@ -565,7 +596,7 @@ class ApexFlow(QMainWindow):
     def _retry_load_page(self, index):
         """إعادة محاولة تحميل الصفحة مع إشعار"""
         self.pages_loaded[index] = False
-        self.notification_manager.show_notification(self, "جاري إعادة تحميل الصفحة...", "info")
+        self.notification_manager.show_notification(tr("reloading_page"), "info")
         self.load_page_on_demand(index)
 
     def refresh_all_loaded_pages(self):
@@ -723,7 +754,7 @@ class ApexFlow(QMainWindow):
 
         # عرض إشعار نجاح
         self.notification_manager.show_notification(
-            self, "تم تطبيق الإعدادات بنجاح", "success"
+            tr("settings_applied_successfully"), "success"
         )
 
     def _apply_ui_settings(self):
@@ -769,7 +800,7 @@ class ApexFlow(QMainWindow):
             error(f"خطأ في تطبيق إعدادات الواجهة: {e}")
             # عرض إشعار خطأ
             self.notification_manager.show_notification(
-                self, f"خطأ في تطبيق الإعدادات: {str(e)}", "error"
+                tr("error_applying_settings", error=str(e)), "error"
             )
 
 def main():

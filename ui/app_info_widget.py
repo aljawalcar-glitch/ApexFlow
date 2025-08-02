@@ -225,7 +225,7 @@ class AboutDialog(ThemeAwareDialog):
         except:
             author = APP_AUTHOR_AR
         
-        author_label = QLabel(tr("author_label_dev", author=author))
+        author_label = QLabel(tr("author_label", author=author))
         author_label.setObjectName("about_author")
         info_layout.addWidget(author_label)
         
