@@ -35,15 +35,11 @@
 
 ## 📸 Screenshots
 
-<div align="center">
-  <img src="assets/screenshots/main-interface.png" alt="Main Interface" width="600">
-  <p><em>Main Interface with Dark Theme</em></p>
-</div>
+### Main Interface
+![Main Interface with Dark Theme](assets/screenshots/main-interface.png)
 
-<div align="center">
-  <img src="assets/screenshots/merge-page.png" alt="Merge Page" width="600">
-  <p><em>PDF Merge and Print Interface</em></p>
-</div>
+### PDF Merge and Print Interface
+![PDF Merge and Print Interface](assets/screenshots/merge-page.png)
 
 ## 🚀 Quick Start
 

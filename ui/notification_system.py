@@ -4,7 +4,7 @@
 Transparent Notification System
 """
 
-from PySide6.QtWidgets import QWidget, QLabel, QHBoxLayout, QGraphicsOpacityEffect
+from PySide6.QtWidgets import QWidget, QLabel, QHBoxLayout, QGraphicsOpacityEffect, QApplication
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, QRect, Signal
 from PySide6.QtGui import QPainter, QColor, QFont, QPixmap, QPainterPath
 import os
@@ -145,24 +145,43 @@ class NotificationWidget(QWidget):
         if not self.parent_widget:
             return
             
-        # حساب الموضع (أسفل شريط العنوان)
-        parent_rect = self.parent_widget.geometry()
-        notification_width = min(400, parent_rect.width() - 40)
+        # الحصول على حجم الشاشة
+        screen = QApplication.primaryScreen().geometry()
+        
+        # حساب الموضع (عكس اتجاه البنل)
+        notification_width = min(400, screen.width() - 40)
         self.setFixedWidth(notification_width)
         
-        # الموضع الابتدائي (مخفي فوق النافذة)
-        start_x = parent_rect.x() + (parent_rect.width() - notification_width) // 2
-        start_y = parent_rect.y() - self.height()
+        # الحصول على اتجاه اللغة
+        try:
+            from modules.settings import load_settings
+            settings = load_settings()
+            language = settings.get("language", "ar")
+        except:
+            # في حالة فشل تحميل الإعدادات، استخدام العربية كلغة افتراضية
+            language = "ar"
         
-        # الموضع النهائي (أسفل شريط العنوان)
-        end_y = parent_rect.y() + 35  # أسفل شريط العنوان
+        # تحديد الموضع بناءً على اتجاه اللغة
+        if language == "ar":
+            # للغة العربية: الإشعارات في الزاوية العلوية اليسرى
+            start_x = -notification_width  # خارج الشاشة من اليسار
+            end_x = 20  # هامش من اليسار
+        else:
+            # للغات الأخرى: الإشعارات في الزاوية العلوية اليمنى
+            start_x = screen.width()  # خارج الشاشة من اليمين
+            end_x = screen.width() - notification_width - 20  # هامش من اليمين
+        
+        start_y = screen.y() - self.height()  # خارج الشاشة من الأعلى
+        end_y = screen.y() + 20  # هامش من الأعلى
+        
+        # تم حساب end_y سابقاً بناءً على اتجاه اللغة
         
         # تعيين الموضع الابتدائي
         self.setGeometry(start_x, start_y, notification_width, self.height())
         
         # إعداد الرسم المتحرك للظهور
         self.show_animation.setStartValue(QRect(start_x, start_y, notification_width, self.height()))
-        self.show_animation.setEndValue(QRect(start_x, end_y, notification_width, self.height()))
+        self.show_animation.setEndValue(QRect(end_x, end_y, notification_width, self.height()))
         
         # عرض النافذة وبدء الرسم المتحرك
         self.show()
@@ -179,13 +198,29 @@ class NotificationWidget(QWidget):
         # إيقاف مؤقت الإخفاء
         self.hide_timer.stop()
         
-        # حساب الموضع للإخفاء (فوق النافذة)
+        # حساب الموضع للإخفاء
         current_rect = self.geometry()
-        hide_y = current_rect.y() - self.height() - 10
+        
+        # تحديد اتجاه الإخفاء بناءً على اللغة
+        try:
+            from modules.settings import load_settings
+            settings = load_settings()
+            language = settings.get("language", "ar")
+        except:
+            language = "ar"
+            
+        if language == "ar":
+            # للغة العربية: الإخفاء لليسار
+            hide_x = -current_rect.width() - 10
+        else:
+            # للغات الأخرى: الإخفاء لليمين
+            hide_x = QApplication.primaryScreen().geometry().width() + 10
+            
+        hide_y = current_rect.y()
         
         # إعداد الرسم المتحرك للإخفاء
         self.hide_animation.setStartValue(current_rect)
-        self.hide_animation.setEndValue(QRect(current_rect.x(), hide_y, current_rect.width(), current_rect.height()))
+        self.hide_animation.setEndValue(QRect(hide_x, hide_y, current_rect.width(), current_rect.height()))
         
         # بدء الرسم المتحرك
         self.hide_animation.start()

@@ -35,15 +35,11 @@
 
 ## 📸 لقطات الشاشة
 
-<div align="center">
-  <img src="assets/screenshots/main-interface-ar.png" alt="الواجهة الرئيسية" width="600">
-  <p><em>الواجهة الرئيسية بالسمة الداكنة</em></p>
-</div>
+### الواجهة الرئيسية
+![الواجهة الرئيسية بالسمة الداكنة](assets/screenshots/main-interface-ar.png)
 
-<div align="center">
-  <img src="assets/screenshots/merge-page-ar.png" alt="صفحة الدمج" width="600">
-  <p><em>واجهة دمج وطباعة PDF</em></p>
-</div>
+### واجهة دمج وطباعة PDF
+![واجهة دمج وطباعة PDF](assets/screenshots/merge-page-ar.png)
 
 ## 🚀 البدء السريع
 

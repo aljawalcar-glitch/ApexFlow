@@ -227,7 +227,6 @@ def get_widget_style(widget_type, colors, accent_color):
             }}
             QPushButton:checked {{
                 background: {colors["surface"]};
-                font-weight: bold;
             }}
         """
 

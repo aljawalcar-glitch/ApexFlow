@@ -454,9 +454,8 @@ class SettingsUI(ThemeAwareDialog):
         content_layout.addWidget(self.content_stack)
         
         # أزرار التنقل الداخلية مع أيقونات SVG
-        # استخدام حاوية TransparentFrame لفرض اتجاه LTR مع الحفاظ على النمط
+        # استخدام حاوية TransparentFrame مع الحفاظ على النمط
         nav_container = TransparentFrame()
-        nav_container.setLayoutDirection(Qt.LeftToRight)  # فرض LTR
         nav_layout = QHBoxLayout(nav_container)
         nav_layout.setContentsMargins(0, 0, 0, 0)
         nav_layout.setSpacing(15)
@@ -472,10 +471,20 @@ class SettingsUI(ThemeAwareDialog):
         self.next_btn = create_navigation_button("next", 24, tr("next_step"))
         self.next_btn.clicked.connect(self.next_step)
 
-        # إضافة الأزرار بالترتيب الثابت (السابق ثم التالي)
-        nav_layout.addWidget(self.prev_btn)
-        nav_layout.addWidget(self.next_btn)
+        # تعيين اتجاه الحاوية وترتيب الأزرار حسب اللغة
+        lang_code = self.settings_data.get("language", "ar")
         nav_layout.addStretch()
+
+        if lang_code == "en":
+            # في الإنجليزية: الترتيب (التالي ثم السابق) مع الأزرار على اليمين
+            nav_layout.addWidget(self.next_btn)
+            nav_layout.addWidget(self.prev_btn)
+            nav_container.setLayoutDirection(Qt.RightToLeft)
+        else:
+            # في العربية: الترتيب (السابق ثم التالي) مع الأزرار على اليسار
+            nav_layout.addWidget(self.prev_btn)
+            nav_layout.addWidget(self.next_btn)
+            nav_container.setLayoutDirection(Qt.LeftToRight)
 
         content_layout.addWidget(nav_container)
         main_layout.addWidget(self.content_frame)
@@ -1180,6 +1189,18 @@ class SettingsUI(ThemeAwareDialog):
         self.prev_btn.setEnabled(can_go_prev)
         self.prev_btn.set_icon_color(active_color if can_go_prev else disabled_color)
 
+    def update_save_buttons_state(self):
+        """تحديث حالة أزرار الحفظ والإلغاء بناءً على وجود تغييرات"""
+        try:
+            # التحقق من وجود أزرار الحفظ والإلغاء
+            if hasattr(self, 'save_all_btn') and hasattr(self, 'cancel_btn'):
+                # تفعيل أو تعطيل الأزرار بناءً على وجود تغييرات
+                has_changes = getattr(self, 'has_unsaved_changes', False)
+                self.save_all_btn.setEnabled(has_changes)
+                self.cancel_btn.setEnabled(has_changes)
+        except Exception as e:
+            print(f"خطأ في تحديث حالة أزرار الحفظ: {e}")
+
     def update_changes_report(self):
         """تحديث تقرير التغييرات مع معالجة أخطاء محسنة"""
         try:
@@ -1329,6 +1350,9 @@ class SettingsUI(ThemeAwareDialog):
 
             if hasattr(self, 'changes_report') and self.changes_report:
                 self.changes_report.setText(report)
+            
+            # تحديث حالة أزرار الحفظ والإلغاء
+            self.update_save_buttons_state()
 
         except Exception as e:
             error_msg = tr("error_analyzing_changes", e=str(e))
@@ -1614,6 +1638,7 @@ class SettingsUI(ThemeAwareDialog):
         self.update_changes_report()
         self.has_unsaved_changes = False  # إعادة تعيين حالة التغييرات
         self.update_preview_only()  # تحديث المعاينة للإعدادات الأصلية
+        self.update_save_buttons_state()  # تحديث حالة أزرار الحفظ والإلغاء
 
         show_success(self, tr("all_changes_canceled_message"), duration=3000)
 
@@ -1855,6 +1880,8 @@ class SettingsUI(ThemeAwareDialog):
         self.has_unsaved_changes = True
         # تحديث تقرير التغييرات فوراً
         QTimer.singleShot(100, self.update_changes_report)
+        # تحديث حالة أزرار الحفظ والإلغاء
+        QTimer.singleShot(150, self.update_save_buttons_state)
 
     # تم إزالة الدوال المتعلقة بألوان النصوص المخصصة
     # Functions related to custom text colors have been removed.

@@ -14,17 +14,135 @@ from .svg_icon_button import SVGIconButton
 from .theme_aware_widget import ThemeAwareDialog
 from modules.translator import tr
 
-# إضافة المجلد الجذر للمسار لاستيراد version
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+# معلومات الإصدار (مُنسوخة من ملف version.py)
+VERSION = "v5.3.0"
+VERSION_INFO = (5, 3, 0, "stable")
 
-try:
-    from version import VERSION, APP_NAME, APP_AUTHOR, get_about_text
-except ImportError:
-    VERSION = "v5.2.1"
-    APP_NAME = "ApexFlow"
-    APP_AUTHOR = "فريق ApexFlow"
-    def get_about_text():
-        return f"{APP_NAME} {VERSION}\nأداة شاملة لإدارة ومعالجة ملفات PDF"
+# معلومات التطبيق
+APP_NAME = "ApexFlow"
+APP_DESCRIPTION_AR = "أداة شاملة لإدارة ومعالجة ملفات PDF"
+APP_DESCRIPTION_EN = "A comprehensive tool for managing and processing PDF files"
+APP_AUTHOR_AR = "فريق ApexFlow"
+APP_AUTHOR_EN = "ApexFlow Team"
+APP_COPYRIGHT_AR = "© 2024 فريق ApexFlow"
+APP_COPYRIGHT_EN = "© 2024 ApexFlow Team"
+
+# معلومات البناء
+BUILD_DATE = "2025-01-22"
+BUILD_TYPE = "Stable"
+BUILD_INCLUDES = [
+    "ملفات الترجمة (عربي/إنجليزي)",
+    "إعدادات الخطوط والسمات",
+    "جميع الأيقونات والأصول",
+    "نظام الأختام التفاعلي",
+    "إعدادات افتراضية محسنة",
+    "ملفات التوثيق والترخيص"
+]
+
+# سجل التغييرات للإصدار الحالي
+CHANGELOG = {
+    "v5.3.0": [
+        "• إصلاح خطأ `RuntimeError` في نظام الإشعارات.",
+        "• تحديث رقم الإصدار في جميع ملفات المشروع.",
+        "• تحسينات طفيفة في الأداء والاستقرار.",
+        "• إصلاح مشكلة عدم ظهور نافذة \"إضافة مجلد\" في النسخة المجمّعة."
+    ],
+    "v5.2.2": [
+        "• إضافة نظام أختام PDF تفاعلي متقدم",
+        "• أزرار تكبير وتصغير الأختام مع أيقونات SVG",
+        "• تحكم دقيق في حجم الأختام (3% لكل ضغطة)",
+        "• إخفاء/إظهار ذكي للأزرار حسب تحديد الختم",
+        "• تحسين نظام معايرة الإحداثيات للأختام",
+        "• إضافة معالج الأختام المحسن",
+        "• تحسين دقة حفظ الأختام في ملفات PDF",
+        "• إزالة الرسائل المزعجة من الكونسول",
+        "• تحسين واجهة المستخدم للأختام",
+        "• إضافة أيقونات + و - بسيطة وواضحة"
+    ],
+    "v5.2.1": [
+        "• إصدار مستقر جديد مع تحسينات شاملة",
+        "• تحسين نظام السمات والألوان الموحد",
+        "• إضافة تأثيرات بصرية متقدمة للقوائم والأزرار",
+        "• تطوير صفحة الضغط مع شريط تقدم ذكي",
+        "• تحسين صفحة التقسيم مع مسار حفظ تلقائي",
+        "• إضافة تأثيرات لمعان وتمرير للواجهة",
+        "• تحسين قائمة الملفات مع تدرجات لونية",
+        "• إصلاح مشاكل تحليل الأنماط والتوافق",
+        "• تحسين شريط التمرير مع تصميم عصري",
+        "• إضافة شفافية للبطاقات والعناصر",
+        "• تحديث نظام الإصدارات الموحد"
+    ],
+    "Beta v4.6.12": [
+        "• استبدال الإيموجي بأيقونات حقيقية عالية الجودة",
+        "• تحسين معالجة الأخطاء في جميع العمليات",
+        "• إضافة شريط التقدم للعمليات الطويلة",
+        "• تحسين مراقبة موارد النظام",
+        "• إضافة إحصائيات مفصلة للعمليات",
+        "• تطبيق الحدود الشفافة على العناصر الرئيسية",
+        "• تحسين جودة عرض الشعار المخصص",
+        "• إزالة رسائل debug من الإنتاج",
+        "• تحسين الأداء والاستقرار العام",
+        "• إزالة جميع الإيموجي لضمان أمان التصدير"
+    ]
+}
+
+def get_about_text():
+    """إرجاع نص حول التطبيق"""
+    try:
+        from modules.settings import load_settings
+        settings = load_settings()
+        language = settings.get("language", "ar")
+    except:
+        language = "ar"
+
+    # الحصول على الميزات الجديدة للإصدار الحالي مع التعامل مع حالة عدم وجود الإصدار
+    try:
+        features_text = chr(10).join('• ' + feature for feature in CHANGELOG[VERSION])
+    except KeyError:
+        features_text = "• لا توجد ميزات مسجلة لهذا الإصدار"
+
+    if language == "ar":
+        # النص باللغة العربية
+        return f"""
+{APP_NAME} {VERSION}
+
+{APP_DESCRIPTION_AR}
+
+{APP_COPYRIGHT_AR}
+تاريخ البناء: {BUILD_DATE}
+نوع البناء: {BUILD_TYPE}
+
+تم تطوير هذا التطبيق باستخدام:
+• Python 3.13
+• PySide6 للواجهة الرسومية
+• PyPDF2 & PyMuPDF لمعالجة ملفات PDF
+• Pillow لمعالجة الصور
+• psutil لمراقبة النظام
+
+الميزات الجديدة في هذا الإصدار:
+{features_text}
+"""
+    else:
+        # النص باللغة الإنجليزية
+        return f"""
+{APP_NAME} {VERSION}
+
+{APP_DESCRIPTION_EN}
+
+{APP_COPYRIGHT_EN}
+Build Date: {BUILD_DATE}
+Build Type: {BUILD_TYPE}
+
+This application was developed using:
+• Python 3.13
+• PySide6 for the graphical interface
+• PyPDF2 & PyMuPDF for PDF processing
+• Pillow for image processing
+• psutil for system monitoring
+
+New features in this version:
+{features_text}
+"""
 
 class AboutDialog(ThemeAwareDialog):
     """نافذة حول البرنامج"""
@@ -98,7 +216,16 @@ class AboutDialog(ThemeAwareDialog):
         info_layout.addWidget(version_label)
         
         # المطور
-        author_label = QLabel(tr("author_label_dev", author=APP_AUTHOR))
+        # تحديد نسخة اسم المؤلف بناءً على اللغة
+        try:
+            from modules.settings import load_settings
+            settings = load_settings()
+            language = settings.get("language", "ar")
+            author = APP_AUTHOR_AR if language == "ar" else APP_AUTHOR_EN
+        except:
+            author = APP_AUTHOR_AR
+        
+        author_label = QLabel(tr("author_label_dev", author=author))
         author_label.setObjectName("about_author")
         info_layout.addWidget(author_label)
         
@@ -255,7 +382,16 @@ class AppInfoWidget(QWidget):
         author_layout = QHBoxLayout()
         author_layout.setContentsMargins(28, 0, 0, 0)  # محاذاة مع النص
         
-        author_label = QLabel(tr("copyright_label", author=APP_AUTHOR))
+        # تحديد نسخة حقوق النشر بناءً على اللغة
+        try:
+            from modules.settings import load_settings
+            settings = load_settings()
+            language = settings.get("language", "ar")
+            author = APP_AUTHOR_AR if language == "ar" else APP_AUTHOR_EN
+        except:
+            author = APP_AUTHOR_AR
+        
+        author_label = QLabel(tr("copyright_label", author=author))
         author_label.setStyleSheet("""
             QLabel {
                 color: #666666;

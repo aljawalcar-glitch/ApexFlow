@@ -10,9 +10,12 @@ VERSION_INFO = (5, 3, 0, "stable")
 
 # معلومات التطبيق
 APP_NAME = "ApexFlow"
-APP_DESCRIPTION = "أداة شاملة لإدارة ومعالجة ملفات PDF"
-APP_AUTHOR = "فريق ApexFlow"
-APP_COPYRIGHT = "© 2024 فريق ApexFlow"
+APP_DESCRIPTION_AR = "أداة شاملة لإدارة ومعالجة ملفات PDF"
+APP_DESCRIPTION_EN = "A comprehensive tool for managing and processing PDF files"
+APP_AUTHOR_AR = "فريق ApexFlow"
+APP_AUTHOR_EN = "ApexFlow Team"
+APP_COPYRIGHT_AR = "© 2024 فريق ApexFlow"
+APP_COPYRIGHT_EN = "© 2024 ApexFlow Team"
 
 # معلومات البناء
 BUILD_DATE = "2025-01-22"
@@ -83,16 +86,33 @@ def get_version_info():
 
 def get_full_version_string():
     """إرجاع نص الإصدار الكامل"""
-    return f"{APP_NAME} {VERSION} - {APP_AUTHOR}"
+    try:
+        from modules.settings import load_settings
+        settings = load_settings()
+        language = settings.get("language", "ar")
+        author = APP_AUTHOR_AR if language == "ar" else APP_AUTHOR_EN
+    except:
+        author = APP_AUTHOR_AR
+    
+    return f"{APP_NAME} {VERSION} - {author}"
 
 def get_about_text():
     """إرجاع نص حول التطبيق"""
-    return f"""
+    try:
+        from modules.settings import load_settings
+        settings = load_settings()
+        language = settings.get("language", "ar")
+    except:
+        language = "ar"
+    
+    if language == "ar":
+        # النص باللغة العربية
+        return f"""
 {APP_NAME} {VERSION}
 
-{APP_DESCRIPTION}
+{APP_DESCRIPTION_AR}
 
-{APP_COPYRIGHT}
+{APP_COPYRIGHT_AR}
 تاريخ البناء: {BUILD_DATE}
 نوع البناء: {BUILD_TYPE}
 
@@ -106,6 +126,27 @@ def get_about_text():
 الميزات الجديدة في هذا الإصدار:
 {chr(10).join('• ' + feature for feature in CHANGELOG[VERSION])}
 """
+    else:
+        # النص باللغة الإنجليزية
+        return f"""
+{APP_NAME} {VERSION}
+
+{APP_DESCRIPTION_EN}
+
+{APP_COPYRIGHT_EN}
+Build Date: {BUILD_DATE}
+Build Type: {BUILD_TYPE}
+
+This application was developed using:
+• Python 3.13
+• PySide6 for the graphical interface
+• PyPDF2 & PyMuPDF for PDF processing
+• Pillow for image processing
+• psutil for system monitoring
+
+New features in this version:
+{chr(10).join('• ' + feature for feature in CHANGELOG[VERSION])}
+"""
 
 if __name__ == "__main__":
     print("=" * 50)
@@ -113,8 +154,8 @@ if __name__ == "__main__":
     print("=" * 50)
     print(f"الإصدار: {VERSION}")
     print(f"التطبيق: {APP_NAME}")
-    print(f"الوصف: {APP_DESCRIPTION}")
-    print(f"المطور: {APP_AUTHOR}")
+    print(f"الوصف: {APP_DESCRIPTION_AR}")
+    print(f"المطور: {APP_AUTHOR_AR}")
     print(f"تاريخ البناء: {BUILD_DATE}")
     print(f"نوع البناء: {BUILD_TYPE}")
     print("=" * 50)
