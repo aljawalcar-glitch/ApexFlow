@@ -709,6 +709,14 @@ if __name__ == "__main__":
     
     print("وحدة الإعدادات تم تحميلها بنجاح")
 
+def should_show_tooltips():
+    """التحقق مما إذا كان يجب عرض التلميحات بناءً على إعدادات المستخدم"""
+    return get_setting("ui_settings.show_tooltips", True)
+
+def should_enable_animations():
+    """التحقق مما إذا كان يجب تفعيل الحركات بناءً على إعدادات المستخدم"""
+    return get_setting("ui_settings.enable_animations", True)
+
 def get_default_settings():
     """إرجاع نسخة من الإعدادات الافتراضية"""
     return DEFAULT_SETTINGS.copy()

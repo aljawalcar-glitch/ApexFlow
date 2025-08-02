@@ -129,13 +129,13 @@ class SplitPage(BasePageWidget):
 
                 # إشعار بنجاح تحديد الملف
                 file_name = os.path.basename(file)
-                self.notification_manager.show_info(f"{tr('file_selected_for_splitting')}: {file_name}", duration=3000)
+                self.notification_manager.show_notification(f"{tr('file_selected_for_splitting')}: {file_name}", "info", duration=3000)
 
             elif file:
-                self.notification_manager.show_error(f"{tr('file_not_found')}: {file}")
+                self.notification_manager.show_notification(f"{tr('file_not_found')}: {file}", "error")
 
         except Exception as e:
-            self.notification_manager.show_error(f"{tr('error_selecting_file')}: {str(e)}")
+            self.notification_manager.show_notification(f"{tr('error_selecting_file')}: {str(e)}", "error")
 
     def create_auto_save_path(self, file_path):
         """إنشاء مسار الحفظ التلقائي في سطح المكتب"""
@@ -204,32 +204,32 @@ class SplitPage(BasePageWidget):
         try:
             # التحقق من وجود ملف للتقسيم
             if not hasattr(self, 'current_file_path') or not self.current_file_path:
-                self.notification_manager.show_warning(tr("no_file_selected_for_splitting"))
+                self.notification_manager.show_notification(tr("no_file_selected_for_splitting"), "warning")
                 return
 
             if not os.path.exists(self.current_file_path):
-                self.notification_manager.show_error(tr("selected_file_not_found"))
+                self.notification_manager.show_notification(tr("selected_file_not_found"), "error")
                 return
 
             # التحقق من مسار الحفظ
             if not hasattr(self, 'auto_save_path') or not self.auto_save_path:
-                self.notification_manager.show_warning(tr("no_save_path_specified"))
+                self.notification_manager.show_notification(tr("no_save_path_specified"), "warning")
                 return
 
             # إشعار بدء عملية التقسيم
             file_name = os.path.basename(self.current_file_path)
-            self.notification_manager.show_info(f"{tr('splitting_started')}: {file_name}", duration=3000)
+            self.notification_manager.show_notification(f"{tr('splitting_started')}: {file_name}", "info", duration=3000)
 
             # تنفيذ عملية التقسيم
             success = self.operations_manager.split_file(self)
 
             if success:
-                self.notification_manager.show_success(f"{tr('splitting_completed_successfully')}: {file_name}", duration=4000)
+                self.notification_manager.show_notification(f"{tr('splitting_completed_successfully')}: {file_name}", "success", duration=4000)
             else:
-                self.notification_manager.show_error(tr("splitting_failed"))
+                self.notification_manager.show_notification(tr("splitting_failed"), "error")
 
         except Exception as e:
-            self.notification_manager.show_error(f"{tr('splitting_error')}: {str(e)}")
+            self.notification_manager.show_notification(f"{tr('splitting_error')}: {str(e)}", "error")
 
     def on_files_changed(self, files):
         """

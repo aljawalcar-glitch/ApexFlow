@@ -68,10 +68,16 @@ class FileListItem(QListWidgetItem):
         if self.is_valid:
             # الحجم على اليسار واسم الملف على اليمين
             display_text = f"{tr('size_label')} {size_text}                                                    {file_name}"
-            self.setToolTip(self.file_path)
+            # استخدام إعدادات التلميحات
+            from modules.settings import should_show_tooltips
+            if should_show_tooltips():
+                self.setToolTip(self.file_path)
         else:
             display_text = f"{self.error_message}                                                    {tr('error_label')} {file_name}"
-            self.setToolTip(f"{tr('error_label')} {self.error_message}")
+            # استخدام إعدادات التلميحات
+            from modules.settings import should_show_tooltips
+            if should_show_tooltips():
+                self.setToolTip(f"{tr('error_label')} {self.error_message}")
         
         self.setText(display_text)
     
@@ -329,22 +335,32 @@ class FileListFrame(QFrame):
     
     def animate_show(self):
         """تحريك الظهور"""
-        self.animation = QPropertyAnimation(self, b"maximumHeight")
-        self.animation.setDuration(400)  # مدة أطول قليلاً للحجم الأكبر
-        self.animation.setStartValue(0)
-        self.animation.setEndValue(220)  # الحجم الجديد
-        self.animation.setEasingCurve(QEasingCurve.OutCubic)
-        self.animation.start()
+        from modules.settings import should_enable_animations
+        if should_enable_animations():
+            self.animation = QPropertyAnimation(self, b"maximumHeight")
+            self.animation.setDuration(400)  # مدة أطول قليلاً للحجم الأكبر
+            self.animation.setStartValue(0)
+            self.animation.setEndValue(220)  # الحجم الجديد
+            self.animation.setEasingCurve(QEasingCurve.OutCubic)
+            self.animation.start()
+        else:
+            # بدون حركات، قم بتعيين الارتفاع مباشرة
+            self.setMaximumHeight(220)
 
     def animate_hide(self):
         """تحريك الاختفاء"""
-        self.animation = QPropertyAnimation(self, b"maximumHeight")
-        self.animation.setDuration(400)  # مدة أطول قليلاً
-        self.animation.setStartValue(220)  # الحجم الجديد
-        self.animation.setEndValue(0)
-        self.animation.setEasingCurve(QEasingCurve.InCubic)
-        self.animation.finished.connect(self.hide)
-        self.animation.start()
+        from modules.settings import should_enable_animations
+        if should_enable_animations():
+            self.animation = QPropertyAnimation(self, b"maximumHeight")
+            self.animation.setDuration(400)  # مدة أطول قليلاً
+            self.animation.setStartValue(220)  # الحجم الجديد
+            self.animation.setEndValue(0)
+            self.animation.setEasingCurve(QEasingCurve.InCubic)
+            self.animation.finished.connect(self.hide)
+            self.animation.start()
+        else:
+            # بدون حركات، قم بإخفاء العنصر مباشرة
+            self.hide()
     
     def get_files(self):
         """الحصول على قائمة الملفات"""

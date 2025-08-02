@@ -29,6 +29,10 @@ RequestExecutionLevel admin
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
+
+; Custom page for previous version uninstallation information
+Page custom prevVersionInfoPage
+
 !insertmacro MUI_PAGE_LICENSE "..\docs\LICENSE.txt"
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
@@ -44,6 +48,29 @@ RequestExecutionLevel admin
 
 ; Language
 !insertmacro MUI_LANGUAGE "English"
+
+; =================================================================
+; Custom Page: Previous Version Information
+; =================================================================
+
+Var prevVersionInfoDialog
+Var prevVersionInfoText
+
+Function prevVersionInfoPage
+  !insertmacro MUI_HEADER_TEXT "Updating ApexFlow" "Information about the update process"
+
+  nsDialogs::Create 1018
+  Pop $prevVersionInfoDialog
+
+  ${If} $prevVersionInfoDialog == error
+    Abort
+  ${EndIf}
+
+  ${NSD_CreateLabel} 0 0 100% 120u "This installer will check for and automatically uninstall any previous versions of ApexFlow before installing the new version.$\r$\n$\r$\nThis process ensures a clean installation and prevents potential conflicts between versions.$\r$\n$\r$\nYour personal settings and data will be preserved during this process."
+  Pop $prevVersionInfoText
+
+  nsDialogs::Show
+FunctionEnd
 
 ; =================================================================
 ; Initialization: Check for and uninstall previous versions

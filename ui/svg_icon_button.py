@@ -24,7 +24,10 @@ class SVGIconButton(QPushButton):
         self.icon_theme = theme
         
         # إعداد الزر
-        self.setToolTip(tooltip)
+        # استخدام إعدادات التلميحات
+        from modules.settings import should_show_tooltips
+        if should_show_tooltips():
+            self.setToolTip(tooltip)
         self.setIconSize(QSize(size, size))
         
         # تحميل الأيقونة

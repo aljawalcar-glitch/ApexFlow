@@ -224,10 +224,10 @@ class SecurityPage(BasePage):
                 self.update_ui_state()
 
                 # إشعار بنجاح تحديد الملف
-                self.notification_manager.show_info(f"{tr('file_selected_successfully')}: {file_name}", duration=3000)
+                self.notification_manager.show_notification(f"{tr('file_selected_successfully')}: {file_name}", "info", duration=3000)
 
         except Exception as e:
-            self.notification_manager.show_error(f"{tr('error_selecting_file')}: {str(e)}")
+            self.notification_manager.show_notification(f"{tr('error_selecting_file')}: {str(e)}", "error")
 
     def save_file_with_selected_action(self):
         """تنفيذ الإجراء المختار وحفظ الملف"""
@@ -324,13 +324,13 @@ class SecurityPage(BasePage):
                 self.subject_input.setText(properties.get('/Subject', ''))
                 self.keywords_input.setText(properties.get('/Keywords', ''))
                 info("تم تحميل الخصائص بنجاح.")
-                self.notification_manager.show_info(tr("pdf_properties_loaded_successfully"), duration=2000)
+                self.notification_manager.show_notification(tr("pdf_properties_loaded_successfully"), "info", duration=2000)
             else:
                 self.clear_properties_fields()
-                self.notification_manager.show_warning(tr("no_properties_found_in_pdf"))
+                self.notification_manager.show_notification(tr("no_properties_found_in_pdf"), "warning")
         except Exception as e:
             error(f"فشل في تحميل خصائص PDF: {e}")
-            self.notification_manager.show_error(f"{tr('pdf_properties_update_error')}: {str(e)}")
+            self.notification_manager.show_notification(f"{tr('pdf_properties_update_error')}: {str(e)}", "error")
             self.clear_properties_fields()
 
     def clear_properties_fields(self):
@@ -401,12 +401,18 @@ class SecurityPage(BasePage):
             self.password_input.setEchoMode(QLineEdit.Normal)
             eye_off_path = os.path.join(base_path, "assets", "icons", "default", "eye-off.svg")
             self.toggle_password_btn.setIcon(QIcon(eye_off_path))
-            self.toggle_password_btn.setToolTip(tr("hide_password"))
+            # استخدام إعدادات التلميحات
+            from modules.settings import should_show_tooltips
+            if should_show_tooltips():
+                self.toggle_password_btn.setToolTip(tr("hide_password"))
         else:
             self.password_input.setEchoMode(QLineEdit.Password)
             eye_path = os.path.join(base_path, "assets", "icons", "default", "eye.svg")
             self.toggle_password_btn.setIcon(QIcon(eye_path))
-            self.toggle_password_btn.setToolTip(tr("show_password"))
+            # استخدام إعدادات التلميحات
+            from modules.settings import should_show_tooltips
+            if should_show_tooltips():
+                self.toggle_password_btn.setToolTip(tr("show_password"))
 
     def toggle_owner_password_visibility(self):
         """تبديل إظهار/إخفاء كلمة مرور المالك"""
@@ -417,18 +423,24 @@ class SecurityPage(BasePage):
             self.owner_password_input.setEchoMode(QLineEdit.Normal)
             eye_off_path = os.path.join(base_path, "assets", "icons", "default", "eye-off.svg")
             self.toggle_owner_password_btn.setIcon(QIcon(eye_off_path))
-            self.toggle_owner_password_btn.setToolTip(tr("hide_owner_password"))
+            # استخدام إعدادات التلميحات
+            from modules.settings import should_show_tooltips
+            if should_show_tooltips():
+                self.toggle_owner_password_btn.setToolTip(tr("hide_owner_password"))
         else:
             self.owner_password_input.setEchoMode(QLineEdit.Password)
             eye_path = os.path.join(base_path, "assets", "icons", "default", "eye.svg")
             self.toggle_owner_password_btn.setIcon(QIcon(eye_path))
-            self.toggle_owner_password_btn.setToolTip(tr("show_owner_password"))
+            # استخدام إعدادات التلميحات
+            from modules.settings import should_show_tooltips
+            if should_show_tooltips():
+                self.toggle_owner_password_btn.setToolTip(tr("show_owner_password"))
 
     def update_properties(self):
         """تحديث خصائص ملف PDF"""
         try:
             if not self.source_file:
-                self.notification_manager.show_warning(tr("no_file_selected_for_properties_update"))
+                self.notification_manager.show_notification(tr("no_file_selected_for_properties_update"), "warning")
                 return
 
             output_path = self.get_save_path(tr("properties_updated_suffix"))
@@ -443,15 +455,15 @@ class SecurityPage(BasePage):
             }
 
             # إشعار بدء العملية
-            self.notification_manager.show_info(tr("updating_pdf_properties"), duration=2000)
+            self.notification_manager.show_notification(tr("updating_pdf_properties"), "info", duration=2000)
 
             info(f"بدء عملية تحديث الخصائص للملف: {self.source_file}")
             success = self.operations_manager.update_pdf_properties(self.source_file, output_path, properties)
 
             if success:
-                self.notification_manager.show_success(tr("pdf_properties_updated_successfully"), duration=4000)
+                self.notification_manager.show_notification(tr("pdf_properties_updated_successfully"), "success", duration=4000)
             else:
-                self.notification_manager.show_error(tr("pdf_properties_update_failed"))
+                self.notification_manager.show_notification(tr("pdf_properties_update_failed"), "error")
 
         except Exception as e:
-            self.notification_manager.show_error(f"{tr('pdf_properties_update_error')}: {str(e)}")
+            self.notification_manager.show_notification(f"{tr('pdf_properties_update_error')}: {str(e)}", "error")

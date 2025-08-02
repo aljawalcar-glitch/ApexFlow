@@ -218,6 +218,11 @@ class SettingsUI(ThemeAwareDialog):
 
     def _show_welcome_notification(self):
         """إظهار رسالة ترحيب مفيدة عند فتح الإعدادات"""
+        # التحقق من إعداد إلغاء رسالة الترحيب
+        settings_data = settings.load_settings()
+        if settings_data.get("disable_welcome_message", False):
+            return
+            
         # استخدام النافذة الرئيسية بدلاً من نافذة الإعدادات لعرض الإشعار
         main_window = self._get_main_window()
         if main_window:
@@ -832,8 +837,10 @@ class SettingsUI(ThemeAwareDialog):
         self.enable_animations_check.stateChanged.connect(self.mark_as_changed)
         text_layout.addRow(self.enable_animations_check)
 
-        # اتجاه النص (استخدام العنصر الموجود)
+        # اتجاه النص (معطل حالياً)
         apply_theme_style(self.text_direction_combo, "combo")
+        self.text_direction_combo.setEnabled(False)  # تعطيل الخيار
+        self.text_direction_combo.setToolTip(tr("feature_disabled_tooltip"))
         self.text_direction_combo.currentTextChanged.connect(self.mark_as_changed)
         text_direction_label = QLabel(tr("text_direction_label"))
         apply_theme_style(text_direction_label, "label")
@@ -953,6 +960,22 @@ class SettingsUI(ThemeAwareDialog):
         report_layout.addWidget(self.changes_report)
 
         layout.addWidget(report_group)
+
+        # خيارات إضافية
+        options_group = QGroupBox(tr("additional_options_group"))
+        apply_theme_style(options_group, "group_box", auto_register=True)
+        options_layout = QVBoxLayout(options_group)
+        options_layout.setSpacing(10)
+
+        # خيار إلغاء رسالة الترحيب
+        self.disable_welcome_checkbox = QCheckBox(tr("disable_welcome_message_option"))
+        apply_theme_style(self.disable_welcome_checkbox, "checkbox", auto_register=True)
+        # تحميل القيمة الحالية من الإعدادات
+        welcome_disabled = self.settings_data.get("disable_welcome_message", False)
+        self.disable_welcome_checkbox.setChecked(welcome_disabled)
+        options_layout.addWidget(self.disable_welcome_checkbox)
+
+        layout.addWidget(options_group)
 
         # أزرار الحفظ
         save_buttons_layout = QHBoxLayout()
@@ -1444,6 +1467,10 @@ class SettingsUI(ThemeAwareDialog):
                     "enable_password_protection": self.enable_password_check.isChecked(),
                     "privacy_mode": self.privacy_mode_check.isChecked()
                 }
+                
+            # إعدادات رسائل الترحيب
+            if hasattr(self, 'disable_welcome_checkbox'):
+                current["disable_welcome_message"] = self.disable_welcome_checkbox.isChecked()
 
         except Exception as e:
             print(f"خطأ في قراءة الإعدادات: {e}")
@@ -2059,6 +2086,10 @@ class SettingsUI(ThemeAwareDialog):
         """تغيير مستوى الشفافية"""
         self.transparency_value.setText(f"{value}%")
         self.preview_current_theme()
+        
+        # إشعار بأن ميزة الشفافية ستكون متوفرة قريباً
+        if hasattr(self, 'notification_manager') and self.notification_manager:
+            self.notification_manager.show_notification(tr("transparency_feature_coming_soon"), "info", duration=3000)
 
         # إشعار عند تغيير الشفافية بشكل كبير
         if value <= 30:

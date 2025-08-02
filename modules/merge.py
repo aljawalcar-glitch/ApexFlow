@@ -11,10 +11,10 @@ _pdf_reader = None
 _pdf_writer = None
 
 def _get_pdf_classes():
-    """تحميل كسول لمكتبات PyPDF2"""
+    """تحميل كسول لمكتبات pypdf"""
     global _pdf_reader, _pdf_writer
     if _pdf_reader is None or _pdf_writer is None:
-        from PyPDF2 import PdfReader, PdfWriter
+        from pypdf import PdfReader, PdfWriter
         _pdf_reader = PdfReader
         _pdf_writer = PdfWriter
     return _pdf_reader, _pdf_writer
@@ -44,7 +44,7 @@ def merge_pdfs(input_files: List[str], output_path: str) -> bool:
         
         # تحميل كسول للمكتبات
         PdfReader, PdfWriter = _get_pdf_classes()
-
+        
         # Create PDF writer object
         pdf_writer = PdfWriter()
 
@@ -67,6 +67,11 @@ def merge_pdfs(input_files: List[str], output_path: str) -> bool:
         if output_dir and not os.path.exists(output_dir):
             os.makedirs(output_dir)
         
+        # Check if any pages were added before writing
+        if len(pdf_writer.pages) == 0:
+            print("Error: No pages were added to the merged file. All input files might be invalid.")
+            return False
+
         # Write merged PDF to output file
         with open(output_path, 'wb') as output_file:
             pdf_writer.write(output_file)
@@ -97,6 +102,8 @@ def merge_pdfs_with_bookmarks(input_files: List[str], output_path: str,
         for file_path in input_files:
             if not os.path.exists(file_path):
                 raise FileNotFoundError(f"File not found: {file_path}")
+        
+        PdfReader, PdfWriter = _get_pdf_classes()
         
         # Create PDF writer object
         pdf_writer = PdfWriter()
@@ -156,6 +163,7 @@ def merge_specific_pages(file_page_ranges: List[tuple], output_path: str) -> boo
         bool: True if merge was successful, False otherwise
     """
     try:
+        PdfReader, PdfWriter = _get_pdf_classes()
         pdf_writer = PdfWriter()
         
         for file_path, start_page, end_page in file_page_ranges:
@@ -211,6 +219,7 @@ def get_pdf_info(file_path: str) -> dict:
         if not os.path.exists(file_path):
             return {"error": "File not found"}
         
+        PdfReader, _ = _get_pdf_classes()
         pdf_reader = PdfReader(file_path)
         
         info = {

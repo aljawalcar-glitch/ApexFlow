@@ -360,7 +360,7 @@ class RotatePage(QWidget):
             # إعداد التحميل الكسول
             success = global_page_loader.set_pdf_file(file_path)
             if not success:
-                self.notification_manager.show_error(tr("pdf_open_error"))
+                self.notification_manager.show_notification(tr("pdf_open_error"), "error")
                 return
 
             # إعداد شريط التقدم (إذا لم يكن موجوداً)
@@ -411,7 +411,7 @@ class RotatePage(QWidget):
 
         except Exception as e:
             print(f"Error loading PDF: {e}")
-            self.notification_manager.show_error(tr("pdf_load_error", error=str(e)))
+            self.notification_manager.show_notification(tr("pdf_load_error", error=str(e)), "error")
 
     def on_page_loaded(self, page_number: int, pixmap: QPixmap):
         """معالج تحميل الصفحة من النظام الكسول"""
@@ -441,7 +441,11 @@ class RotatePage(QWidget):
     def show_page(self, use_transition=True):
         """عرض الصفحة مع انتقال سلس اختياري"""
         if 0 <= self.current_page < len(self.pages):
-            if use_transition and not self.is_transitioning:
+            # استخدام إعدادات الحركات
+            from modules.settings import should_enable_animations
+            enable_animations = should_enable_animations() and use_transition and not self.is_transitioning
+            
+            if enable_animations:
                 self.show_page_with_transition()
             else:
                 self.show_page_direct()
@@ -610,7 +614,7 @@ class RotatePage(QWidget):
     def save_file(self):
         """حفظ الملف المُدوَّر"""
         if not self.file_path or not self.pages:
-            self.notification_manager.show_warning(tr("no_file_to_save"))
+            self.notification_manager.show_notification(tr("no_file_to_save"), "warning")
             return
 
         # اختيار مكان الحفظ
@@ -643,7 +647,7 @@ class RotatePage(QWidget):
             has_stamps = any(len(stamps) > 0 for stamps in self.stamps.values())
 
             if not rotations_to_apply and not has_stamps:
-                self.notification_manager.show_info(tr("no_changes_to_save"))
+                self.notification_manager.show_notification(tr("no_changes_to_save"), "info")
                 return
 
             # طباعة معلومات التصحيح
@@ -673,12 +677,12 @@ class RotatePage(QWidget):
 
                 message = tr("save_success_summary", path=save_path, rotated_count=len(rotations_to_apply), stamp_count=stamp_summary['total_stamps'], page_count=stamp_summary['total_pages_with_stamps'])
                 
-                self.notification_manager.show_success(message, duration=5000)
+                self.notification_manager.show_notification(message, "success", duration=5000)
             else:
-                self.notification_manager.show_error(tr("save_failed"))
+                self.notification_manager.show_notification(tr("save_failed"), "error")
 
         except Exception as e:
-            self.notification_manager.show_error(tr("save_error", error=str(e)))
+            self.notification_manager.show_notification(tr("save_error", error=str(e)), "error")
 
     def open_stamp_manager(self):
         """فتح نافذة إدارة الأختام"""
@@ -693,12 +697,12 @@ class RotatePage(QWidget):
             print(f"Error opening stamp manager: {e}")
             import traceback
             traceback.print_exc()
-            self.notification_manager.show_error(tr("stamp_manager_error", error=str(e)))
+            self.notification_manager.show_notification(tr("stamp_manager_error", error=str(e)), "error")
 
     def start_stamp_placement(self, stamp_path):
         """بدء وضع الختم التفاعلي"""
         if not self.pages:
-            self.notification_manager.show_warning(tr("load_pdf_first"))
+            self.notification_manager.show_notification(tr("load_pdf_first"), "warning")
             return
 
         self.current_stamp_path = stamp_path
@@ -717,7 +721,7 @@ class RotatePage(QWidget):
         self.view.setDragMode(QGraphicsView.DragMode.NoDrag)  # تعطيل السحب أثناء وضع الختم
 
         # إظهار إشعار توجيهي
-        self.notification_manager.show_info(tr("stamp_placement_guide"), duration=5000)
+        self.notification_manager.show_notification(tr("stamp_placement_guide"), "info", duration=5000)
 
 
 

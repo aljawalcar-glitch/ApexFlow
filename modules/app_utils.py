@@ -7,6 +7,7 @@ import os
 import psutil
 from PySide6.QtWidgets import QMessageBox, QProgressDialog
 from PySide6.QtCore import Qt
+from modules.translator import tr
 
 def get_icon_path():
     """العثور على مسار الأيقونة الصحيح سواء كان التطبيق مجمداً أم لا"""
@@ -390,7 +391,7 @@ class OperationsManager:
         try:
             files = page.file_list_frame.get_valid_files()
             if len(files) < 2:
-                self.message_manager.show_error("يجب اختيار ملفين على الأقل للدمج")
+                page.notification_manager.show_notification("يجب اختيار ملفين على الأقل للدمج", "warning")
                 return False
 
             # الحصول على مسار الحفظ
@@ -450,33 +451,33 @@ class OperationsManager:
                 success = self.split_module.split_pdf_advanced(file, output_dir)
 
                 if success:
-                    self.message_manager.show_success(f"تم تقسيم الملف بنجاح!\nحُفظت الصفحات في: {output_dir}")
+                    page.notification_manager.show_notification(f"{tr('split_completed_successfully')}\n{tr('pages_saved_in')}: {output_dir}", "success", duration=4000)
                     page.file_list_frame.clear_all_files()
                     # إخفاء التخطيط الكامل بعد النجاح
                     if hasattr(page, 'save_and_split_widget'):
                         page.save_and_split_widget.setVisible(False)
                     return True
                 else:
-                    self.message_manager.show_error("فشل في تقسيم الملف.")
+                    page.notification_manager.show_notification(tr("split_failed"), "error", duration=4000)
                     return False
 
         except Exception as e:
-            self.message_manager.show_error(f"حدث خطأ غير متوقع: {str(e)}")
+            page.notification_manager.show_notification(f"{tr('split_error')}: {str(e)}", "error")
             return False
 
     def compress_files(self, page):
         """تنفيذ عملية ضغط الملفات"""
         try:
-            files = page.file_list_frame.get_valid_files()
+            files = page.selected_files
             if not files:
-                self.message_manager.show_error("يجب اختيار ملف واحد على الأقل للضغط")
+                page.notification_manager.show_notification(tr("select_one_file_message"), "warning")
                 return False
 
             from modules import settings
             settings_data = settings.load_settings()
             
             # الحصول على مستوى الضغط من الواجهة
-            compression_level = page.get_batch_compression_level(page.batch_compression_combo.currentText())
+            compression_level = page.get_batch_compression_level()
 
             for file in files:
                 output = self.file_manager.get_output_path_with_settings(
@@ -487,16 +488,16 @@ class OperationsManager:
                 if output:
                     success = self.compress_module.compress_pdf(file, output, compression_level)
                     if success:
-                        self.message_manager.show_success(f"تم ضغط الملف {os.path.basename(file)} بنجاح!")
+                        page.notification_manager.show_notification(f"{tr('file_compressed_successfully')}: {os.path.basename(file)}", "success", duration=4000)
                     else:
-                        self.message_manager.show_error(f"فشل في ضغط الملف {os.path.basename(file)}.")
+                        page.notification_manager.show_notification(f"{tr('compress_failed')}: {os.path.basename(file)}", "error", duration=4000)
                         return False
 
             page.clear_files()
             return True
 
         except Exception as e:
-            self.message_manager.show_error(f"حدث خطأ غير متوقع: {str(e)}")
+            page.notification_manager.show_notification(f"{tr('compress_error')}: {str(e)}", "error")
             return False
 
     def rotate_files(self, page, angle=90):

@@ -105,6 +105,10 @@ class CompressPage(BasePageWidget):
         # Use the centralized theme manager for styling
         make_theme_aware(self.compression_slider, "compression_slider")
 
+        # Set inverted appearance for RTL languages
+        if self.layoutDirection() == Qt.RightToLeft:
+            self.compression_slider.setInvertedAppearance(True)
+
         self.compression_percentage = QLabel("10%")
         make_theme_aware(self.compression_percentage, "label")
         self.compression_percentage.setMinimumWidth(50)
@@ -249,7 +253,7 @@ class CompressPage(BasePageWidget):
                 self.batch_save_label.setText(f"{tr('path_prefix')} {new_folder}")
 
                 # إشعار بنجاح تحديد الملفات للضغط المجمع
-                self.notification_manager.show_info(f"{tr('files_selected_for_batch_compression')} ({len(files)} ملف)", duration=3000)
+                self.notification_manager.show_notification(f"{tr('files_selected_for_batch_compression')} ({len(files)} ملف)", "info", duration=3000)
 
             else:
                 self.current_file_path = self.selected_files[0]
@@ -258,12 +262,12 @@ class CompressPage(BasePageWidget):
 
                 # إشعار بنجاح تحديد الملف
                 file_name = os.path.basename(self.current_file_path)
-                self.notification_manager.show_info(f"{tr('file_selected_for_compression')}: {file_name}", duration=3000)
+                self.notification_manager.show_notification(f"{tr('file_selected_for_compression')}: {file_name}", "info", duration=3000)
 
             self.on_files_changed(self.selected_files)
 
         except Exception as e:
-            self.notification_manager.show_error(f"{tr('error_selecting_files')}: {str(e)}")
+            self.notification_manager.show_notification(f"{tr('error_selecting_files')}: {str(e)}", "error")
 
     def on_files_changed(self, files):
         if not files:
@@ -283,9 +287,65 @@ class CompressPage(BasePageWidget):
                     self.update_compression_info()
 
     def update_compression_info(self):
-        # This function and its helpers can be simplified as they are mostly for display
-        # and their logic is complex. We will focus on the UI styling.
-        pass
+        """Updates the info frame based on the slider's value."""
+        if not self.current_file_path or not os.path.exists(self.current_file_path):
+            return
+
+        try:
+            from modules.compress import format_file_size
+            import math
+        except ImportError:
+            def format_file_size(size_bytes):
+                if size_bytes == 0: return "0 Bytes"
+                names = ("Bytes", "KB", "MB", "GB", "TB")
+                i = int(math.floor(math.log(size_bytes, 1024)))
+                p = math.pow(1024, i)
+                s = round(size_bytes / p, 1)
+                return f"{s} {names[i]}"
+
+        value = self.compression_slider.value()
+        self.compression_percentage.setText(f"{value}%")
+
+        level = self.get_slider_compression_level()
+        
+        level_details = {
+            1: {"level": tr("very_light_compression"), "quality": tr("quality_excellent"), "desc": tr("quality_high_compression")},
+            2: {"level": tr("light_compression"), "quality": tr("quality_very_good"), "desc": tr("quality_good_balance")},
+            3: {"level": tr("medium_compression"), "quality": tr("quality_good"), "desc": tr("quality_recommended")},
+            4: {"level": tr("high_compression"), "quality": tr("quality_acceptable"), "desc": tr("quality_smaller_size")},
+            5: {"level": tr("max_compression"), "quality": tr("quality_low"), "desc": tr("quality_smallest_size")}
+        }
+        details = level_details.get(level, level_details[3])
+
+        self.compression_level_label.setText(details["level"])
+        self.compression_percent_label.setText(f"({value}%)")
+
+        # Update size information
+        self.current_file_size = os.path.getsize(self.current_file_path)
+        if self.current_file_size > 0:
+            original_size_str = format_file_size(self.current_file_size)
+            
+            # Estimate reduction. This is a UI estimate.
+            reduction_factor = 1.0 - (0.90 * (value / 100.0))
+            expected_size = self.current_file_size * reduction_factor
+            if expected_size < 0: expected_size = 0
+
+            expected_size_str = format_file_size(expected_size)
+            savings = self.current_file_size - expected_size
+            savings_str = format_file_size(savings)
+            savings_percent = (savings / self.current_file_size * 100) if self.current_file_size > 0 else 0
+
+            self.original_size_label.setText(f"{tr('original_size')}: {original_size_str}")
+            self.expected_size_label.setText(f"{tr('expected_size')}: {expected_size_str}")
+            self.savings_label.setText(f"{tr('savings')}: {savings_str} ({savings_percent:.0f}%)")
+        else:
+            self.original_size_label.setText(tr("original_unknown"))
+            self.expected_size_label.setText(tr("expected_unknown"))
+            self.savings_label.setText(tr("saving_unknown"))
+
+        # Update quality information
+        self.quality_status_label.setText(details["quality"])
+        self.quality_desc_label.setText(details["desc"])
 
     def select_save_location(self):
         """Opens a dialog to select a save directory for a single file."""
@@ -321,56 +381,29 @@ class CompressPage(BasePageWidget):
             count += 1
         return path
 
+    def get_batch_compression_level(self):
+        """Maps combo box text to a compression level 1-5."""
+        mapping = {
+            tr("light_compression"): 2,
+            tr("medium_compression"): 3,
+            tr("high_compression"): 4,
+            tr("max_compression"): 5
+        }
+        return mapping.get(self.batch_compression_combo.currentText(), 3)
+
+    def get_slider_compression_level(self):
+        """Maps slider value (5-100) to a compression level 1-5."""
+        value = self.compression_slider.value()
+        if value <= 20: return 1
+        if value <= 40: return 2
+        if value <= 60: return 3
+        if value <= 80: return 4
+        return 5
+
     def execute_compress(self):
-        """تنفيذ عملية ضغط الملفات مع إشعارات للمستخدم"""
+        """Initiates the compression process via the OperationsManager."""
         try:
-            # التحقق من وجود ملفات للضغط
-            if self.batch_mode_checkbox.isChecked():
-                files = self.selected_files
-                if not files:
-                    self.notification_manager.show_warning(tr("no_files_selected_for_compression"))
-                    return
-            else:
-                if not self.current_file_path or not os.path.exists(self.current_file_path):
-                    self.notification_manager.show_warning(tr("no_file_selected_for_compression"))
-                    return
-                files = [self.current_file_path]
-
-            # التحقق من مسار الحفظ
-            save_path = ""
-            if self.batch_mode_checkbox.isChecked():
-                # للوضع المجمع، استخدم مسار الحفظ المحدد
-                if hasattr(self, 'batch_save_location_label'):
-                    save_path = self.batch_save_location_label.text().replace(f"{tr('path_prefix')} ", "")
-            else:
-                # للملف الواحد، استخدم مسار الحفظ المحدد
-                if hasattr(self, 'save_location_label'):
-                    save_path = self.save_location_label.text().replace(f"{tr('path_prefix')} ", "")
-
-            if not save_path or not os.path.exists(os.path.dirname(save_path)):
-                self.notification_manager.show_warning(tr("invalid_save_path"))
-                return
-
-            # إشعار بدء العملية
-            self.notification_manager.show_info(tr("compression_started"), duration=2000)
-
-            # تنفيذ عملية الضغط
-            compression_level = self.compression_slider.value()
-
-            # استدعاء مدير العمليات لتنفيذ الضغط
-            if hasattr(self.operations_manager, 'compress_files'):
-                success = self.operations_manager.compress_files(files, save_path, compression_level)
-
-                if success:
-                    file_count = len(files)
-                    self.notification_manager.show_success(f"{tr('compression_completed_successfully')} ({file_count} ملف)", duration=4000)
-                    # إعادة تعيين الواجهة بعد النجاح
-                    self.clear_files()
-                else:
-                    self.notification_manager.show_error(tr("compression_failed"))
-            else:
-                # في حالة عدم توفر دالة الضغط في مدير العمليات
-                self.notification_manager.show_warning(tr("compression_feature_not_available"))
-
+            # The manager will handle everything: getting files, paths, levels, and showing messages.
+            self.operations_manager.compress_files(self)
         except Exception as e:
-            self.notification_manager.show_error(f"{tr('compression_error')}: {str(e)}")
+            self.notification_manager.show_notification(f"{tr('compression_error')}: {str(e)}", "error")

@@ -376,7 +376,10 @@ class ConvertPage(BasePageWidget):
 
         self.current_save_path = save_path
         self.save_path_label.setText(f"{tr('save_path_prefix')} {self.current_save_path}")
-        self.save_path_label.setToolTip(self.current_save_path)
+        # استخدام إعدادات التلميحات
+        from modules.settings import should_show_tooltips
+        if should_show_tooltips():
+            self.save_path_label.setToolTip(self.current_save_path)
 
     def change_save_path(self):
         """فتح نافذة لتغيير مسار الحفظ."""
@@ -402,7 +405,10 @@ class ConvertPage(BasePageWidget):
 
         if new_path:
             self.save_path_label.setText(f"{tr('save_path_prefix')} {self.current_save_path}")
-            self.save_path_label.setToolTip(self.current_save_path)
+            # استخدام إعدادات التلميحات
+            from modules.settings import should_show_tooltips
+            if should_show_tooltips():
+                self.save_path_label.setToolTip(self.current_save_path)
 
 
     def execute_conversion(self):

@@ -51,7 +51,10 @@ class NotificationBar(QFrame):
         apply_theme(self.history_button, "notification_history_button")
         self.history_button.setFixedSize(28, 28)
         self.history_button.setIconSize(QSize(18, 18))
-        self.history_button.setToolTip(tr("notification_history_tooltip"))
+        # استخدام إعدادات التلميحات
+        from modules.settings import should_show_tooltips
+        if should_show_tooltips():
+            self.history_button.setToolTip(tr("notification_history_tooltip"))
         layout.addWidget(self.history_button)
 
         # Close Button
@@ -62,9 +65,13 @@ class NotificationBar(QFrame):
         layout.addWidget(self.close_button)
 
         # Animation
-        self.animation = QPropertyAnimation(self, b"maximumHeight")
-        self.animation.setDuration(250)
-        self.animation.setEasingCurve(QEasingCurve.InOutQuad)
+        from modules.settings import should_enable_animations
+        if should_enable_animations():
+            self.animation = QPropertyAnimation(self, b"maximumHeight")
+            self.animation.setDuration(250)
+            self.animation.setEasingCurve(QEasingCurve.InOutQuad)
+        else:
+            self.animation = None
 
         # Hide timer
         self.hide_timer = QTimer(self)
@@ -112,9 +119,13 @@ class NotificationBar(QFrame):
         self.message_label.setText(message)
 
         # Show animation
-        self.animation.setStartValue(self.height())
-        self.animation.setEndValue(45) # Target height
-        self.animation.start()
+        if self.animation:
+            self.animation.setStartValue(self.height())
+            self.animation.setEndValue(45) # Target height
+            self.animation.start()
+        else:
+            # بدون حركات، قم بتعيين الارتفاع مباشرة
+            self.setMaximumHeight(45)
 
         # Start hide timer
         if duration > 0:
@@ -123,13 +134,20 @@ class NotificationBar(QFrame):
     def hide_notification(self):
         """Hides the notification bar with an animation."""
         self.hide_timer.stop()
-        self.animation.setStartValue(self.height())
-        self.animation.setEndValue(0)
-        self.animation.start()
-        self.animation.finished.connect(self.on_hide_finished)
+        if self.animation:
+            self.animation.setStartValue(self.height())
+            self.animation.setEndValue(0)
+            self.animation.start()
+            self.animation.finished.connect(self.on_hide_finished)
+        else:
+            # بدون حركات، قم بإخفاء الإشعار مباشرة
+            self.setMaximumHeight(0)
+            self.on_hide_finished()
 
     def on_hide_finished(self):
-        self.animation.finished.disconnect(self.on_hide_finished)
+        # فصل الإشارة فقط إذا كانت هناك حركات
+        if self.animation:
+            self.animation.finished.disconnect(self.on_hide_finished)
         self.closed.emit()
 
 # --- 2. Notification Center (The History) ---
@@ -141,8 +159,13 @@ class NotificationCenter(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle(tr("notification_center_title"))
-        self.setMinimumSize(450, 350)
+        self.setMinimumSize(500, 400)
+        self.setMaximumSize(800, 600)
+        self.resize(500, 400)
         apply_theme(self, "dialog")
+        
+        # تطبيق السمة عند تغييرها
+        global_theme_manager.theme_changed.connect(self._apply_theme)
 
         # Layout
         layout = QVBoxLayout(self)
@@ -150,22 +173,41 @@ class NotificationCenter(QDialog):
 
         # List for notifications
         self.history_list = QListWidget()
-        from PySide6.QtWidgets import QAbstractItemView
+        from PySide6.QtWidgets import QAbstractItemView, QScrollArea
         self.history_list.setSizeAdjustPolicy(QAbstractItemView.AdjustToContents)
+        self.history_list.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.history_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         apply_theme(self.history_list, "list_widget")
         layout.addWidget(self.history_list)
 
         # Buttons
-        button_box = QDialogButtonBox()
-        settings_button = button_box.addButton(tr("settings"), QDialogButtonBox.ActionRole)
-        clear_button = button_box.addButton(tr("clear_all"), QDialogButtonBox.ActionRole)
-        close_button = button_box.addButton(QDialogButtonBox.Close)
+        button_layout = QHBoxLayout()
         
+        # Settings button
+        settings_button = QPushButton(tr("settings"))
+        apply_theme(settings_button, "button")
         settings_button.clicked.connect(self.show_settings_dialog)
-        clear_button.clicked.connect(self.clear_history)
-        close_button.clicked.connect(self.accept)
+        button_layout.addWidget(settings_button)
         
-        layout.addWidget(button_box)
+        # Clear button
+        clear_button = QPushButton(tr("clear_all"))
+        apply_theme(clear_button, "button")
+        clear_button.clicked.connect(self.clear_history)
+        button_layout.addWidget(clear_button)
+        
+        # Close button
+        close_button = QPushButton(tr("close_button"))
+        apply_theme(close_button, "button")
+        close_button.clicked.connect(self.accept)
+        button_layout.addWidget(close_button)
+        
+        # Add stretch to push buttons to the right in LTR mode
+        button_layout.addStretch()
+        
+        # تم ربط الأحداث سابقاً عند إنشاء الأزرار
+        
+        # Add button layout to main layout
+        layout.addLayout(button_layout)
 
     def show_settings_dialog(self):
         """Opens the notification settings dialog."""
@@ -176,6 +218,27 @@ class NotificationCenter(QDialog):
         """مسح جميع الإشعارات من التاريخ"""
         self.history_list.clear()
 
+    def _apply_theme(self):
+        """تطبيق السمة الحالية على النافذة"""
+        apply_theme(self, "dialog")
+        apply_theme(self.history_list, "list_widget")
+        
+        # تحديث الألوان في العناصر الموجودة
+        theme_colors = global_theme_manager.get_current_colors()
+        for i in range(self.history_list.count()):
+            item = self.history_list.item(i)
+            # استخراج نوع الإشعار من النص
+            text = item.text()
+            if text.startswith("✓ "):
+                color = theme_colors.get("success", "#4ade80")
+            elif text.startswith("⚠ "):
+                color = theme_colors.get("warning", "#fbbf24")
+            elif text.startswith("✗ "):
+                color = theme_colors.get("error", "#f87171")
+            else:
+                color = theme_colors.get("accent", "#60a5fa")
+            item.setForeground(QColor(color))
+    
     def add_notification(self, message, notification_type):
         """Adds a new notification to the history list."""
         # استخدام طريقة بسيطة ومباشرة لعرض الإشعارات
