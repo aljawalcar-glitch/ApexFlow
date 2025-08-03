@@ -679,5 +679,19 @@ def get_rtl_aware_scroll_style(colors, accent_color):
         """
 
 
+def get_file_list_title_style(colors, accent_color):
+    """نمط عنوان قائمة الملفات"""
+    font_settings = get_font_settings()
+    return f"""
+        QLabel#fileListTitle {{
+            color: {colors["text_title"]};
+            font-size: {int(font_settings["size"] * 1.2)}px;
+            font-weight: bold;
+            padding: 5px;
+            border-bottom: 1px solid {accent_color}66;
+            margin-bottom: 5px;
+        }}
+    """
+
 def get_scroll_style(colors, accent_color):
     return get_widget_style("graphics_view", colors, accent_color)

@@ -25,6 +25,7 @@ from modules.app_utils import get_icon_path
 from modules.logger import debug, info, warning, error
 from ui import WelcomePage, apply_theme_style
 from ui.notification_system import NotificationBar
+from ui.first_run_dialog import FirstRunDialog
 from modules.translator import tr
 
 # ===============================
@@ -147,43 +148,20 @@ class ApexFlow(QMainWindow):
             self.setLayoutDirection(Qt.LeftToRight)
 
     def refresh_main_window_theme(self):
-        """إعادة تطبيق السمة على النافذة الرئيسية وجميع عناصرها"""
+        """Refreshes the theme of the main window and all its components using the ThemeManager."""
         try:
-            # إعادة تحميل الإعدادات
             self.settings_data = load_settings()
+            
+            # Use the theme manager to re-apply the theme to all registered widgets
+            self.theme_manager.apply_theme_to_all()
 
-            # تطبيق السمة على النافذة الرئيسية
-            apply_theme_style(self, "main_window", auto_register=True)
+            # Specifically refresh pages that might have been loaded
+            self.refresh_all_loaded_pages()
 
-            # تطبيق السمة على القائمة الجانبية
-            if hasattr(self, 'menu_list'):
-                apply_theme_style(self.menu_list, "menu", auto_register=True)
-
-            # تطبيق السمة على معلومات التطبيق
-            if hasattr(self, 'app_info'):
-                apply_theme_style(self.app_info, "info_widget", auto_register=True)
-
-            # تطبيق السمة على المحتوى المكدس
-            if hasattr(self, 'stacked_widget'):
-                apply_theme_style(self.stacked_widget, "stacked_widget", auto_register=True)
-
-                # تطبيق السمة على جميع الصفحات
-                for i in range(self.stacked_widget.count()):
-                    page = self.stacked_widget.widget(i)
-                    if page:
-                        apply_theme_style(page, "page", auto_register=True)
-                        # تطبيق السمة على جميع العناصر الفرعية
-                        for child in page.findChildren(object):
-                            if hasattr(child, 'setStyleSheet'):
-                                try:
-                                    apply_theme_style(child, "auto", auto_register=True)
-                                except:
-                                    pass
-
-            debug("تم إعادة تطبيق السمة على النافذة الرئيسية")
+            debug("Theme re-applied to the main window via ThemeManager.")
 
         except Exception as e:
-            error(f"خطأ في إعادة تطبيق السمة على النافذة الرئيسية: {e}")
+            error(f"Error refreshing main window theme: {e}")
 
     def _validate_settings_delayed(self):
         """Validate settings in a deferred manner using managers"""
@@ -212,29 +190,8 @@ class ApexFlow(QMainWindow):
             self._settings_ui_module = SettingsUI
         return self._settings_ui_module
 
-    def initUI(self):
-        # Clear old layout if it exists
-        if hasattr(self, 'centralWidget') and self.centralWidget():
-            old_widget = self.centralWidget()
-            old_widget.setParent(None)
-            old_widget.deleteLater()
-            QApplication.processEvents()
-
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        central_widget.setStyleSheet("background: transparent;")
-
-        # Set icon path correctly
-        icon_path = get_icon_path()
-        if icon_path and os.path.exists(icon_path):
-            self.setWindowIcon(QIcon(icon_path))
-
-        # Main horizontal layout
-        main_layout = QHBoxLayout(central_widget)
-        main_layout.setSpacing(10)
-        main_layout.setContentsMargins(10, 10, 10, 10)
-
-        # Create sidebar with program information
+    def _create_sidebar(self):
+        """Creates the sidebar widget."""
         sidebar_widget = QWidget()
         sidebar_widget.setFixedWidth(180)
         sidebar_layout = QVBoxLayout(sidebar_widget)
@@ -248,118 +205,108 @@ class ApexFlow(QMainWindow):
             tr("menu_compress"), tr("menu_stamp_rotate"), tr("menu_convert"),
             tr("menu_security"), tr("menu_settings")
         ])
-
-        # Selection and interaction settings
         self.menu_list.setFocusPolicy(Qt.NoFocus)
         self.menu_list.setSelectionMode(QListWidget.SingleSelection)
-
-        # Set first item as default selection
         self.menu_list.setCurrentRow(0)
-
-        # Connect change signal
-        self.menu_list.currentRowChanged.connect(self.on_menu_selection_changed)
-
-        # Use unified theme system
         apply_theme_style(self.menu_list, "menu")
-
-        # Add menu to sidebar
         sidebar_layout.addWidget(self.menu_list)
 
-        # Add program information below menu
+        # App info widget
         from ui.app_info_widget import AppInfoWidget
         self.app_info = AppInfoWidget()
         sidebar_layout.addWidget(self.app_info)
 
-        # Add notification history button
+        # Notification history button
         self.notification_history_button = QPushButton(tr("notifications_button"))
         apply_theme_style(self.notification_history_button, "button")
         self.notification_history_button.clicked.connect(self.notification_manager.show_notification_center)
         sidebar_layout.addWidget(self.notification_history_button)
 
-        # إنشاء منطقة المحتوى مع التحميل الكسول
+        return sidebar_widget
+
+    def _create_main_content(self):
+        """Creates the main content area with the stacked widget and notification bar."""
+        # Create the stacked widget for pages
         self.stack = QStackedWidget()
         self.stack.setStyleSheet("background: transparent;")
 
-        # إنشاء صفحة الترحيب فقط (الصفحة الافتراضية)
+        # Welcome page
         self.welcome_page = WelcomePage()
         self.welcome_page.navigate_to_page.connect(self.navigate_to_page)
-
-        # إنشاء scroll area لصفحة الترحيب
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(self.welcome_page)
-        
-
-
-        # استخدام نظام السمات الموحد مع خلفية شفافة
         apply_theme_style(scroll, "graphics_view")
         scroll.viewport().setStyleSheet("background: transparent;")
+        self.stack.addWidget(scroll)
+        self.stack.setCurrentIndex(0)
 
-
-
-        # إضافة صفحة الترحيب إلى المكدس
-        self.stack.addWidget(scroll)  # الفهرس 0
-
-        # إنشاء صفحات نائبة مع محتوى بسيط
+        # Placeholder pages
         page_names = [
             tr("menu_merge_print"), tr("menu_split"), tr("menu_compress"),
             tr("menu_stamp_rotate"), tr("menu_convert"), tr("menu_security"),
             tr("menu_settings")
         ]
-
-        # إضافة عناصر نائبة للصفحات الأخرى (سيتم تحميلها عند الحاجة)
-        # عدد الصفحات ديناميكي: صفحة الترحيب + الصفحات الأخرى
-        self.pages_loaded = [True] + [False] * len(page_names)  # تتبع الصفحات المحملة
+        self.pages_loaded = [True] + [False] * len(page_names)
         for page_name in page_names:
             placeholder = QWidget()
             layout = QVBoxLayout(placeholder)
             layout.setAlignment(Qt.AlignCenter)
-
             label = QLabel(tr("loading_page_message", page_name=page_name))
             label.setAlignment(Qt.AlignCenter)
             label.setStyleSheet("color: #cccccc; font-size: 12px; font-weight: normal;")
             layout.addWidget(label)
-
             self.stack.addWidget(placeholder)
 
-        # ربط القائمة بالتحميل الكسول
-        self.menu_list.currentRowChanged.connect(self.load_page_on_demand)
-
-        # حفظ مراجع العناصر
-        self.sidebar_widget = sidebar_widget
-        self.main_layout = main_layout
-        
-        # --- New Layout Structure for Notification Bar (Overlay) ---
-        # Right panel (stack + notification bar)
-        self.right_panel_widget = QWidget()
-        # Use QGridLayout to allow widgets to overlap
-        right_panel_layout = QGridLayout(self.right_panel_widget)
+        # Right panel to hold the stack and notification bar overlay
+        right_panel_widget = QWidget()
+        right_panel_layout = QGridLayout(right_panel_widget)
         right_panel_layout.setContentsMargins(0, 0, 0, 0)
         right_panel_layout.setSpacing(0)
-
-        # Add stack widget to the grid
         right_panel_layout.addWidget(self.stack, 0, 0)
 
-        # Notification System Setup
-        # Parent the bar to the right panel so it's contained within it
-        self.notification_bar = NotificationBar(self.right_panel_widget)
-        # Add the notification bar to the same grid cell to create an overlay
-        right_panel_layout.addWidget(self.notification_bar, 0, 0)
-        # Align the bar to the bottom so it appears from the bottom edge
-        right_panel_layout.setAlignment(self.notification_bar, Qt.AlignBottom)
-        
-        # Register widgets with the notification manager
+        # Notification System
+        self.notification_bar = NotificationBar(right_panel_widget)
+        right_panel_layout.addWidget(self.notification_bar, 0, 0, alignment=Qt.AlignBottom)
         self.notification_manager.register_widgets(self, self.notification_bar)
-        # --- End New Layout Structure ---
 
-        # إضافة العناصر للتخطيط الرئيسي بالترتيب الافتراضي أولاً (للعربية)
-        main_layout.addWidget(sidebar_widget)
-        main_layout.addWidget(self.right_panel_widget, 1) # Add the right panel with stretch factor
-        
-        # ترتيب التخطيط حسب اللغة
+        return right_panel_widget
+
+    def initUI(self):
+        """Initializes the main user interface."""
+        # Clear old layout if it exists
+        if self.centralWidget():
+            old_widget = self.centralWidget()
+            old_widget.setParent(None)
+            old_widget.deleteLater()
+
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        central_widget.setStyleSheet("background: transparent;")
+
+        # Set window icon
+        icon_path = get_icon_path()
+        if icon_path and os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+
+        # Main layout
+        self.main_layout = QHBoxLayout(central_widget)
+        self.main_layout.setSpacing(10)
+        self.main_layout.setContentsMargins(10, 10, 10, 10)
+
+        # Create UI components
+        self.sidebar_widget = self._create_sidebar()
+        self.right_panel_widget = self._create_main_content()
+
+        # Connect signals after UI creation
+        self.menu_list.currentRowChanged.connect(self.handle_menu_selection)
+
+        # Add widgets to the main layout
+        self.main_layout.addWidget(self.sidebar_widget)
+        self.main_layout.addWidget(self.right_panel_widget, 1)
+
+        # Arrange layout based on language and update scrollbars
         self.arrange_layout()
-        
-        # تحديث اتجاه شريط التمرير
         self.update_scrollbars_direction()
         
     def arrange_layout(self):
@@ -422,10 +369,17 @@ class ApexFlow(QMainWindow):
             self.menu_list.setCurrentRow(index)
             self.load_page_on_demand(index)
 
-    def on_menu_selection_changed(self, current_row):
+    def handle_menu_selection(self, current_row):
         """التعامل مع تغيير التحديد في القائمة"""
+        # عند بدء التطبيق، لا تقم بتحميل الصفحات غير الضرورية
+        # current_row سيكون 0 عند بدء التطبيق
         if current_row >= 0:
             self.load_page_on_demand(current_row)
+            
+    def on_menu_selection_changed(self, current_row):
+        """دالة قديمة للحفاظ على التوافق مع الإشارات القديمة"""
+        # دالة محجوبة الآن، يتم استخدام handle_menu_selection بدلاً منها
+        self.handle_menu_selection(current_row)
 
 
 
@@ -433,7 +387,14 @@ class ApexFlow(QMainWindow):
         """تحميل الصفحات عند الطلب باستخدام المدراء"""
         if index < 0 or index >= len(self.pages_loaded):
             return
-
+            
+        # عند بدء التطبيق (الفهرس 0)، لا تقم بتحميل الصفحة أو إعادة تعيين الصفحات
+        # هذا يمنع تحميل الصفحات غير الضرورية عند الفتح
+        if index == 0:
+            # الصفحة 0 (صفحة الترحيب) محملة بالفعل، فقط انتقل إليها
+            self.stack.setCurrentIndex(0)
+            return
+            
         # إعادة تعيين جميع الصفحات المحملة عند التنقل
         self._reset_all_loaded_pages()
 
@@ -459,21 +420,34 @@ class ApexFlow(QMainWindow):
         self.stack.setCurrentIndex(index)
 
     def _reset_all_loaded_pages(self):
-        """إعادة تعيين جميع الصفحات المحملة عند التنقل بين التبويبات"""
+        """Resets all loaded pages, checking for unsaved changes first."""
         try:
+            current_index = self.stack.currentIndex()
+            if current_index > 0 and self.pages_loaded[current_index]:
+                widget = self.stack.widget(current_index)
+                inner_widget = widget.widget() if hasattr(widget, 'widget') else widget
+
+                if hasattr(inner_widget, 'has_unsaved_changes') and inner_widget.has_unsaved_changes:
+                    from modules import settings
+                    from PySide6.QtWidgets import QDialog
+
+                    settings_data = settings.load_settings()
+                    if settings_data.get("dont_ask_again_and_discard", False):
+                        pass  # Continue to reset
+                    else:
+                        result = self.message_manager.ask_for_save_confirmation(inner_widget)
+                        if result == QDialog.Rejected:
+                            return  # User cancelled, do not reset pages
+
+            # Proceed to reset all other pages
             for i in range(1, self.stack.count()):
                 if self.pages_loaded[i]:
                     widget = self.stack.widget(i)
-                    if widget and hasattr(widget, 'widget'):
-                        # إذا كان scroll area، احصل على الويدجت الداخلي
-                        inner_widget = widget.widget()
-                        if inner_widget and hasattr(inner_widget, 'reset_ui'):
-                            inner_widget.reset_ui()
-                    elif widget and hasattr(widget, 'reset_ui'):
-                        # إذا كان الويدجت مباشرة
-                        widget.reset_ui()
+                    inner_widget = widget.widget() if hasattr(widget, 'widget') else widget
+                    if hasattr(inner_widget, 'reset_ui'):
+                        inner_widget.reset_ui()
         except Exception as e:
-            debug(f"خطأ في إعادة تعيين الصفحات: {e}")
+            debug(f"Error resetting pages: {e}")
 
     def _create_page(self, index):
         """إنشاء الصفحة المطلوبة"""
@@ -817,34 +791,16 @@ def main():
     # التحقق من التشغيل الأول وعرض واجهة الإعداد
     settings_data = load_settings()
     if not settings_data:
-        from ui.first_run_dialog import FirstRunDialog
-        
+        # Create and show first run dialog
         first_run_dialog = FirstRunDialog()
-        
-        def on_settings_chosen(language, theme):
-            set_setting("language", language)
-            set_setting("theme", theme)
-
-            # إعادة تحميل الترجمات لضمان تطبيق اللغة المختارة
-            import importlib
-            from modules import translator
-            importlib.reload(translator)
-            
-            # تطبيق الاتجاه فورًا
-            if language == "ar":
-                app.setLayoutDirection(Qt.RightToLeft)
-            else:
-                app.setLayoutDirection(Qt.LeftToRight)
-
-        first_run_dialog.settings_chosen.connect(on_settings_chosen)
+        # The dialog is modal and should handle saving the settings itself.
         if not first_run_dialog.exec():
-            sys.exit(0) # Exit if the user closes the dialog
+            sys.exit(0)  # Exit if the user closes the dialog
+        # Reload settings after the first run dialog has presumably saved them.
+        settings_data = load_settings()
 
     # --- تطبيق اتجاه الواجهة قبل إنشاء أي نافذة ---
-    settings_data = load_settings()
     language = settings_data.get("language", "ar")
-    
-    # تعيين اللغة في المترجم (الترجمة تعتمد على الإعدادات عند التحميل)
     
     if language == "ar":
         app.setLayoutDirection(Qt.RightToLeft)
@@ -863,6 +819,6 @@ def main():
 
     sys.exit(app.exec())
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     main()

@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QPushButton, QCheckBox, QSpinBox, QSlider, QGroupBox,
     QFileDialog, QMessageBox, QFormLayout, QFrame, QScrollArea, QStackedWidget,
-    QApplication
+    QApplication, QDialog
 )
 from PySide6.QtCore import Qt, QTimer, Signal
 from modules import settings
@@ -34,8 +34,8 @@ class StepIndicator(QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.current_step = 2  # البدء من المظهر (الفهرس 2)
-        self.steps = [tr("step_save"), tr("step_fonts"), tr("step_appearance")]  # عكس الترتيب
+        self.current_step = 3  # البدء من المظهر (الفهرس 3)
+        self.steps = [tr("step_save"), tr("step_general_settings"), tr("step_fonts"), tr("step_appearance")]  # عكس الترتيب
         self.setup_ui()
         
     def setup_ui(self):
@@ -175,12 +175,12 @@ class SettingsUI(ThemeAwareDialog):
             # تحميل الإعدادات
             self.settings_data = settings.load_settings()
             self.original_settings = self.settings_data.copy()
-            self.current_step = 2  # البدء من المظهر
+            self.current_step = 3  # البدء من المظهر
             self.has_unsaved_changes = False
 
             # تتبع الصفحات المحملة للتحميل الكسول
-            self.pages_loaded = [False, False, False]
-            self.page_widgets = [None, None, None]
+            self.pages_loaded = [False, False, False, False]
+            self.page_widgets = [None, None, None, None]
 
             # إنشاء جميع العناصر مباشرة (إزالة التحميل الكسول المعقد)
             self._create_all_widgets()
@@ -526,13 +526,13 @@ class SettingsUI(ThemeAwareDialog):
         main_layout.addWidget(self.content_frame)
         
         # تعيين الصفحة الافتراضية والتحميل
-        self.content_stack.setCurrentIndex(2)  # المظهر (الفهرس 2)
+        self.content_stack.setCurrentIndex(3)  # المظهر (الفهرس 3)
         self.update_navigation_buttons()
 
         # تحميل الإعدادات الحالية (بدلاً من الأصلية) لعرضها في الواجهة
         QTimer.singleShot(100, self.load_current_settings_to_ui)
         # تحديث الخط السفلي بعد رسم الواجهة
-        QTimer.singleShot(200, lambda: self.step_indicator.set_current_step(2))
+        QTimer.singleShot(200, lambda: self.step_indicator.set_current_step(3))
         # تحديث تقرير التغييرات بعد التحميل
         QTimer.singleShot(300, self.update_changes_report)
 
@@ -545,7 +545,7 @@ class SettingsUI(ThemeAwareDialog):
     def create_step_pages(self):
         """إنشاء صفحات الخطوات بالتحميل الكسول"""
         # إنشاء صفحات فارغة كعناصر نائبة
-        for i in range(3):
+        for i in range(4):  # تغيير من 3 إلى 4 لاستيعاب الصفحة الجديدة
             placeholder = QWidget()
             placeholder.setStyleSheet("background: transparent;")
             self.content_stack.addWidget(placeholder)
@@ -561,8 +561,9 @@ class SettingsUI(ThemeAwareDialog):
         # إنشاء الصفحة (العناصر موجودة مسبقاً)
         page_creators = {
             0: self.create_save_page,
-            1: self.create_fonts_page,
-            2: self.create_appearance_page
+            1: self.create_general_settings_page,
+            2: self.create_fonts_page,
+            3: self.create_appearance_page
         }
 
         creator = page_creators.get(page_index)
@@ -643,6 +644,8 @@ class SettingsUI(ThemeAwareDialog):
         self.accent_color_btn = QPushButton(tr("choose_color_button"))
         self.accent_color_btn.setStyleSheet(self.get_special_button_style())
         self.accent_color_btn.clicked.connect(self.choose_accent_color)
+        # ربط تغيير اللون بتسجيل التغييرات
+        self.accent_color_btn.clicked.connect(lambda: self.mark_as_changed())
 
         accent_layout.addWidget(self.accent_color_input, 2)
         accent_layout.addWidget(self.accent_color_btn, 1)
@@ -913,6 +916,170 @@ class SettingsUI(ThemeAwareDialog):
 
 
 
+    def create_general_settings_page(self):
+        """إنشاء صفحة الإعدادات العامة"""
+        page = QWidget()
+        page.setStyleSheet("""
+            QWidget {
+                background: transparent;
+            }
+            QLabel {
+                border: none;
+                outline: none;
+            }
+        """)
+        main_layout = QVBoxLayout(page)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # إنشاء منطقة التمرير
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet(self.get_scroll_area_style())
+
+        # المحتوى الداخلي
+        scroll_content = QWidget()
+        layout = QVBoxLayout(scroll_content)
+        layout.setSpacing(25)
+
+        # عنوان الصفحة
+        title = QLabel(tr("general_settings_title"))
+        apply_theme_style(title, "title_text")
+        layout.addWidget(title)
+
+        # مجموعة إعدادات بدء التشغيل
+        startup_group = QGroupBox(tr("startup_settings_group"))
+        apply_theme_style(startup_group, "group_box", auto_register=True)
+        startup_layout = QVBoxLayout(startup_group)
+        startup_layout.setSpacing(10)
+
+        # خيار إلغاء رسالة الترحيب
+        self.disable_welcome_checkbox = QCheckBox(tr("disable_welcome_message_option"))
+        apply_theme_style(self.disable_welcome_checkbox, "checkbox", auto_register=True)
+        # تحميل القيمة الحالية من الإعدادات
+        welcome_disabled = self.settings_data.get("disable_welcome_message", False)
+        self.disable_welcome_checkbox.setChecked(welcome_disabled)
+        # ربط التغيير بتسجيل التغييرات
+        self.disable_welcome_checkbox.stateChanged.connect(self.mark_as_changed)
+        startup_layout.addWidget(self.disable_welcome_checkbox)
+
+        # خيار تذكر الحالة عند الخروج
+        self.remember_state_checkbox = QCheckBox(tr("remember_settings_on_exit_option"))
+        apply_theme_style(self.remember_state_checkbox, "checkbox", auto_register=True)
+        # تحميل القيمة الحالية من الإعدادات
+        remember_state = self.settings_data.get("remember_settings_on_exit", False)
+        self.remember_state_checkbox.setChecked(remember_state)
+        # ربط التغيير بتسجيل التغييرات
+        self.remember_state_checkbox.stateChanged.connect(self.mark_as_changed)
+        startup_layout.addWidget(self.remember_state_checkbox)
+
+        # خيار العودة للإعدادات الافتراضية في المرة القادمة
+        self.reset_to_defaults_checkbox = QCheckBox(tr("reset_to_defaults_next_time_option"))
+        apply_theme_style(self.reset_to_defaults_checkbox, "checkbox", auto_register=True)
+        # تحميل القيمة الحالية من الإعدادات
+        reset_defaults = self.settings_data.get("reset_to_defaults_next_time", False)
+        self.reset_to_defaults_checkbox.setChecked(reset_defaults)
+        # ربط التغيير بتسجيل التغييرات
+        self.reset_to_defaults_checkbox.stateChanged.connect(self.mark_as_changed)
+        # إضافة تفاعل بين الخيارات
+        self.reset_to_defaults_checkbox.stateChanged.connect(self.on_reset_defaults_changed)
+        startup_layout.addWidget(self.reset_to_defaults_checkbox)
+
+        layout.addWidget(startup_group)
+
+        # مجموعة إعدادات الرسائل والتحذيرات
+        messages_group = QGroupBox(tr("messages_and_warnings_settings_group"))
+        apply_theme_style(messages_group, "group_box", auto_register=True)
+        messages_layout = QVBoxLayout(messages_group)
+        messages_layout.setSpacing(10)
+
+        # خيار إظهار رسالة التحذير عند الخروج
+        self.show_exit_warning_checkbox = QCheckBox(tr("show_exit_warning_option"))
+        apply_theme_style(self.show_exit_warning_checkbox, "checkbox", auto_register=True)
+        # تحميل القيمة الحالية من الإعدادات
+        show_warning = self.settings_data.get("show_exit_warning", True)  # الافتراضي هو إظهار الرسالة
+        self.show_exit_warning_checkbox.setChecked(show_warning)
+        # ربط التغيير بتسجيل التغييرات
+        self.show_exit_warning_checkbox.stateChanged.connect(self.mark_as_changed)
+        messages_layout.addWidget(self.show_exit_warning_checkbox)
+
+        # خيار تذكر اختيار المستخدم في رسالة التحذير
+        self.remember_exit_choice_checkbox = QCheckBox(tr("remember_exit_choice_option"))
+        apply_theme_style(self.remember_exit_choice_checkbox, "checkbox", auto_register=True)
+        # تحميل القيمة الحالية من الإعدادات
+        remember_choice = self.settings_data.get("remember_exit_choice", False)
+        self.remember_exit_choice_checkbox.setChecked(remember_choice)
+        # ربط التغيير بتسجيل التغييرات
+        self.remember_exit_choice_checkbox.stateChanged.connect(self.mark_as_changed)
+        messages_layout.addWidget(self.remember_exit_choice_checkbox)
+
+        # خيار عدم السؤال مرة أخرى وتجاهل التغييرات
+        self.dont_ask_again_checkbox = QCheckBox(tr("dont_ask_again_and_discard_option"))
+        apply_theme_style(self.dont_ask_again_checkbox, "checkbox", auto_register=True)
+        # تحميل القيمة الحالية من الإعدادات
+        dont_ask_again = self.settings_data.get("dont_ask_again_and_discard", False)
+        self.dont_ask_again_checkbox.setChecked(dont_ask_again)
+        # ربط التغيير بتسجيل التغييرات
+        self.dont_ask_again_checkbox.stateChanged.connect(self.mark_as_changed)
+        messages_layout.addWidget(self.dont_ask_again_checkbox)
+
+        layout.addWidget(messages_group)
+
+        # مجموعة إعدادات الإشعارات
+        notifications_group = QGroupBox(tr("notifications_settings_group"))
+        apply_theme_style(notifications_group, "group_box", auto_register=True)
+        notifications_layout = QVBoxLayout(notifications_group)
+        notifications_layout.setSpacing(10)
+
+        # خيار إظهار إشعارات النجاح
+        self.show_success_notifications_checkbox = QCheckBox(tr("show_success_notifications"))
+        apply_theme_style(self.show_success_notifications_checkbox, "checkbox", auto_register=True)
+        # تحميل القيمة الحالية من الإعدادات
+        show_success = self.settings_data.get("notification_settings", {}).get("success", True)
+        self.show_success_notifications_checkbox.setChecked(show_success)
+        # ربط التغيير بتسجيل التغييرات
+        self.show_success_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
+        notifications_layout.addWidget(self.show_success_notifications_checkbox)
+
+        # خيار إظهار إشعارات التحذير
+        self.show_warning_notifications_checkbox = QCheckBox(tr("show_warning_notifications"))
+        apply_theme_style(self.show_warning_notifications_checkbox, "checkbox", auto_register=True)
+        # تحميل القيمة الحالية من الإعدادات
+        show_warning = self.settings_data.get("notification_settings", {}).get("warning", True)
+        self.show_warning_notifications_checkbox.setChecked(show_warning)
+        # ربط التغيير بتسجيل التغييرات
+        self.show_warning_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
+        notifications_layout.addWidget(self.show_warning_notifications_checkbox)
+
+        # خيار إظهار إشعارات الخطأ
+        self.show_error_notifications_checkbox = QCheckBox(tr("show_error_notifications"))
+        apply_theme_style(self.show_error_notifications_checkbox, "checkbox", auto_register=True)
+        # تحميل القيمة الحالية من الإعدادات
+        show_error = self.settings_data.get("notification_settings", {}).get("error", True)
+        self.show_error_notifications_checkbox.setChecked(show_error)
+        # ربط التغيير بتسجيل التغييرات
+        self.show_error_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
+        notifications_layout.addWidget(self.show_error_notifications_checkbox)
+
+        # خيار إظهار إشعارات المعلومات
+        self.show_info_notifications_checkbox = QCheckBox(tr("show_info_notifications"))
+        apply_theme_style(self.show_info_notifications_checkbox, "checkbox", auto_register=True)
+        # تحميل القيمة الحالية من الإعدادات
+        show_info = self.settings_data.get("notification_settings", {}).get("info", True)
+        self.show_info_notifications_checkbox.setChecked(show_info)
+        # ربط التغيير بتسجيل التغييرات
+        self.show_info_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
+        notifications_layout.addWidget(self.show_info_notifications_checkbox)
+
+        layout.addWidget(notifications_group)
+
+        # إضافة المحتوى إلى منطقة التمرير
+        scroll_area.setWidget(scroll_content)
+        main_layout.addWidget(scroll_area)
+
+        return page
+
     def create_save_page(self):
         """إنشاء صفحة الحفظ مع تقرير التغييرات"""
         page = QWidget()
@@ -961,21 +1128,7 @@ class SettingsUI(ThemeAwareDialog):
 
         layout.addWidget(report_group)
 
-        # خيارات إضافية
-        options_group = QGroupBox(tr("additional_options_group"))
-        apply_theme_style(options_group, "group_box", auto_register=True)
-        options_layout = QVBoxLayout(options_group)
-        options_layout.setSpacing(10)
 
-        # خيار إلغاء رسالة الترحيب
-        self.disable_welcome_checkbox = QCheckBox(tr("disable_welcome_message_option"))
-        apply_theme_style(self.disable_welcome_checkbox, "checkbox", auto_register=True)
-        # تحميل القيمة الحالية من الإعدادات
-        welcome_disabled = self.settings_data.get("disable_welcome_message", False)
-        self.disable_welcome_checkbox.setChecked(welcome_disabled)
-        options_layout.addWidget(self.disable_welcome_checkbox)
-
-        layout.addWidget(options_group)
 
         # أزرار الحفظ
         save_buttons_layout = QHBoxLayout()
@@ -1472,12 +1625,168 @@ class SettingsUI(ThemeAwareDialog):
             if hasattr(self, 'disable_welcome_checkbox'):
                 current["disable_welcome_message"] = self.disable_welcome_checkbox.isChecked()
 
+            # إعدادات تذكر الحالة
+            if hasattr(self, 'remember_state_checkbox'):
+                current["remember_settings_on_exit"] = self.remember_state_checkbox.isChecked()
+
+            # إعدادات العودة للإعدادات الافتراضية
+            if hasattr(self, 'reset_to_defaults_checkbox'):
+                current["reset_to_defaults_next_time"] = self.reset_to_defaults_checkbox.isChecked()
+
+            # إعدادات إظهار رسالة التحذير عند الخروج
+            if hasattr(self, 'show_exit_warning_checkbox'):
+                current["show_exit_warning"] = self.show_exit_warning_checkbox.isChecked()
+
+            # إعدادات تذكر اختيار المستخدم في رسالة التحذير
+            if hasattr(self, 'remember_exit_choice_checkbox'):
+                current["remember_exit_choice"] = self.remember_exit_choice_checkbox.isChecked()
+
+            # إعدادات عدم السؤال مرة أخرى وتجاهل التغييرات
+            if hasattr(self, 'dont_ask_again_checkbox'):
+                current["dont_ask_again_and_discard"] = self.dont_ask_again_checkbox.isChecked()
+
+            # إعدادات الإشعارات
+            if hasattr(self, 'show_success_notifications_checkbox'):
+                if "notification_settings" not in current:
+                    current["notification_settings"] = {}
+                current["notification_settings"]["success"] = self.show_success_notifications_checkbox.isChecked()
+
+            if hasattr(self, 'show_warning_notifications_checkbox'):
+                if "notification_settings" not in current:
+                    current["notification_settings"] = {}
+                current["notification_settings"]["warning"] = self.show_warning_notifications_checkbox.isChecked()
+
+            if hasattr(self, 'show_error_notifications_checkbox'):
+                if "notification_settings" not in current:
+                    current["notification_settings"] = {}
+                current["notification_settings"]["error"] = self.show_error_notifications_checkbox.isChecked()
+
+            if hasattr(self, 'show_info_notifications_checkbox'):
+                if "notification_settings" not in current:
+                    current["notification_settings"] = {}
+                current["notification_settings"]["info"] = self.show_info_notifications_checkbox.isChecked()
+
         except Exception as e:
             print(f"خطأ في قراءة الإعدادات: {e}")
             # عرض إشعار خطأ
             show_error(f"{tr('error_reading_settings')}: {str(e)}", duration=5000)
 
         return current
+
+    def on_reset_defaults_changed(self, state):
+        """معالجة تغيير حالة خيار العودة للإعدادات الافتراضية"""
+        # إذا تم تفعيل خيار العودة للإعدادات الافتراضية
+        if state == Qt.Checked:
+            # تعطيل الخيارات الأخرى مؤقتاً
+            if hasattr(self, 'remember_state_checkbox'):
+                self.remember_state_checkbox.setEnabled(False)
+            if hasattr(self, 'disable_welcome_checkbox'):
+                self.disable_welcome_checkbox.setEnabled(False)
+            # إظهار رسالة توضيحية
+            show_info(tr("reset_defaults_info_message"))
+        else:
+            # تفعيل الخيارات الأخرى
+            if hasattr(self, 'remember_state_checkbox'):
+                self.remember_state_checkbox.setEnabled(True)
+            if hasattr(self, 'disable_welcome_checkbox'):
+                self.disable_welcome_checkbox.setEnabled(True)
+
+    def closeEvent(self, event):
+        """معالجة حدث إغلاق النافذة"""
+        # التحقق من وجود تغييرات غير محفوظة
+        if hasattr(self, 'has_unsaved_changes') and self.has_unsaved_changes:
+            # التحقق من إعدادات إظهار رسالة التحذير
+            show_warning = True
+            if hasattr(self, 'show_exit_warning_checkbox'):
+                show_warning = self.show_exit_warning_checkbox.isChecked()
+
+            if show_warning:
+                # إنشاء رسالة تحذير مخصصة باستخدام الثيم الحالي
+                dialog = QDialog(self)
+                dialog.setWindowTitle(tr("unsaved_changes_warning"))
+                dialog.setMinimumWidth(400)
+
+                # تطبيق الثيم على مربع الحوار
+                apply_theme_style(dialog, "dialog")
+
+                # إنشاء تخطيط مربع الحوار
+                layout = QVBoxLayout(dialog)
+                layout.setSpacing(15)
+                layout.setContentsMargins(20, 20, 20, 20)
+
+                # إضافة رسالة التحذير
+                message_label = QLabel(tr("unsaved_changes_prompt"))
+                message_label.setWordWrap(True)
+                apply_theme_style(message_label, "label")
+                layout.addWidget(message_label)
+
+                # إضافة خيار تذكر الاختيار (إذا كان الخيار مفعلاً)
+                remember_checkbox = None
+                if hasattr(self, 'remember_exit_choice_checkbox') and self.remember_exit_choice_checkbox.isChecked():
+                    remember_checkbox = QCheckBox(tr("remember_my_choice"))
+                    apply_theme_style(remember_checkbox, "checkbox")
+                    layout.addWidget(remember_checkbox)
+
+                # إضافة أزرار الخيارات
+                buttons_layout = QHBoxLayout()
+
+                save_button = QPushButton(tr("save_and_close"))
+                apply_theme_style(save_button, "button")
+                save_button.clicked.connect(lambda: self.save_and_close(dialog, remember_checkbox))
+                buttons_layout.addWidget(save_button)
+
+                discard_button = QPushButton(tr("discard_changes"))
+                apply_theme_style(discard_button, "button")
+                discard_button.clicked.connect(lambda: self.discard_and_close(dialog, remember_checkbox))
+                buttons_layout.addWidget(discard_button)
+
+                cancel_button = QPushButton(tr("cancel_button"))
+                apply_theme_style(cancel_button, "button")
+                cancel_button.clicked.connect(dialog.reject)
+                buttons_layout.addWidget(cancel_button)
+
+                layout.addLayout(buttons_layout)
+
+                # عرض مربع الحوار ومنع إغلاق النافذة الأصلية
+                dialog.exec_()
+
+                # منع إغلاق النافذة إذا تم إلغاء العملية
+                event.ignore()
+                return
+
+        # إذا لم تكن هناك تغييرات أو تم تعطيل رسالة التحذير، أغلق النافذة بشكل طبيعي
+        super().closeEvent(event)
+
+    def save_and_close(self, dialog, remember_checkbox):
+        """حفظ التغييرات وإغلاق النافذة"""
+        # تذكر اختيار المستخدم إذا كان الخيار مفعلاً
+        if remember_checkbox and remember_checkbox.isChecked():
+            # حفظ اختيار المستخدم (حفظ التغييرات دائمًا)
+            settings_data = settings.load_settings()
+            settings_data["always_save_on_exit"] = True
+            settings_data["show_exit_warning"] = False  # تعطيل الرسالة في المستقبل
+            settings.save_settings(settings_data)
+
+        # حفظ الإعدادات الحالية
+        self.save_all_settings()
+
+        # إغلاق مربع الحوار والنافذة
+        dialog.accept()
+        self.accept()
+
+    def discard_and_close(self, dialog, remember_checkbox):
+        """تجاهل التغييرات وإغلاق النافذة"""
+        # تذكر اختيار المستخدم إذا كان الخيار مفعلاً
+        if remember_checkbox and remember_checkbox.isChecked():
+            # حفظ اختيار المستخدم (تجاهل التغييرات دائمًا)
+            settings_data = settings.load_settings()
+            settings_data["always_discard_on_exit"] = True
+            settings_data["show_exit_warning"] = False  # تعطيل الرسالة في المستقبل
+            settings.save_settings(settings_data)
+
+        # إغلاق مربع الحوار والنافذة
+        dialog.accept()
+        self.reject()
 
     # ===============================
     # دوال مساعدة لتقليل التكرار
@@ -1665,10 +1974,15 @@ class SettingsUI(ThemeAwareDialog):
                 self.has_unsaved_changes = False
                 self.update_changes_report()
                 
-                # 6. إعلام باقي التطبيق بالتغييرات
+                # 6. تطبيق إعدادات الإشعارات مباشرة
+                if "notification_settings" in self.settings_data:
+                    from .notification_system import global_notification_manager
+                    global_notification_manager.update_notification_settings(self.settings_data["notification_settings"])
+
+                # 7. إعلام باقي التطبيق بالتغييرات
                 self.settings_changed.emit()
 
-                # 7. عرض رسالة نجاح مفصلة
+                # 8. عرض رسالة نجاح مفصلة
                 success_message = tr("all_settings_saved_successfully")
                 self.show_success_message(success_message)
 

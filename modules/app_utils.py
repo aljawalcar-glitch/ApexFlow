@@ -114,22 +114,24 @@ class FileManager:
         full_title = f"ApexFlow - {title}"
         default_dir = os.path.join(os.path.expanduser("~"), "Documents")
 
+        # إنشاء نافذة حوار اختيار الملفات
+        dialog = QFileDialog(self.main_window, full_title, default_dir, file_filter)
+
+        # جعل النافذة تظهر فوق الكل وتعطل الوصول للنافذة الرئيسية
+        dialog.setWindowModality(Qt.ApplicationModal)
+        dialog.setWindowFlags(dialog.windowFlags() | Qt.WindowStaysOnTopHint)
+
         if multiple:
-            files, _ = QFileDialog.getOpenFileNames(
-                self.main_window,
-                full_title,
-                default_dir,
-                file_filter
-            )
-            return files
+            dialog.setFileMode(QFileDialog.ExistingFiles)
         else:
-            file, _ = QFileDialog.getOpenFileName(
-                self.main_window,
-                full_title,
-                default_dir,
-                file_filter
-            )
-            return file
+            dialog.setFileMode(QFileDialog.ExistingFile)
+
+        if dialog.exec_() == QFileDialog.Accepted:
+            if multiple:
+                return dialog.selectedFiles()
+            else:
+                return dialog.selectedFiles()[0] if dialog.selectedFiles() else None
+        return None
 
     def select_pdf_files(self, title="اختيار ملفات PDF", multiple=True):
         """اختيار ملفات PDF"""
@@ -286,6 +288,66 @@ class MessageManager:
             pass
 
         return msg_box.exec()
+
+    def ask_for_save_confirmation(self, inner_widget):
+        """Asks the user to confirm saving changes and handles the response."""
+        from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QCheckBox
+        from ui.theme_manager import apply_theme_style
+        from modules import settings
+
+        dialog = QDialog(self.main_window)
+        dialog.setWindowTitle(tr("unsaved_changes_warning"))
+        dialog.setMinimumWidth(400)
+        apply_theme_style(dialog, "dialog")
+
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        message_label = QLabel(tr("unsaved_changes_prompt"))
+        message_label.setWordWrap(True)
+        apply_theme_style(message_label, "label")
+        layout.addWidget(message_label)
+
+        dont_ask_checkbox = QCheckBox(tr("dont_ask_again_and_discard"))
+        apply_theme_style(dont_ask_checkbox, "checkbox")
+        layout.addWidget(dont_ask_checkbox)
+
+        buttons_layout = QHBoxLayout()
+        save_button = QPushButton(tr("save_and_close"))
+        apply_theme_style(save_button, "button")
+        buttons_layout.addWidget(save_button)
+
+        discard_button = QPushButton(tr("discard_changes"))
+        apply_theme_style(discard_button, "button")
+        buttons_layout.addWidget(discard_button)
+
+        cancel_button = QPushButton(tr("cancel_button"))
+        apply_theme_style(cancel_button, "button")
+        buttons_layout.addWidget(cancel_button)
+
+        layout.addLayout(buttons_layout)
+
+        # Connect signals to dialog slots
+        save_button.clicked.connect(lambda: self._handle_save_confirmation(inner_widget, dialog, dont_ask_checkbox, "save"))
+        discard_button.clicked.connect(lambda: self._handle_save_confirmation(inner_widget, dialog, dont_ask_checkbox, "discard"))
+        cancel_button.clicked.connect(dialog.reject)
+
+        return dialog.exec_()
+
+    def _handle_save_confirmation(self, widget, dialog, checkbox, action):
+        """Handles the logic for the save confirmation dialog buttons."""
+        from modules import settings
+        if checkbox.isChecked():
+            settings.set_setting("dont_ask_again_and_discard", True)
+            self.show_info(tr("dont_ask_again_info"))
+
+        if action == "save":
+            if hasattr(widget, 'save_all_settings'):
+                widget.save_all_settings()
+            dialog.accept()
+        elif action == "discard":
+            dialog.accept()
 
     def ask_question(self, message, title="سؤال"):
         """طرح سؤال مع نعم/لا"""
@@ -756,7 +818,7 @@ def show_warning_message(parent, message):
 
 def browse_folder_simple(title="اختر مجلدًا"):
     """
-    فتح نافذة اختيار مجلد بسيطة باستخدام tkinter
+    فتح نافذة اختيار مجلد بسيطة باستخدام QFileDialog
 
     Args:
         title: عنوان النافذة
@@ -765,24 +827,28 @@ def browse_folder_simple(title="اختر مجلدًا"):
         str: مسار المجلد المختار أو None إذا تم الإلغاء
     """
     try:
-        import tkinter as tk
-        from tkinter import filedialog
+        from PySide6.QtWidgets import QFileDialog
+        from PySide6.QtCore import Qt
+        import os
 
-        # إنشاء نافذة مخفية
-        root = tk.Tk()
-        root.withdraw()
+        full_title = f"ApexFlow - {title}"
+        default_dir = os.path.join(os.path.expanduser("~"), "Documents")
 
-        # فتح نافذة اختيار المجلد
-        folder = filedialog.askdirectory(
-            title=title,
-            initialdir=os.path.join(os.path.expanduser("~"), "Documents")
-        )
+        # إنشاء نافذة حوار اختيار المجلد
+        dialog = QFileDialog()
+        dialog.setWindowTitle(full_title)
+        dialog.setDirectory(default_dir)
+        dialog.setFileMode(QFileDialog.Directory)
+        dialog.setOption(QFileDialog.ShowDirsOnly, True)
 
-        # تنظيف النافذة
-        root.destroy()
+        # جعل النافذة تظهر فوق الكل وتعطل الوصول للنافذة الرئيسية
+        dialog.setWindowModality(Qt.ApplicationModal)
+        dialog.setWindowFlags(dialog.windowFlags() | Qt.WindowStaysOnTopHint)
 
-        return folder if folder else None
+        if dialog.exec_() == QFileDialog.Accepted:
+            return dialog.selectedFiles()[0] if dialog.selectedFiles() else None
+        return None
 
     except Exception:
-        # في حالة فشل tkinter، إرجاع None
+        # في حالة فشل QFileDialog، إرجاع None
         return None

@@ -106,4 +106,23 @@ def reload_translations():
     إعادة تحميل الترجمات وإشعار المكونات
     """
     translator.load_translations()
+
+def set_language(lang_code):
+    """
+    تعيين لغة التطبيق
+    """
+    from .settings import save_settings
+
+    # تحديث الإعدادات
+    settings = load_settings()
+    settings["language"] = lang_code
+    save_settings(settings)
+
+    # تحديث لغة المترجم
+    translator.language = lang_code
+
+    # إعادة تحميل الترجمات
+    reload_translations()
+
+    # إشعار المكونات بتغيير اللغة
     notify_language_changed()

@@ -187,6 +187,10 @@ class FileListFrame(QFrame):
         self.files = []  # قائمة مسارات الملفات
         self.setup_ui()
         self.hide()  # مخفي افتراضياً
+
+        # تسجيل العنوان للاستجابة لتغييرات السمة
+        from .theme_manager import make_theme_aware
+        make_theme_aware(self.title_label, "file_list_title")
     
     def setup_ui(self):
         """إعداد واجهة المستخدم"""
@@ -197,16 +201,12 @@ class FileListFrame(QFrame):
         
         # عنوان الفريم
         self.title_label = QLabel(tr("selected_files_title"))
-        self.title_label.setStyleSheet("""
-            QLabel {
-                color: #ff6f00;
-                font-size: 14px;
-                font-weight: bold;
-                padding: 5px;
-                border-bottom: 1px solid rgba(255, 111, 0, 0.3);
-                margin-bottom: 5px;
-            }
-        """)
+        self.title_label.setObjectName("fileListTitle")
+        from .global_styles import get_file_list_title_style
+        from .theme_manager import global_theme_manager
+        colors = global_theme_manager.get_current_colors()
+        accent = global_theme_manager.current_accent
+        self.title_label.setStyleSheet(get_file_list_title_style(colors, accent))
         layout.addWidget(self.title_label)
         
         # قائمة الملفات - مساحة أكبر

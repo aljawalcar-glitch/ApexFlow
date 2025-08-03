@@ -169,6 +169,13 @@ def make_theme_aware(widget: QWidget, widget_type: str):
     # تطبيق النمط الأولي وتسجيل العنصر
     apply_theme_style(widget, widget_type, auto_register=True)
 
+    # إذا كان العنصر هو عنوان قائمة الملفات، قم بتطبيق النمط الخاص به
+    if widget_type == "file_list_title" or (hasattr(widget, 'objectName') and widget.objectName() == "fileListTitle"):
+        from .global_styles import get_file_list_title_style
+        colors = global_theme_manager.get_current_colors()
+        accent = global_theme_manager.current_accent
+        widget.setStyleSheet(get_file_list_title_style(colors, accent))
+
 def refresh_all_fonts():
     """إعادة تطبيق الأنماط على جميع العناصر المسجلة عند تغيير الخطوط"""
     # This function now correctly triggers the change_theme method,
@@ -314,4 +321,17 @@ class WindowManager:
         # تطبيق السمة
         apply_theme(msg_box, "dialog")
 
-        return msg_box.exec()
+def set_theme(theme_name):
+    """
+    تعيين سمة التطبيق
+    """
+    from modules.settings import save_settings
+
+    # تحديث الإعدادات
+    settings = load_settings()
+    settings["theme"] = theme_name
+    save_settings(settings)
+
+    # تحديث السمة في مدير السمات
+    theme_manager = GlobalThemeManager.instance()
+    theme_manager.set_theme(theme_name)
