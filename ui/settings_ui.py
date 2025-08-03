@@ -38,6 +38,35 @@ class StepIndicator(QWidget):
         self.steps = [tr("step_save"), tr("step_general_settings"), tr("step_fonts"), tr("step_appearance")]  # عكس الترتيب
         self.setup_ui()
         
+    def _style_step_button(self, btn, is_current_step=False):
+        """Applies the standard style to a step button."""
+        from .theme_manager import apply_theme, global_theme_manager
+        from .global_styles import get_font_settings
+        font_settings = get_font_settings()
+        apply_theme(btn, "button")
+
+        if global_theme_manager.current_theme == "light":
+            text_color = "#333333" 
+            hover_bg = "rgba(0, 0, 0, 0.1)"
+        else:
+            text_color = "#ffffff"
+            hover_bg = "rgba(255, 255, 255, 0.1)"
+
+        btn.setStyleSheet(f'''
+            QPushButton {{
+                background: transparent;
+                border: none;
+                outline: none;
+                font-size: {font_settings['size']}px;
+                font-weight: {"bold" if is_current_step else "normal"};
+                padding: 15px 25px;
+                color: {text_color};
+            }}
+            QPushButton:hover {{
+                background: {hover_bg};
+            }}
+        ''')
+
     def setup_ui(self):
         """إعداد واجهة مؤشر الخطوات"""
         layout = QHBoxLayout(self)
@@ -53,35 +82,8 @@ class StepIndicator(QWidget):
             btn = QPushButton(step_name)
             btn.setCheckable(True)
             btn.clicked.connect(lambda checked, ui_idx=i: self.step_clicked.emit(ui_idx))
-
-            # استخدام نظام السمات الموحد مع تحديد لون النص
-            from .theme_manager import apply_theme, global_theme_manager
-            from .global_styles import get_font_settings
-            font_settings = get_font_settings()
-            apply_theme(btn, "button")
-
-            # إضافة لون النص المناسب حسب السمة
-            if global_theme_manager.current_theme == "light":
-                text_color = "#333333" 
-                hover_bg = "rgba(0, 0, 0, 0.1)"
-            else:
-                text_color = "#ffffff"
-                hover_bg = "rgba(255, 255, 255, 0.1)"
-
-            btn.setStyleSheet(f'''
-                QPushButton {{
-                    background: transparent;
-                    border: none;
-                    outline: none;
-                    font-size: {font_settings['size']}px;
-                    font-weight: normal;
-                    padding: 15px 25px;
-                    color: {text_color};
-                }}
-                QPushButton:hover {{
-                    background: {hover_bg};
-                }}
-            ''')
+            
+            self._style_step_button(btn, is_current_step=False)
 
             self.step_buttons.append(btn)
             layout.addWidget(btn)
@@ -103,35 +105,9 @@ class StepIndicator(QWidget):
         self.current_step = step
 
         for i, btn in enumerate(self.step_buttons):
-            # استخدام نظام السمات الموحد مع تحديد لون النص
-            from .theme_manager import apply_theme, global_theme_manager
-            from .global_styles import get_font_settings
-            font_settings = get_font_settings()
-            apply_theme(btn, "button")
-
-            # إضافة لون النص المناسب حسب السمة
-            if global_theme_manager.current_theme == "light":
-                text_color = "#333333" 
-                hover_bg = "rgba(0, 0, 0, 0.1)"
-            else:
-                text_color = "#ffffff"
-                hover_bg = "rgba(255, 255, 255, 0.1)"
-
-            btn.setStyleSheet(f'''
-                QPushButton {{
-                    background: transparent;
-                    border: none;
-                    outline: none;
-                    font-size: {font_settings['size']}px;
-                    font-weight: {"bold" if i == step else "normal"};
-                    padding: 15px 25px;
-                    color: {text_color};
-                }}
-                QPushButton:hover {{
-                    background: {hover_bg};
-                }}
-            ''')
-            btn.setChecked(i == step)
+            is_current = (i == step)
+            self._style_step_button(btn, is_current_step=is_current)
+            btn.setChecked(is_current)
 
         self.update_slider_position()
     
@@ -177,10 +153,10 @@ class SettingsUI(ThemeAwareDialog):
             self.original_settings = self.settings_data.copy()
             self.current_step = 3  # البدء من المظهر
             self.has_unsaved_changes = False
+            self.is_loading = True
 
-            # تتبع الصفحات المحملة للتحميل الكسول
-            self.pages_loaded = [False, False, False, False]
-            self.page_widgets = [None, None, None, None]
+            # تتبع الصفحات
+            self.page_widgets = []
 
             # إنشاء جميع العناصر مباشرة (إزالة التحميل الكسول المعقد)
             self._create_all_widgets()
@@ -191,6 +167,9 @@ class SettingsUI(ThemeAwareDialog):
 
             # إشعار ترحيب بعد تحميل الواجهة
             QTimer.singleShot(1000, self._show_welcome_notification)
+
+            # Set loading to false after a delay
+            QTimer.singleShot(500, self.finish_loading)
 
         except Exception as e:
             print(f"خطأ في تهيئة واجهة الإعدادات: {e}")
@@ -307,6 +286,24 @@ class SettingsUI(ThemeAwareDialog):
         self.font_preview_label = QLabel(tr("font_preview_text"))
         self.changes_report = QLabel()
 
+        # --- إنشاء عناصر الإعدادات العامة ---
+        self.disable_welcome_checkbox = QCheckBox(tr("disable_welcome_message_option"))
+        self.remember_state_checkbox = QCheckBox(tr("remember_settings_on_exit_option"))
+        self.reset_to_defaults_checkbox = QCheckBox(tr("reset_to_defaults_next_time_option"))
+        self.show_exit_warning_checkbox = QCheckBox(tr("show_exit_warning_option"))
+        self.remember_exit_choice_checkbox = QCheckBox(tr("remember_exit_choice_option"))
+        self.dont_ask_again_checkbox = QCheckBox(tr("dont_ask_again_and_discard_option"))
+        self.show_success_notifications_checkbox = QCheckBox(tr("show_success_notifications"))
+        self.show_warning_notifications_checkbox = QCheckBox(tr("show_warning_notifications"))
+        self.show_error_notifications_checkbox = QCheckBox(tr("show_error_notifications"))
+        self.show_info_notifications_checkbox = QCheckBox(tr("show_info_notifications"))
+
+        # --- إنشاء عناصر صفحة الحفظ ---
+        self.reset_defaults_btn = QPushButton(tr("reset_to_defaults_button"))
+        self.save_as_default_btn = QPushButton(tr("save_as_default_button"))
+        self.save_all_btn = QPushButton(tr("save_all_changes_button"))
+        self.cancel_btn = QPushButton(tr("cancel_changes_button"))
+
         # ربط الإشارات
         self._connect_signals()
 
@@ -329,68 +326,68 @@ class SettingsUI(ThemeAwareDialog):
         self.size_combo.currentTextChanged.connect(self._on_advanced_changed)
         self.contrast_combo.currentTextChanged.connect(self._on_advanced_changed)
 
+        # --- ربط إشارات الإعدادات العامة ---
+        self.disable_welcome_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.remember_state_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.reset_to_defaults_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.reset_to_defaults_checkbox.stateChanged.connect(self.on_reset_defaults_changed)
+        self.show_exit_warning_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.remember_exit_choice_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.dont_ask_again_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.show_success_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.show_warning_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.show_error_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.show_info_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
+
+        # --- ربط إشارات صفحة الحفظ ---
+        self.reset_defaults_btn.clicked.connect(self.reset_to_defaults)
+        self.save_as_default_btn.clicked.connect(self.save_current_as_default)
+        self.save_all_btn.clicked.connect(self.save_all_settings)
+        self.cancel_btn.clicked.connect(self.cancel_changes)
+
     def _on_theme_changed(self):
         """معالجة تغيير السمة"""
+        if hasattr(self, 'is_loading') and self.is_loading:
+            return
         if not self.has_unsaved_changes:
-            # استخدام الإشعار العام بدلاً من الإشعار الخاص بالنافذة
-            show_info(tr("theme_changed_notification"), duration=3000)
+            self.show_info_message(tr("theme_changed_notification"))
         self.has_unsaved_changes = True
         self.update_preview_only()
 
     def _on_accent_changed(self):
         """معالجة تغيير لون التمييز"""
+        if hasattr(self, 'is_loading') and self.is_loading:
+            return
         if not self.has_unsaved_changes:
-            show_info(tr("accent_color_changed_notification"), duration=3000)
+            self.show_info_message(tr("accent_color_changed_notification"))
         self.has_unsaved_changes = True
         self.update_preview_only()
 
     def _on_language_changed(self):
         """معالجة تغيير اللغة"""
+        if hasattr(self, 'is_loading') and self.is_loading:
+            return
         self.has_unsaved_changes = True
 
     def _on_font_changed(self):
         """معالجة تغيير الخطوط"""
+        if hasattr(self, 'is_loading') and self.is_loading:
+            return
         if not self.has_unsaved_changes:
-            show_info(tr("font_changed_notification"), duration=3000)
+            self.show_info_message(tr("font_changed_notification"))
         self.has_unsaved_changes = True
         self.update_font_preview()
 
     def _on_advanced_changed(self):
         """معالجة تغيير الإعدادات المتقدمة"""
+        if hasattr(self, 'is_loading') and self.is_loading:
+            return
         self.has_unsaved_changes = True
         self.update_preview_only()
 
         # ربط تغيير السمة بتحديث الأنماط الخاصة
         global_theme_manager.theme_changed.connect(self.update_special_styles)
 
-    def closeEvent(self, event):
-        """حماية من الخروج بدون حفظ التغييرات"""
-        if self.has_unsaved_changes:
-            # إشعار تحذيري عن وجود تغييرات غير محفوظة
-            show_warning(tr("unsaved_changes_warning"), duration=4000)
-
-            result = self._show_save_confirmation()
-
-            if result == "save":
-                if self.save_all_settings():
-                    # استخدام النافذة الرئيسية بدلاً من نافذة الإعدادات لعرض الإشعار
-                    main_window = self._get_main_window()
-                    if main_window:
-                        main_window.notification_manager.show_notification(tr("settings_saved_before_close"), "success", 2000)
-                    else:
-                        show_success(tr("settings_saved_before_close"), duration=2000)
-                    super().closeEvent(event)
-                else:
-                    event.ignore()
-            elif result == "discard":
-                show_info(tr("changes_discarded"), duration=2000)
-                super().closeEvent(event)
-            else:  # cancel
-                event.ignore()
-        else:
-            # إشعار وداع لطيف
-            show_info(tr("settings_closed"), duration=2000)
-            super().closeEvent(event)
 
     def _show_save_confirmation(self):
         """عرض رسالة تأكيد الحفظ"""
@@ -433,6 +430,13 @@ class SettingsUI(ThemeAwareDialog):
     # ===============================
     # دوال التهيئة والإعداد الأساسي
     # ===============================
+
+    def finish_loading(self):
+        """Finalize the loading process."""
+        self.is_loading = False
+        self.has_unsaved_changes = False
+        self.update_changes_report()
+        self.update_save_buttons_state()
 
     def get_special_button_style(self, color_rgb="13, 110, 253"):
         """Generate a special button style with a given color."""
@@ -542,39 +546,44 @@ class SettingsUI(ThemeAwareDialog):
     # دوال إنشاء الصفحات
     # ===============================
 
+    def _create_scrollable_page(self, title_text):
+        """دالة مساعدة لإنشاء صفحة قابلة للتمرير مع تخطيط أساسي"""
+        page = QWidget()
+        page.setStyleSheet("background: transparent;")
+        
+        main_layout = QVBoxLayout(page)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet(self.get_scroll_area_style())
+
+        scroll_content = QWidget()
+        layout = QVBoxLayout(scroll_content)
+        layout.setSpacing(25)
+
+        title = QLabel(title_text)
+        apply_theme_style(title, "title_text", auto_register=True)
+        layout.addWidget(title)
+
+        scroll_area.setWidget(scroll_content)
+        main_layout.addWidget(scroll_area)
+
+        return page, layout
+
     def create_step_pages(self):
-        """إنشاء صفحات الخطوات بالتحميل الكسول"""
-        # إنشاء صفحات فارغة كعناصر نائبة
-        for i in range(4):  # تغيير من 3 إلى 4 لاستيعاب الصفحة الجديدة
-            placeholder = QWidget()
-            placeholder.setStyleSheet("background: transparent;")
-            self.content_stack.addWidget(placeholder)
-
-        # تحميل الصفحة الافتراضية (المظهر) فقط
-        self.load_page_on_demand(self.current_step)
-
-    def load_page_on_demand(self, page_index):
-        """تحميل صفحة عند الحاجة فقط (مبسط)"""
-        if self.pages_loaded[page_index]:
-            return
-
-        # إنشاء الصفحة (العناصر موجودة مسبقاً)
-        page_creators = {
-            0: self.create_save_page,
-            1: self.create_general_settings_page,
-            2: self.create_fonts_page,
-            3: self.create_appearance_page
-        }
-
-        creator = page_creators.get(page_index)
-        if creator:
-            page_widget = creator()
-            old_widget = self.content_stack.widget(page_index)
-            self.content_stack.removeWidget(old_widget)
-            old_widget.deleteLater()
-            self.content_stack.insertWidget(page_index, page_widget)
-            self.page_widgets[page_index] = page_widget
-            self.pages_loaded[page_index] = True
+        """إنشاء وإضافة جميع صفحات الإعدادات إلى الـ StackedWidget"""
+        # تم إنشاء العناصر مسبقاً، هنا ننشئ الصفحات ونضيفها
+        self.page_widgets = [
+            self.create_save_page(),
+            self.create_general_settings_page(),
+            self.create_fonts_page(),
+            self.create_appearance_page()
+        ]
+        for widget in self.page_widgets:
+            self.content_stack.addWidget(widget)
 
 
 
@@ -584,35 +593,7 @@ class SettingsUI(ThemeAwareDialog):
 
     def create_appearance_page(self):
         """إنشاء صفحة إعدادات المظهر"""
-        page = QWidget()
-        page.setStyleSheet("""
-            QWidget {
-                background: transparent;
-            }
-            QLabel {
-                border: none;
-                outline: none;
-            }
-        """)
-        main_layout = QVBoxLayout(page)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-
-        # إنشاء منطقة التمرير
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll_area.setStyleSheet(self.get_scroll_area_style())
-
-        # المحتوى الداخلي
-        scroll_content = QWidget()
-        layout = QVBoxLayout(scroll_content)
-        layout.setSpacing(25)
-
-        # عنوان الصفحة
-        title = QLabel(tr("appearance_settings_title"))
-        apply_theme_style(title, "title_text", auto_register=True)
-        layout.addWidget(title)
+        page, layout = self._create_scrollable_page(tr("appearance_settings_title"))
 
         # مجموعة السمة
         theme_group = QGroupBox(tr("theme_and_colors_group"))
@@ -706,49 +687,12 @@ class SettingsUI(ThemeAwareDialog):
         self.contrast_combo.currentTextChanged.connect(self.mark_as_changed)
 
         layout.addWidget(theme_group)
-
-
-
-
         layout.addStretch()
-
-        # ربط المحتوى بمنطقة التمرير
-        scroll_area.setWidget(scroll_content)
-        main_layout.addWidget(scroll_area)
-
         return page
 
     def create_fonts_page(self):
         """إنشاء صفحة إعدادات الخطوط والنصوص"""
-        page = QWidget()
-        page.setStyleSheet("""
-            QWidget {
-                background: transparent;
-            }
-            QLabel {
-                border: none;
-                outline: none;
-            }
-        """)
-        main_layout = QVBoxLayout(page)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-
-        # إنشاء منطقة التمرير
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll_area.setStyleSheet(self.get_scroll_area_style())
-
-        # المحتوى الداخلي
-        scroll_content = QWidget()
-        layout = QVBoxLayout(scroll_content)
-        layout.setSpacing(25)
-
-        # عنوان الصفحة
-        title = QLabel(tr("fonts_and_text_settings_title"))
-        apply_theme_style(title, "title_text", auto_register=True)
-        layout.addWidget(title)
+        page, layout = self._create_scrollable_page(tr("fonts_and_text_settings_title"))
 
         # مجموعة إعدادات الخط الأساسي
         font_group = QGroupBox(tr("primary_font_group"))
@@ -867,10 +811,6 @@ class SettingsUI(ThemeAwareDialog):
         layout.addWidget(preview_group)
         layout.addStretch()
 
-        # ربط المحتوى بمنطقة التمرير
-        scroll_area.setWidget(scroll_content)
-        main_layout.addWidget(scroll_area)
-
         # ربط التحديثات بالمعاينة والتطبيق الفوري
         self.font_size_slider.valueChanged.connect(self.update_font_preview)
         self.title_font_size_slider.valueChanged.connect(self.update_font_preview)
@@ -887,7 +827,6 @@ class SettingsUI(ThemeAwareDialog):
 
         # تحديث المعاينة الأولية
         QTimer.singleShot(100, self.update_font_preview)
-
         return page
 
 
@@ -918,35 +857,7 @@ class SettingsUI(ThemeAwareDialog):
 
     def create_general_settings_page(self):
         """إنشاء صفحة الإعدادات العامة"""
-        page = QWidget()
-        page.setStyleSheet("""
-            QWidget {
-                background: transparent;
-            }
-            QLabel {
-                border: none;
-                outline: none;
-            }
-        """)
-        main_layout = QVBoxLayout(page)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-
-        # إنشاء منطقة التمرير
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll_area.setStyleSheet(self.get_scroll_area_style())
-
-        # المحتوى الداخلي
-        scroll_content = QWidget()
-        layout = QVBoxLayout(scroll_content)
-        layout.setSpacing(25)
-
-        # عنوان الصفحة
-        title = QLabel(tr("general_settings_title"))
-        apply_theme_style(title, "title_text")
-        layout.addWidget(title)
+        page, layout = self._create_scrollable_page(tr("general_settings_title"))
 
         # مجموعة إعدادات بدء التشغيل
         startup_group = QGroupBox(tr("startup_settings_group"))
@@ -954,36 +865,17 @@ class SettingsUI(ThemeAwareDialog):
         startup_layout = QVBoxLayout(startup_group)
         startup_layout.setSpacing(10)
 
-        # خيار إلغاء رسالة الترحيب
-        self.disable_welcome_checkbox = QCheckBox(tr("disable_welcome_message_option"))
+        # إضافة العناصر التي تم إنشاؤها مسبقاً
         apply_theme_style(self.disable_welcome_checkbox, "checkbox", auto_register=True)
-        # تحميل القيمة الحالية من الإعدادات
-        welcome_disabled = self.settings_data.get("disable_welcome_message", False)
-        self.disable_welcome_checkbox.setChecked(welcome_disabled)
-        # ربط التغيير بتسجيل التغييرات
-        self.disable_welcome_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.disable_welcome_checkbox.setChecked(self.settings_data.get("disable_welcome_message", False))
         startup_layout.addWidget(self.disable_welcome_checkbox)
 
-        # خيار تذكر الحالة عند الخروج
-        self.remember_state_checkbox = QCheckBox(tr("remember_settings_on_exit_option"))
         apply_theme_style(self.remember_state_checkbox, "checkbox", auto_register=True)
-        # تحميل القيمة الحالية من الإعدادات
-        remember_state = self.settings_data.get("remember_settings_on_exit", False)
-        self.remember_state_checkbox.setChecked(remember_state)
-        # ربط التغيير بتسجيل التغييرات
-        self.remember_state_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.remember_state_checkbox.setChecked(self.settings_data.get("remember_settings_on_exit", False))
         startup_layout.addWidget(self.remember_state_checkbox)
 
-        # خيار العودة للإعدادات الافتراضية في المرة القادمة
-        self.reset_to_defaults_checkbox = QCheckBox(tr("reset_to_defaults_next_time_option"))
         apply_theme_style(self.reset_to_defaults_checkbox, "checkbox", auto_register=True)
-        # تحميل القيمة الحالية من الإعدادات
-        reset_defaults = self.settings_data.get("reset_to_defaults_next_time", False)
-        self.reset_to_defaults_checkbox.setChecked(reset_defaults)
-        # ربط التغيير بتسجيل التغييرات
-        self.reset_to_defaults_checkbox.stateChanged.connect(self.mark_as_changed)
-        # إضافة تفاعل بين الخيارات
-        self.reset_to_defaults_checkbox.stateChanged.connect(self.on_reset_defaults_changed)
+        self.reset_to_defaults_checkbox.setChecked(self.settings_data.get("reset_to_defaults_next_time", False))
         startup_layout.addWidget(self.reset_to_defaults_checkbox)
 
         layout.addWidget(startup_group)
@@ -994,34 +886,16 @@ class SettingsUI(ThemeAwareDialog):
         messages_layout = QVBoxLayout(messages_group)
         messages_layout.setSpacing(10)
 
-        # خيار إظهار رسالة التحذير عند الخروج
-        self.show_exit_warning_checkbox = QCheckBox(tr("show_exit_warning_option"))
         apply_theme_style(self.show_exit_warning_checkbox, "checkbox", auto_register=True)
-        # تحميل القيمة الحالية من الإعدادات
-        show_warning = self.settings_data.get("show_exit_warning", True)  # الافتراضي هو إظهار الرسالة
-        self.show_exit_warning_checkbox.setChecked(show_warning)
-        # ربط التغيير بتسجيل التغييرات
-        self.show_exit_warning_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.show_exit_warning_checkbox.setChecked(self.settings_data.get("show_exit_warning", True))
         messages_layout.addWidget(self.show_exit_warning_checkbox)
 
-        # خيار تذكر اختيار المستخدم في رسالة التحذير
-        self.remember_exit_choice_checkbox = QCheckBox(tr("remember_exit_choice_option"))
         apply_theme_style(self.remember_exit_choice_checkbox, "checkbox", auto_register=True)
-        # تحميل القيمة الحالية من الإعدادات
-        remember_choice = self.settings_data.get("remember_exit_choice", False)
-        self.remember_exit_choice_checkbox.setChecked(remember_choice)
-        # ربط التغيير بتسجيل التغييرات
-        self.remember_exit_choice_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.remember_exit_choice_checkbox.setChecked(self.settings_data.get("remember_exit_choice", False))
         messages_layout.addWidget(self.remember_exit_choice_checkbox)
 
-        # خيار عدم السؤال مرة أخرى وتجاهل التغييرات
-        self.dont_ask_again_checkbox = QCheckBox(tr("dont_ask_again_and_discard_option"))
         apply_theme_style(self.dont_ask_again_checkbox, "checkbox", auto_register=True)
-        # تحميل القيمة الحالية من الإعدادات
-        dont_ask_again = self.settings_data.get("dont_ask_again_and_discard", False)
-        self.dont_ask_again_checkbox.setChecked(dont_ask_again)
-        # ربط التغيير بتسجيل التغييرات
-        self.dont_ask_again_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.dont_ask_again_checkbox.setChecked(self.settings_data.get("dont_ask_again_and_discard", False))
         messages_layout.addWidget(self.dont_ask_again_checkbox)
 
         layout.addWidget(messages_group)
@@ -1032,85 +906,29 @@ class SettingsUI(ThemeAwareDialog):
         notifications_layout = QVBoxLayout(notifications_group)
         notifications_layout.setSpacing(10)
 
-        # خيار إظهار إشعارات النجاح
-        self.show_success_notifications_checkbox = QCheckBox(tr("show_success_notifications"))
         apply_theme_style(self.show_success_notifications_checkbox, "checkbox", auto_register=True)
-        # تحميل القيمة الحالية من الإعدادات
-        show_success = self.settings_data.get("notification_settings", {}).get("success", True)
-        self.show_success_notifications_checkbox.setChecked(show_success)
-        # ربط التغيير بتسجيل التغييرات
-        self.show_success_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.show_success_notifications_checkbox.setChecked(self.settings_data.get("notification_settings", {}).get("success", True))
         notifications_layout.addWidget(self.show_success_notifications_checkbox)
 
-        # خيار إظهار إشعارات التحذير
-        self.show_warning_notifications_checkbox = QCheckBox(tr("show_warning_notifications"))
         apply_theme_style(self.show_warning_notifications_checkbox, "checkbox", auto_register=True)
-        # تحميل القيمة الحالية من الإعدادات
-        show_warning = self.settings_data.get("notification_settings", {}).get("warning", True)
-        self.show_warning_notifications_checkbox.setChecked(show_warning)
-        # ربط التغيير بتسجيل التغييرات
-        self.show_warning_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.show_warning_notifications_checkbox.setChecked(self.settings_data.get("notification_settings", {}).get("warning", True))
         notifications_layout.addWidget(self.show_warning_notifications_checkbox)
 
-        # خيار إظهار إشعارات الخطأ
-        self.show_error_notifications_checkbox = QCheckBox(tr("show_error_notifications"))
         apply_theme_style(self.show_error_notifications_checkbox, "checkbox", auto_register=True)
-        # تحميل القيمة الحالية من الإعدادات
-        show_error = self.settings_data.get("notification_settings", {}).get("error", True)
-        self.show_error_notifications_checkbox.setChecked(show_error)
-        # ربط التغيير بتسجيل التغييرات
-        self.show_error_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.show_error_notifications_checkbox.setChecked(self.settings_data.get("notification_settings", {}).get("error", True))
         notifications_layout.addWidget(self.show_error_notifications_checkbox)
 
-        # خيار إظهار إشعارات المعلومات
-        self.show_info_notifications_checkbox = QCheckBox(tr("show_info_notifications"))
         apply_theme_style(self.show_info_notifications_checkbox, "checkbox", auto_register=True)
-        # تحميل القيمة الحالية من الإعدادات
-        show_info = self.settings_data.get("notification_settings", {}).get("info", True)
-        self.show_info_notifications_checkbox.setChecked(show_info)
-        # ربط التغيير بتسجيل التغييرات
-        self.show_info_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.show_info_notifications_checkbox.setChecked(self.settings_data.get("notification_settings", {}).get("info", True))
         notifications_layout.addWidget(self.show_info_notifications_checkbox)
 
         layout.addWidget(notifications_group)
-
-        # إضافة المحتوى إلى منطقة التمرير
-        scroll_area.setWidget(scroll_content)
-        main_layout.addWidget(scroll_area)
-
+        layout.addStretch()
         return page
 
     def create_save_page(self):
         """إنشاء صفحة الحفظ مع تقرير التغييرات"""
-        page = QWidget()
-        page.setStyleSheet("""
-            QWidget {
-                background: transparent;
-            }
-            QLabel {
-                border: none;
-                outline: none;
-            }
-        """)
-        main_layout = QVBoxLayout(page)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-
-        # إنشاء منطقة التمرير
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll_area.setStyleSheet(self.get_scroll_area_style())
-
-        # المحتوى الداخلي
-        scroll_content = QWidget()
-        layout = QVBoxLayout(scroll_content)
-        layout.setSpacing(25)
-
-        # عنوان الصفحة
-        title = QLabel(tr("review_and_save_title"))
-        apply_theme_style(title, "title_text")
-        layout.addWidget(title)
+        page, layout = self._create_scrollable_page(tr("review_and_save_title"))
 
         # منطقة التقرير
         report_group = QGroupBox(tr("summary_of_changes_group"))
@@ -1133,26 +951,13 @@ class SettingsUI(ThemeAwareDialog):
         # أزرار الحفظ
         save_buttons_layout = QHBoxLayout()
 
-        # زر إرجاع الإعدادات الافتراضية (أصفر)
-        self.reset_defaults_btn = QPushButton(tr("reset_to_defaults_button"))
+        # تطبيق الأنماط على الأزرار التي تم إنشاؤها مسبقاً
         self.reset_defaults_btn.setStyleSheet(self.get_special_button_style("255, 193, 7"))  # أصفر
-        self.reset_defaults_btn.clicked.connect(self.reset_to_defaults)
-
-        # زر حفظ الإعدادات الحالية كافتراضية (أخضر)
-        self.save_as_default_btn = QPushButton(tr("save_as_default_button"))
         self.save_as_default_btn.setStyleSheet(self.get_special_button_style("40, 167, 69"))  # أخضر
-        self.save_as_default_btn.clicked.connect(self.save_current_as_default)
-
-        # زر حفظ جميع التغييرات (أخضر)
-        self.save_all_btn = QPushButton(tr("save_all_changes_button"))
         self.save_all_btn.setStyleSheet(self.get_special_button_style("40, 167, 69"))  # أخضر
-        self.save_all_btn.clicked.connect(self.save_all_settings)
-
-        # زر إلغاء التغييرات (أحمر)
-        self.cancel_btn = QPushButton(tr("cancel_changes_button"))
         self.cancel_btn.setStyleSheet(self.get_special_button_style("220, 53, 69"))  # أحمر
-        self.cancel_btn.clicked.connect(self.cancel_changes)
 
+        # إضافة الأزرار إلى التخطيط
         save_buttons_layout.addWidget(self.reset_defaults_btn)
         save_buttons_layout.addWidget(self.save_as_default_btn)
         save_buttons_layout.addStretch()
@@ -1161,11 +966,6 @@ class SettingsUI(ThemeAwareDialog):
 
         layout.addLayout(save_buttons_layout)
         layout.addStretch()
-
-        # ربط المحتوى بمنطقة التمرير
-        scroll_area.setWidget(scroll_content)
-        main_layout.addWidget(scroll_area)
-
         return page
 
     def reset_to_defaults(self):
@@ -1325,9 +1125,6 @@ class SettingsUI(ThemeAwareDialog):
             # حفظ إعدادات الصفحة الحالية قبل الانتقال
             self.save_current_page_settings()
 
-            # تحميل الصفحة المطلوبة إذا لم تكن محملة
-            self.load_page_on_demand(step)
-
             self.current_step = step
             self.content_stack.setCurrentIndex(step)
             self.step_indicator.set_current_step(step)
@@ -1415,138 +1212,64 @@ class SettingsUI(ThemeAwareDialog):
             changes = []
 
             # مقارنة الإعدادات مع معالجة آمنة
-            try:
-                if hasattr(self, 'theme_combo') and self.theme_combo:
-                    original_theme = self.original_settings.get("theme", "dark")
-                    current_theme = self.theme_combo.currentText()
-                    if original_theme != current_theme:
-                        changes.append(f"السمة: {original_theme} ← {current_theme}")
-            except Exception as e:
-                print(f"خطأ في مقارنة السمة: {e}")
+            original_theme = self.original_settings.get("theme", "dark")
+            current_theme = self.theme_combo.currentText()
+            if original_theme != current_theme:
+                changes.append(f"السمة: {original_theme} ← {current_theme}")
 
-            try:
-                if hasattr(self, 'accent_color_input') and self.accent_color_input:
-                    original_color = self.original_settings.get("accent_color", "#ff6f00")
-                    current_color = self.accent_color_input.text() or "#ff6f00"
-                    if original_color != current_color:
-                        changes.append(f"لون التمييز: {original_color} ← {current_color}")
-            except Exception as e:
-                print(f"خطأ في مقارنة لون التمييز: {e}")
+            original_color = self.original_settings.get("accent_color", "#ff6f00")
+            current_color = self.accent_color_input.text() or "#ff6f00"
+            if original_color != current_color:
+                changes.append(f"لون التمييز: {original_color} ← {current_color}")
 
             # مقارنة إعدادات الخطوط الجديدة
-            try:
-                if hasattr(self, 'font_size_slider') and self.font_size_slider:
-                    original_font_size = self.original_settings.get("ui_settings", {}).get("font_size", 14)
-                    current_font_size = self.font_size_slider.value()
-                    if original_font_size != current_font_size:
-                        changes.append(tr("change_report_font_size", original=original_font_size, current=current_font_size))
-            except Exception as e:
-                print(f"خطأ في مقارنة حجم الخط: {e}")
+            original_font_size = self.original_settings.get("ui_settings", {}).get("font_size", 14)
+            current_font_size = self.font_size_slider.value()
+            if original_font_size != current_font_size:
+                changes.append(tr("change_report_font_size", original=original_font_size, current=current_font_size))
 
-            try:
-                if hasattr(self, 'font_family_combo') and self.font_family_combo:
-                    original_font_family = self.original_settings.get("ui_settings", {}).get("font_family", tr("system_default_font"))
-                    current_font_family = self.font_family_combo.currentText()
-                    if original_font_family != current_font_family:
-                        changes.append(tr("change_report_font_family", original=original_font_family, current=current_font_family))
-            except Exception as e:
-                print(f"خطأ في مقارنة نوع الخط: {e}")
+            original_font_family = self.original_settings.get("ui_settings", {}).get("font_family", tr("system_default_font"))
+            current_font_family = self.font_family_combo.currentText()
+            if original_font_family != current_font_family:
+                changes.append(tr("change_report_font_family", original=original_font_family, current=current_font_family))
 
-            try:
-                if hasattr(self, 'font_weight_combo') and self.font_weight_combo:
-                    original_font_weight = self.original_settings.get("ui_settings", {}).get("font_weight", tr("font_weight_normal"))
-                    current_font_weight = self.font_weight_combo.currentText()
-                    if original_font_weight != current_font_weight:
-                        changes.append(tr("change_report_font_weight", original=original_font_weight, current=current_font_weight))
-            except Exception as e:
-                print(f"خطأ في مقارنة وزن الخط: {e}")
+            original_font_weight = self.original_settings.get("ui_settings", {}).get("font_weight", tr("font_weight_normal"))
+            current_font_weight = self.font_weight_combo.currentText()
+            if original_font_weight != current_font_weight:
+                changes.append(tr("change_report_font_weight", original=original_font_weight, current=current_font_weight))
 
-            try:
-                if hasattr(self, 'show_tooltips_check') and self.show_tooltips_check:
-                    original_tooltips = self.original_settings.get("ui_settings", {}).get("show_tooltips", True)
-                    current_tooltips = self.show_tooltips_check.isChecked()
-                    if original_tooltips != current_tooltips:
-                        status = tr("status_enabled") if current_tooltips else tr("status_disabled")
-                        changes.append(tr("change_report_tooltips", status=status))
-            except Exception as e:
-                print(f"خطأ في مقارنة التلميحات: {e}")
+            original_tooltips = self.original_settings.get("ui_settings", {}).get("show_tooltips", True)
+            current_tooltips = self.show_tooltips_check.isChecked()
+            if original_tooltips != current_tooltips:
+                status = tr("status_enabled") if current_tooltips else tr("status_disabled")
+                changes.append(tr("change_report_tooltips", status=status))
 
-            try:
-                if hasattr(self, 'enable_animations_check') and self.enable_animations_check:
-                    original_animations = self.original_settings.get("ui_settings", {}).get("enable_animations", True)
-                    current_animations = self.enable_animations_check.isChecked()
-                    if original_animations != current_animations:
-                        status = tr("status_enabled") if current_animations else tr("status_disabled")
-                        changes.append(tr("change_report_animations", status=status))
-            except Exception as e:
-                print(f"خطأ في مقارنة الحركات: {e}")
+            original_animations = self.original_settings.get("ui_settings", {}).get("enable_animations", True)
+            current_animations = self.enable_animations_check.isChecked()
+            if original_animations != current_animations:
+                status = tr("status_enabled") if current_animations else tr("status_disabled")
+                changes.append(tr("change_report_animations", status=status))
 
-            try:
-                if hasattr(self, 'text_direction_combo') and self.text_direction_combo:
-                    original_direction = self.original_settings.get("ui_settings", {}).get("text_direction", tr("text_direction_auto"))
-                    current_direction = self.text_direction_combo.currentText()
-                    if original_direction != current_direction:
-                        changes.append(tr("change_report_text_direction", original=original_direction, current=current_direction))
-            except Exception as e:
-                print(f"خطأ في مقارنة اتجاه النص: {e}")
+            original_direction = self.original_settings.get("ui_settings", {}).get("text_direction", tr("text_direction_auto"))
+            current_direction = self.text_direction_combo.currentText()
+            if original_direction != current_direction:
+                changes.append(tr("change_report_text_direction", original=original_direction, current=current_direction))
 
             # مقارنة إعدادات السمة المتقدمة
-            try:
-                if hasattr(self, 'transparency_slider') and self.transparency_slider:
-                    original_transparency = self.original_settings.get("ui_settings", {}).get("transparency", 80)
-                    current_transparency = self.transparency_slider.value()
-                    if original_transparency != current_transparency:
-                        changes.append(tr("change_report_transparency", original=original_transparency, current=current_transparency))
-            except Exception as e:
-                print(f"خطأ في مقارنة الشفافية: {e}")
+            original_transparency = self.original_settings.get("ui_settings", {}).get("transparency", 80)
+            current_transparency = self.transparency_slider.value()
+            if original_transparency != current_transparency:
+                changes.append(tr("change_report_transparency", original=original_transparency, current=current_transparency))
 
-            try:
-                if hasattr(self, 'size_combo') and self.size_combo:
-                    original_size = self.original_settings.get("ui_settings", {}).get("size", tr("size_medium"))
-                    current_size = self.size_combo.currentText()
-                    if original_size != current_size:
-                        changes.append(tr("change_report_element_size", original=original_size, current=current_size))
-            except Exception as e:
-                print(f"خطأ في مقارنة حجم العناصر: {e}")
+            original_size = self.original_settings.get("ui_settings", {}).get("size", tr("size_medium"))
+            current_size = self.size_combo.currentText()
+            if original_size != current_size:
+                changes.append(tr("change_report_element_size", original=original_size, current=current_size))
 
-            try:
-                if hasattr(self, 'contrast_combo') and self.contrast_combo:
-                    original_contrast = self.original_settings.get("ui_settings", {}).get("contrast", tr("contrast_normal"))
-                    current_contrast = self.contrast_combo.currentText()
-                    if original_contrast != current_contrast:
-                        changes.append(tr("change_report_contrast", original=original_contrast, current=current_contrast))
-            except Exception as e:
-                print(f"خطأ في مقارنة التباين: {e}")
-
-            # مقارنة الإعدادات المتقدمة
-            try:
-                if hasattr(self, 'max_memory_slider') and self.max_memory_slider:
-                    original_memory = self.original_settings.get("advanced_settings", {}).get("max_memory", 512)
-                    current_memory = self.max_memory_slider.value()
-                    if original_memory != current_memory:
-                        changes.append(tr("change_report_max_memory", original=original_memory, current=current_memory))
-            except Exception as e:
-                print(f"خطأ في مقارنة الذاكرة: {e}")
-
-            try:
-                if hasattr(self, 'enable_backup_check') and self.enable_backup_check:
-                    original_backup = self.original_settings.get("advanced_settings", {}).get("enable_backup", True)
-                    current_backup = self.enable_backup_check.isChecked()
-                    if original_backup != current_backup:
-                        status = tr("status_enabled") if current_backup else tr("status_disabled")
-                        changes.append(tr("change_report_backup", status=status))
-            except Exception as e:
-                print(f"خطأ في مقارنة النسخ الاحتياطي: {e}")
-
-            try:
-                if hasattr(self, 'enable_password_check') and self.enable_password_check:
-                    original_password = self.original_settings.get("security_settings", {}).get("enable_password_protection", False)
-                    current_password = self.enable_password_check.isChecked()
-                    if original_password != current_password:
-                        status = tr("status_enabled") if current_password else tr("status_disabled")
-                        changes.append(tr("change_report_password_protection", status=status))
-            except Exception as e:
-                print(f"خطأ في مقارنة حماية كلمة المرور: {e}")
+            original_contrast = self.original_settings.get("ui_settings", {}).get("contrast", tr("contrast_normal"))
+            current_contrast = self.contrast_combo.currentText()
+            if original_contrast != current_contrast:
+                changes.append(tr("change_report_contrast", original=original_contrast, current=current_contrast))
 
             # إنشاء التقرير
             if changes:
@@ -1555,8 +1278,7 @@ class SettingsUI(ThemeAwareDialog):
             else:
                 report = tr("no_changes_report")
 
-            if hasattr(self, 'changes_report') and self.changes_report:
-                self.changes_report.setText(report)
+            self.changes_report.setText(report)
             
             # تحديث حالة أزرار الحفظ والإلغاء
             self.update_save_buttons_state()
@@ -1564,8 +1286,7 @@ class SettingsUI(ThemeAwareDialog):
         except Exception as e:
             error_msg = tr("error_analyzing_changes", e=str(e))
             print(error_msg)
-            if hasattr(self, 'changes_report') and self.changes_report:
-                self.changes_report.setText(error_msg)
+            self.changes_report.setText(error_msg)
 
     def get_current_settings(self):
         """الحصول على الإعدادات الحالية من الواجهة (محسن بدون hasattr مفرط)"""
@@ -1598,73 +1319,31 @@ class SettingsUI(ThemeAwareDialog):
             }
             current["ui_settings"] = ui_settings
 
-            # إعدادات إضافية (قد تكون غير موجودة في بعض الصفحات)
-            if hasattr(self, 'compression_slider'):
-                current["compression_level"] = self.compression_slider.value()
-
-                merge_settings = {}
-                if hasattr(self, 'add_bookmarks_check'):
-                    merge_settings["add_bookmarks"] = self.add_bookmarks_check.isChecked()
-                if hasattr(self, 'preserve_metadata_check'):
-                    merge_settings["preserve_metadata"] = self.preserve_metadata_check.isChecked()
-                current["merge_settings"] = merge_settings
-
-            if hasattr(self, 'max_memory_slider'):
-                current["performance_settings"] = {
-                    "max_memory_usage": self.max_memory_slider.value(),
-                    "enable_multithreading": self.enable_multithreading_check.isChecked()
-                }
-
-            if hasattr(self, 'enable_password_check'):
-                current["security_settings"] = {
-                    "enable_password_protection": self.enable_password_check.isChecked(),
-                    "privacy_mode": self.privacy_mode_check.isChecked()
-                }
-                
             # إعدادات رسائل الترحيب
-            if hasattr(self, 'disable_welcome_checkbox'):
-                current["disable_welcome_message"] = self.disable_welcome_checkbox.isChecked()
+            current["disable_welcome_message"] = self.disable_welcome_checkbox.isChecked()
 
             # إعدادات تذكر الحالة
-            if hasattr(self, 'remember_state_checkbox'):
-                current["remember_settings_on_exit"] = self.remember_state_checkbox.isChecked()
+            current["remember_settings_on_exit"] = self.remember_state_checkbox.isChecked()
 
             # إعدادات العودة للإعدادات الافتراضية
-            if hasattr(self, 'reset_to_defaults_checkbox'):
-                current["reset_to_defaults_next_time"] = self.reset_to_defaults_checkbox.isChecked()
+            current["reset_to_defaults_next_time"] = self.reset_to_defaults_checkbox.isChecked()
 
             # إعدادات إظهار رسالة التحذير عند الخروج
-            if hasattr(self, 'show_exit_warning_checkbox'):
-                current["show_exit_warning"] = self.show_exit_warning_checkbox.isChecked()
+            current["show_exit_warning"] = self.show_exit_warning_checkbox.isChecked()
 
             # إعدادات تذكر اختيار المستخدم في رسالة التحذير
-            if hasattr(self, 'remember_exit_choice_checkbox'):
-                current["remember_exit_choice"] = self.remember_exit_choice_checkbox.isChecked()
+            current["remember_exit_choice"] = self.remember_exit_choice_checkbox.isChecked()
 
             # إعدادات عدم السؤال مرة أخرى وتجاهل التغييرات
-            if hasattr(self, 'dont_ask_again_checkbox'):
-                current["dont_ask_again_and_discard"] = self.dont_ask_again_checkbox.isChecked()
+            current["dont_ask_again_and_discard"] = self.dont_ask_again_checkbox.isChecked()
 
             # إعدادات الإشعارات
-            if hasattr(self, 'show_success_notifications_checkbox'):
-                if "notification_settings" not in current:
-                    current["notification_settings"] = {}
-                current["notification_settings"]["success"] = self.show_success_notifications_checkbox.isChecked()
-
-            if hasattr(self, 'show_warning_notifications_checkbox'):
-                if "notification_settings" not in current:
-                    current["notification_settings"] = {}
-                current["notification_settings"]["warning"] = self.show_warning_notifications_checkbox.isChecked()
-
-            if hasattr(self, 'show_error_notifications_checkbox'):
-                if "notification_settings" not in current:
-                    current["notification_settings"] = {}
-                current["notification_settings"]["error"] = self.show_error_notifications_checkbox.isChecked()
-
-            if hasattr(self, 'show_info_notifications_checkbox'):
-                if "notification_settings" not in current:
-                    current["notification_settings"] = {}
-                current["notification_settings"]["info"] = self.show_info_notifications_checkbox.isChecked()
+            current["notification_settings"] = {
+                "success": self.show_success_notifications_checkbox.isChecked(),
+                "warning": self.show_warning_notifications_checkbox.isChecked(),
+                "error": self.show_error_notifications_checkbox.isChecked(),
+                "info": self.show_info_notifications_checkbox.isChecked()
+            }
 
         except Exception as e:
             print(f"خطأ في قراءة الإعدادات: {e}")
@@ -1683,7 +1362,7 @@ class SettingsUI(ThemeAwareDialog):
             if hasattr(self, 'disable_welcome_checkbox'):
                 self.disable_welcome_checkbox.setEnabled(False)
             # إظهار رسالة توضيحية
-            show_info(tr("reset_defaults_info_message"))
+            self.show_info_message(tr("reset_defaults_info_message"))
         else:
             # تفعيل الخيارات الأخرى
             if hasattr(self, 'remember_state_checkbox'):
@@ -1936,7 +1615,7 @@ class SettingsUI(ThemeAwareDialog):
         """
         try:
             # إشعار بدء عملية الحفظ
-            show_info(tr("saving_settings_notification"), duration=2000)
+            self.show_info_message(tr("saving_settings_notification"))
 
             # 1. الحصول على الإعدادات الحالية من الواجهة
             current_settings = self.get_current_settings()
@@ -2007,7 +1686,7 @@ class SettingsUI(ThemeAwareDialog):
     def cancel_changes(self):
         """إلغاء جميع التغييرات"""
         if not self.has_unsaved_changes:
-            show_info(tr("no_changes_to_cancel"), duration=2000)
+            self.show_info_message(tr("no_changes_to_cancel"))
             return
 
         # إلغاء التغييرات مباشرة مع إشعار
@@ -2017,12 +1696,7 @@ class SettingsUI(ThemeAwareDialog):
         self.update_preview_only()  # تحديث المعاينة للإعدادات الأصلية
         self.update_save_buttons_state()  # تحديث حالة أزرار الحفظ والإلغاء
 
-        # استخدام النافذة الرئيسية بدلاً من نافذة الإعدادات لعرض الإشعار
-        main_window = self._get_main_window()
-        if main_window:
-            show_success(tr("all_changes_canceled_message"), duration=3000)
-        else:
-            show_success(tr("all_changes_canceled_message"), duration=3000)
+        self.show_success_message(tr("all_changes_canceled_message"))
 
     def load_original_settings(self):
         """تحميل الإعدادات الأصلية"""
@@ -2104,6 +1778,8 @@ class SettingsUI(ThemeAwareDialog):
 
     def on_language_changed(self, language_text):
         """Handle language change from the settings UI."""
+        if hasattr(self, 'is_loading') and self.is_loading:
+            return
         lang_code = "ar" if language_text == "العربية" else "en"
         
         # Update internal state, do not save immediately
@@ -2127,7 +1803,7 @@ class SettingsUI(ThemeAwareDialog):
         # إشعار جميع المكونات بتغيير اللغة لإعادة ترتيب الأزرار
         reload_translations()
 
-        show_info(tr("language_changed_message"), duration=4000)
+        self.show_info_message(tr("language_changed_message"))
 
     def load_current_settings_to_ui(self):
         """تحميل الإعدادات المؤقتة إلى الواجهة"""
@@ -2221,6 +1897,8 @@ class SettingsUI(ThemeAwareDialog):
 
     def on_theme_changed(self, theme_name):
         """تحديث المعاينة فقط عند تغيير السمة - بدون تطبيق على البرنامج"""
+        if hasattr(self, 'is_loading') and self.is_loading:
+            return
         try:
             # تحديث المعاينة فقط
             self.update_preview_only()
@@ -2237,6 +1915,8 @@ class SettingsUI(ThemeAwareDialog):
 
     def on_accent_color_changed(self, color_text):
         """تحديث المعاينة فقط عند تغيير لون التمييز"""
+        if hasattr(self, 'is_loading') and self.is_loading:
+            return
         try:
             # التحقق من صحة اللون
             if color_text.startswith("#") and len(color_text) == 7:
@@ -2255,15 +1935,11 @@ class SettingsUI(ThemeAwareDialog):
 
     def mark_as_changed(self):
         """تسجيل أن هناك تغييرات غير محفوظة وتحديث التقرير"""
+        if hasattr(self, 'is_loading') and self.is_loading:
+            return
         if not self.has_unsaved_changes:
             # إشعار أول تغيير فقط
-            # استخدام النافذة الرئيسية بدلاً من نافذة الإعدادات لعرض الإشعار
-            main_window = self._get_main_window()
-            if main_window:
-                main_window.notification_manager.show_notification(tr("settings_modified_notification"), "info", 2000)
-            else:
-                # استخدام الإشعار العام بدلاً من الإشعار الخاص بالنافذة
-                show_info(tr("settings_modified_notification"), duration=2000)
+            self.show_info_message(tr("settings_modified_notification"))
 
         self.has_unsaved_changes = True
         # تحديث تقرير التغييرات فوراً
@@ -2402,14 +2078,13 @@ class SettingsUI(ThemeAwareDialog):
         self.preview_current_theme()
         
         # إشعار بأن ميزة الشفافية ستكون متوفرة قريباً
-        if hasattr(self, 'notification_manager') and self.notification_manager:
-            self.notification_manager.show_notification(tr("transparency_feature_coming_soon"), "info", duration=3000)
+        self.show_info_message(tr("transparency_feature_coming_soon"))
 
         # إشعار عند تغيير الشفافية بشكل كبير
         if value <= 30:
-            show_info(tr("low_transparency_warning"), duration=2000)
+            self.show_info_message(tr("low_transparency_warning"))
         elif value >= 90:
-            show_info(tr("high_transparency_info"), duration=2000)
+            self.show_info_message(tr("high_transparency_info"))
 
     def on_theme_options_changed(self):
         """تغيير خيارات السمة - النظام الجديد"""

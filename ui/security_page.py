@@ -145,7 +145,7 @@ class SecurityPage(BasePage):
         properties_layout.addWidget(title_label, 1, 0)
         properties_layout.addWidget(self.title_input, 2, 0)
 
-        author_label = QLabel(tr("author_label"))
+        author_label = QLabel(tr("author_field_label"))
         apply_theme_style(author_label, "label")
         self.author_input = QLineEdit()
         self.author_input.setMinimumHeight(35)

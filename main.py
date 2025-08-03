@@ -153,7 +153,7 @@ class ApexFlow(QMainWindow):
             self.settings_data = load_settings()
             
             # Use the theme manager to re-apply the theme to all registered widgets
-            self.theme_manager.apply_theme_to_all()
+            self.theme_manager.change_theme(self.settings_data.get("theme"), self.settings_data.get("accent_color"))
 
             # Specifically refresh pages that might have been loaded
             self.refresh_all_loaded_pages()

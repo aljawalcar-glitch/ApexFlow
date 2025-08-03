@@ -296,7 +296,7 @@ class MessageManager:
         from modules import settings
 
         dialog = QDialog(self.main_window)
-        dialog.setWindowTitle(tr("unsaved_changes_warning"))
+        dialog.setWindowTitle(tr("confirm_title"))
         dialog.setMinimumWidth(400)
         apply_theme_style(dialog, "dialog")
 

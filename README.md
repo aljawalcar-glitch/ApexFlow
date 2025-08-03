@@ -25,6 +25,7 @@
 - **📱 Responsive:** Adaptive layout that works on different screen sizes
 - **🚀 Performance:** Optimized processing with background workers
 - **📊 Progress Tracking:** Real-time progress indicators for all operations
+- **🔔 Notifications:** Integrated notification system for success, warning, and error messages.
 
 ### 🛠️ Advanced Features
 - **🖨️ Print Integration:** Direct printing with Windows printer support
@@ -39,7 +40,7 @@
 ![Main Interface with Dark Theme](assets/screenshots/main-interface.png)
 
 ### PDF Merge and Print Interface
-![PDF Merge and Print Interface](assets/screenshots/merge-page.png)
+![PDF Merge and Print Interface](assets/screenshots/Merge-Page.png)
 
 ## 🚀 Quick Start
 

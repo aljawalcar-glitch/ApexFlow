@@ -251,7 +251,6 @@ def setup_first_run():
                 print("❌ فشل في إعداد التطبيق")
                 return False
         else:
-            print("📱 التطبيق معد مسبقاً")
             return True
 
     except Exception as e:
