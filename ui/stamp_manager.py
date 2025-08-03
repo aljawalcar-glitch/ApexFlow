@@ -15,6 +15,7 @@ from PySide6.QtCore import Qt, QSize, Signal
 from .svg_icon_button import create_action_button
 from .theme_aware_widget import make_theme_aware
 from .notification_system import show_success, show_warning, show_error, show_info
+from modules.translator import tr
 
 # استيراد النظام الجديد للتحميل السريع
 from .lazy_loader import global_image_loader

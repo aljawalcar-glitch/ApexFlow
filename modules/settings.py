@@ -222,7 +222,7 @@ def load_settings() -> Dict[str, Any]:
         warning("سيتم استخدام الإعدادات الافتراضية")
         return DEFAULT_SETTINGS.copy()
 
-def create_backup(original_settings: Dict[str, Any]) -> (bool, str):
+def create_backup(original_settings: Dict[str, Any]) -> Tuple[bool, str]:
     """
     إنشاء نسخة احتياطية من الإعدادات
     """

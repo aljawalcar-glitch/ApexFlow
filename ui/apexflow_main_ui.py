@@ -11,7 +11,7 @@ from modules.translator import tr
 try:
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-    from version import get_full_version_string
+    from config.version import get_full_version_string
 except ImportError:
     def get_full_version_string():
         return tr("version_fallback", version="v5.3.0")
