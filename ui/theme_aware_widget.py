@@ -110,5 +110,4 @@ def make_theme_aware(widget, widget_type="default"):
 def apply_theme_to_widget(widget, widget_type="default"):
     """تطبيق السمة على عنصر مباشرة"""
     from .theme_manager import apply_theme_style
-    apply_theme_style(widget, widget_type, auto_register=False)
-    return style
+    return apply_theme_style(widget, widget_type, auto_register=False)

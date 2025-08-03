@@ -84,34 +84,34 @@ def get_button_style(color, min_width=120):
     rgba_hover = hex_to_rgba(color, 0.6)
     rgba_pressed = hex_to_rgba(color, 0.3)
 
-    return f"""
-        QPushButton {{
+    return """
+        QPushButton {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 rgba(180, 180, 180, 0.25),
                 stop:0.5 rgba(180, 180, 180, 0.15),
-                stop:1 {rgba_color});
+                stop:1 """ + rgba_color + """);
             border: 1px solid rgba(180, 180, 180, 0.3);
             border-radius: 12px;
             color: white;
-            font-size: {font_settings['size']}px;
+            font-size: """ + str(font_settings['size']) + """px;
             font-weight: bold;
-            min-width: {min_width}px;
+            min-width: """ + str(min_width) + """px;
             padding: 12px 24px;
-        }}
-        QPushButton:hover {{
+        }
+        QPushButton:hover {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 rgba(180, 180, 180, 0.35),
                 stop:0.5 rgba(180, 180, 180, 0.25),
-                stop:1 {rgba_hover});
+                stop:1 """ + rgba_hover + """);
             border: 1px solid rgba(180, 180, 180, 0.5);
-        }}
-        QPushButton:pressed {{
+        }
+        QPushButton:pressed {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 rgba(180, 180, 180, 0.15),
                 stop:0.5 rgba(180, 180, 180, 0.05),
-                stop:1 {rgba_pressed});
+                stop:1 """ + rgba_pressed + """);
             border: 1px solid rgba(180, 180, 180, 0.4);
-        }}
+        }
     """
 
 def get_combo_style():
@@ -120,17 +120,17 @@ def get_combo_style():
     from .global_styles import get_font_settings
     font_settings = get_font_settings()
 
-    return f"""
-        QComboBox {{
+    return """
+        QComboBox {
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px;
             padding: 8px 12px;
             color: rgba(255, 255, 255, 0.9);
-            font-size: {font_settings['menu_size']}px;
+            font-size: """ + str(font_settings['menu_size']) + """px;
             min-height: 20px;
             min-width: 150px;
-        }}
+        }
         QComboBox:hover {
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 111, 0, 0.5);
@@ -186,16 +186,16 @@ def get_input_style():
     from .global_styles import get_font_settings
     font_settings = get_font_settings()
 
-    return f"""
-        QLineEdit {{
+    return """
+        QLineEdit {
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 6px;
             color: white;
             padding: 8px 12px;
-            font-size: {font_settings['size']}px;
+            font-size: """ + str(font_settings['size']) + """px;
             min-width: 150px;
-        }}
+        }
         QLineEdit:hover {
             background: rgba(255, 255, 255, 0.12);
             border: 1px solid rgba(255, 255, 255, 0.25);
@@ -249,16 +249,16 @@ def get_menu_style():
     from .global_styles import get_font_settings
     font_settings = get_font_settings()
 
-    return f"""
-        QListWidget {{
+    return """
+        QListWidget {
             background-color: #2d3748;
             border: 1px solid #4a5568;
             border-radius: 8px;
-            font-size: {font_settings['menu_size']}px;
+            font-size: """ + str(font_settings['menu_size']) + """px;
             color: white;
             padding: 5px;
             text-align: right;
-        }}
+        }
         QListWidget::item {
             padding: 12px;
             margin: 2px;

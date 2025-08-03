@@ -332,7 +332,9 @@ class NotificationSettingsDialog(QDialog):
             self.checkboxes[notif_type] = checkbox
 
         # Buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        button_box = QDialogButtonBox()
+        save_button = button_box.addButton(tr("save_all_changes_button"), QDialogButtonBox.AcceptRole)
+        cancel_button = button_box.addButton(tr("cancel_changes_button"), QDialogButtonBox.RejectRole)
         button_box.accepted.connect(self.save_settings)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
