@@ -131,9 +131,10 @@ def add_stamps_to_page(page, stamps, view_scale_factor=1.0, pdf_path=None, page_
             final_width = display_width
             final_height = display_height
 
-            # إصلاح تحويل الإحداثيات - الحل الصحيح
+            # إصلاح تحويل الإحداثيات - تعديل لمعالجة الانزياح للأسفل
             pdf_x = position[0]
-            pdf_y = position[1]  # استخدام Y كما هو بدون تحويل
+            # تعديل الإحداثي Y لمعالجة الانزياح للأسفل
+            pdf_y = position[1] - 75  # زيادة التعديل لرفع الختم لأعلى بشكل أكبر
             scaled_width = final_width
             scaled_height = final_height
 

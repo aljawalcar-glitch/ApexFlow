@@ -169,9 +169,16 @@ class InteractiveStamp(QGraphicsPixmapItem):
         current_width = current_pixmap.width()
         current_height = current_pixmap.height()
 
+        # تعديل الموضع لمعالجة مشكلة الانزياح للأسفل
+        # معامل التحكم في الانزياح العمودي (يمكن تعديله حسب الحاجة)
+        vertical_offset_factor = 50  # زيادة معامل الانزياح العمودي لجعل الختم ينزاح لأعلى بشكل أكبر
+        
+        pos_x = self.pos().x()
+        pos_y = self.pos().y() - vertical_offset_factor  # تعديل الموضع العمودي باستخدام المعامل
+        
         stamp_data = {
             'image_path': self.image_path,
-            'position': (self.pos().x(), self.pos().y()),
+            'position': (pos_x, pos_y),
             'scale': self.scale_factor,
             'opacity': self.opacity_value,
             # معلومات إضافية للحفظ الدقيق

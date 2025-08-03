@@ -148,6 +148,10 @@ class StampManager(QDialog):
         self.stamps_folder = get_stamps_folder()
         self.selected_stamp = None
         self.stamp_items = []
+        
+        # استيراد مدير الإشعارات
+        from .notification_system import global_notification_manager
+        self.notification_manager = global_notification_manager
 
         # إنشاء مجلد الأختام إذا لم يكن موجوداً
         try:

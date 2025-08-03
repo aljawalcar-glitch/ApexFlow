@@ -49,12 +49,17 @@ class InteractiveGraphicsView(QGraphicsView):
         # إذا كنا في وضع إضافة ختم
         if (self.parent_page and
             hasattr(self.parent_page, 'placing_stamp') and
-            self.parent_page.placing_stamp and
-            event.button() == Qt.LeftButton):
+            self.parent_page.placing_stamp):
 
-            scene_pos = self.mapToScene(event.pos())
-            self.parent_page.place_stamp_at_position(scene_pos)
-            return  # لا نستدعي المعالج الأصلي هنا
+            if event.button() == Qt.LeftButton:
+                scene_pos = self.mapToScene(event.pos())
+                self.parent_page.place_stamp_at_position(scene_pos)
+                return  # لا نستدعي المعالج الأصلي هنا
+            
+            elif event.button() == Qt.RightButton:
+                # إلغاء وضع الختم عند النقر بالزر الأيمن
+                self.parent_page.end_stamp_placement()
+                return
 
         # استدعاء المعالج الأصلي للسماح للعناصر التفاعلية بالعمل
         super().mousePressEvent(event)
@@ -393,25 +398,26 @@ class RotatePage(QWidget):
             # لا حاجة لإغلاق doc يدوياً
 
             self.current_page = 0
-            self.page_rotations = {i: 0 for i in range(len(self.pages))}  # إعادة تعيين لكل صفحة
+            self.page_rotations = {i: 0 for i in range(self.total_pages)}
             self.stamps = {}  # إعادة تعيين الأختام
             self.show_page(use_transition=False)  # لا انتقال عند التحميل الأولي
 
             # تفعيل الأزرار بعد تحميل الملف
-            self.prev_btn.setEnabled(len(self.pages) > 1)
-            self.next_btn.setEnabled(len(self.pages) > 1)
+            self.prev_btn.setEnabled(self.total_pages > 1)
+            self.next_btn.setEnabled(self.total_pages > 1)
             self.rotate_left_btn.setEnabled(True)
             self.rotate_right_btn.setEnabled(True)
             self.stamp_btn.setEnabled(True)
             self.reset_btn.setEnabled(True)
             self.save_btn.setEnabled(True)
 
-            # إشعار بالتحسينات الجديدة
-            self.notification_manager.show_success(tr("pdf_load_success", count=len(self.pages)), duration=3000)
-
         except Exception as e:
             print(f"Error loading PDF: {e}")
             self.notification_manager.show_notification(tr("pdf_load_error", error=str(e)), "error")
+            return  # الخروج من الدالة في حالة حدوث خطأ
+
+        # إظهار إشعار النجاح فقط إذا لم تحدث أخطاء
+        self.notification_manager.show_notification(tr("pdf_load_success", count=self.total_pages), "success", duration=3000)
 
     def on_page_loaded(self, page_number: int, pixmap: QPixmap):
         """معالج تحميل الصفحة من النظام الكسول"""
@@ -499,6 +505,9 @@ class RotatePage(QWidget):
             # عرض الصورة بحجم أكبر مع الحفاظ على النسبة
             self.view.fitInView(self.scene.itemsBoundingRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
+            # عرض أختام الصفحة الحالية بعد عرض الصفحة
+            self.show_page_stamps()
+
     def show_loading_placeholder(self):
         """عرض placeholder أثناء تحميل الصفحة"""
         # مسح المشهد
@@ -566,12 +575,16 @@ class RotatePage(QWidget):
             rotation = self.page_rotations.get(self.current_page, 0)
             self.page_rotations[self.current_page] = (rotation - 90) % 360
             self.show_page(use_transition=True)
+            # إعادة تطبيق الأختام بعد التدوير
+            self.show_page_stamps()
 
     def rotate_right(self):
         if not self.is_transitioning:
             rotation = self.page_rotations.get(self.current_page, 0)
             self.page_rotations[self.current_page] = (rotation + 90) % 360
             self.show_page(use_transition=True)
+            # إعادة تطبيق الأختام بعد التدوير
+            self.show_page_stamps()
 
     def update_page_label(self):
         rotation = self.page_rotations.get(self.current_page, 0)
@@ -755,10 +768,15 @@ class RotatePage(QWidget):
             self.stamps[self.current_page] = []
         self.stamps[self.current_page].append(stamp)
 
-
-
         # تفعيل أزرار التكبير والتصغير
         self.update_stamp_buttons_state()
+
+        # إنهاء وضع الختم بعد وضعه مباشرة
+        self.end_stamp_placement()
+        
+        # إعادة تعيين مؤشر الماوس إلى الوضع الطبيعي
+        self.view.setCursor(Qt.ArrowCursor)
+        self.view.setDragMode(QGraphicsView.DragMode.NoDrag)
 
     def zoom_selected_stamp_in(self):
         """تكبير الختم المحدد"""
@@ -775,9 +793,23 @@ class RotatePage(QWidget):
     def get_selected_stamp(self):
         """الحصول على الختم المحدد حالياً"""
         if self.current_page in self.stamps:
+            stamps_to_remove = []
             for stamp in self.stamps[self.current_page]:
-                if stamp.isSelected():
-                    return stamp
+                try:
+                    if stamp.isSelected():
+                        return stamp
+                except RuntimeError:
+                    # الكائن محذوف، نضيفه للقائمة المؤقتة
+                    stamps_to_remove.append(stamp)
+            
+            # إزالة الأختام المحذوفة
+            for stamp in stamps_to_remove:
+                self.stamps[self.current_page].remove(stamp)
+                
+            # إذا لم تعد الصفحة تحتوي على أختام، نزيلها من القاموس
+            if not self.stamps[self.current_page]:
+                del self.stamps[self.current_page]
+                
         return None
 
     def update_stamp_buttons_state(self):
@@ -786,9 +818,6 @@ class RotatePage(QWidget):
         # إظهار/إخفاء الأزرار حسب وجود ختم محدد
         self.zoom_in_btn.setVisible(has_selected_stamp)
         self.zoom_out_btn.setVisible(has_selected_stamp)
-
-        # إنهاء وضع الختم
-        self.end_stamp_placement()
 
 
 
@@ -849,3 +878,15 @@ class RotatePage(QWidget):
             # إزالة الصفحة إذا لم تعد تحتوي على أختام
             if not self.stamps[page_num]:
                 del self.stamps[page_num]
+
+    def resizeEvent(self, event):
+        """معالجة تغيير حجم النافذة للحفاظ على ملاءمة الصفحة."""
+        super().resizeEvent(event)
+        # استخدام مؤقت يضمن استقرار التخطيط قبل إعادة الملاءمة
+        QTimer.singleShot(0, self.fit_page_in_view)
+
+    def fit_page_in_view(self):
+        """ملاءمة محتوى المشهد الحالي في العرض."""
+        if self.scene and self.scene.items():
+            # ملاءمة الصفحة في العرض مع الحفاظ على نسبة الأبعاد
+            self.view.fitInView(self.scene.itemsBoundingRect(), Qt.AspectRatioMode.KeepAspectRatio)
