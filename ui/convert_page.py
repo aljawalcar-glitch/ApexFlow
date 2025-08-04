@@ -502,6 +502,10 @@ class ConvertPage(BasePageWidget):
 
         # لا نستدعي update_controls_visibility هنا لأننا نريد إخفاء كل شيء
 
+        # تحديث حالة العمل في النافذة الرئيسية
+        main_window = self._get_main_window()
+        if main_window:
+            main_window.set_page_has_work(main_window.get_page_index(self), False)
 
 
     def clear_files(self):

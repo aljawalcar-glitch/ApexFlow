@@ -450,7 +450,42 @@ class ApexFlow(QMainWindow):
             except:
                 pass
                 
-            if confirm_dialog.exec() != QMessageBox.Yes:
+            if confirm_dialog.exec() == QMessageBox.Yes:
+                # Reset the current page's UI before navigating away
+                current_page_widget = self.stack.widget(current_index)
+
+                # If the current page is settings page (index 7), call cancel_changes
+                if current_index == 7:  # Settings page
+                    try:
+                        # Get the actual settings widget (inside scroll area)
+                        if hasattr(current_page_widget, 'widget'):
+                            settings_widget = current_page_widget.widget()
+                        else:
+                            settings_widget = current_page_widget
+
+                        # Check if it has cancel_changes method
+                        if hasattr(settings_widget, 'cancel_changes'):
+                            settings_widget.cancel_changes()
+                            debug("Called cancel_changes method for settings page")
+                        else:
+                            # Fallback to reset_ui if cancel_changes doesn't exist
+                            if hasattr(settings_widget, 'reset_ui'):
+                                settings_widget.reset_ui()
+                                debug("Used reset_ui fallback for settings page")
+                    except Exception as e:
+                        error(f"Error calling cancel_changes: {e}")
+                        # Fallback to original behavior
+                        if hasattr(current_page_widget, 'reset_ui'):
+                            current_page_widget.reset_ui()
+                        elif hasattr(current_page_widget, 'widget') and hasattr(current_page_widget.widget(), 'reset_ui'):
+                            current_page_widget.widget().reset_ui()
+                else:
+                    # For other pages, use the original behavior
+                    if hasattr(current_page_widget, 'reset_ui'):
+                        current_page_widget.reset_ui()
+                    elif hasattr(current_page_widget, 'widget') and hasattr(current_page_widget.widget(), 'reset_ui'): # For QScrollArea
+                        current_page_widget.widget().reset_ui()
+            else:
                 # Reset selection to current page
                 self.menu_list.blockSignals(True)
                 self.menu_list.setCurrentRow(current_index)
@@ -478,9 +513,6 @@ class ApexFlow(QMainWindow):
             # الصفحة 0 (صفحة الترحيب) محملة بالفعل، فقط انتقل إليها
             self.stack.setCurrentIndex(0)
             return
-            
-        # إعادة تعيين جميع الصفحات المحملة عند التنقل
-        self._reset_all_loaded_pages()
 
         # إذا كانت الصفحة محملة بالفعل، انتقل إليها مباشرة
         if self.pages_loaded[index]:

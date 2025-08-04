@@ -1245,6 +1245,51 @@ class SettingsUI(ThemeAwareDialog):
             if original_contrast != current_contrast:
                 changes.append(tr("change_report_contrast", original=original_contrast, current=current_contrast))
 
+            # مقارنة إعدادات الإعدادات العامة
+            original_welcome = self.original_settings.get("disable_welcome_message", False)
+            current_welcome = self.disable_welcome_checkbox.isChecked()
+            if original_welcome != current_welcome:
+                status = tr("status_disabled") if current_welcome else tr("status_enabled")
+                changes.append(tr("change_report_welcome_message", status=status))
+
+            original_remember = self.original_settings.get("remember_settings_on_exit", False)
+            current_remember = self.remember_state_checkbox.isChecked()
+            if original_remember != current_remember:
+                status = tr("status_enabled") if current_remember else tr("status_disabled")
+                changes.append(tr("change_report_remember_settings", status=status))
+
+            original_reset = self.original_settings.get("reset_to_defaults_next_time", False)
+            current_reset = self.reset_to_defaults_checkbox.isChecked()
+            if original_reset != current_reset:
+                status = tr("status_enabled") if current_reset else tr("status_disabled")
+                changes.append(tr("change_report_reset_defaults", status=status))
+
+            # مقارنة إعدادات الإشعارات
+            original_notifications = self.original_settings.get("notification_settings", {})
+            current_success = self.show_success_notifications_checkbox.isChecked()
+            original_success = original_notifications.get("success", True)
+            if original_success != current_success:
+                status = tr("status_enabled") if current_success else tr("status_disabled")
+                changes.append(tr("change_report_success_notifications", status=status))
+
+            current_warning = self.show_warning_notifications_checkbox.isChecked()
+            original_warning = original_notifications.get("warning", True)
+            if original_warning != current_warning:
+                status = tr("status_enabled") if current_warning else tr("status_disabled")
+                changes.append(tr("change_report_warning_notifications", status=status))
+
+            current_error = self.show_error_notifications_checkbox.isChecked()
+            original_error = original_notifications.get("error", True)
+            if original_error != current_error:
+                status = tr("status_enabled") if current_error else tr("status_disabled")
+                changes.append(tr("change_report_error_notifications", status=status))
+
+            current_info = self.show_info_notifications_checkbox.isChecked()
+            original_info = original_notifications.get("info", True)
+            if original_info != current_info:
+                status = tr("status_enabled") if current_info else tr("status_disabled")
+                changes.append(tr("change_report_info_notifications", status=status))
+
             # إنشاء التقرير
             if changes:
                 report = tr("changes_applied_report_header") + "\n".join(changes)
@@ -1565,6 +1610,10 @@ class SettingsUI(ThemeAwareDialog):
             self.show_error_message(tr("critical_error_title"), error_message)
             return False
 
+    def reset_ui(self):
+        """إعادة تعيين الواجهة عن طريق إلغاء التغييرات."""
+        self.cancel_changes()
+
     def cancel_changes(self):
         """إلغاء جميع التغييرات"""
         if not self.has_unsaved_changes:
@@ -1589,11 +1638,16 @@ class SettingsUI(ThemeAwareDialog):
     def load_original_settings(self):
         """تحميل الإعدادات الأصلية"""
         try:
+            # منع إرسال الإشارات أثناء التحميل
             if hasattr(self, 'theme_combo'):
-                # منع إرسال الإشارات أثناء التحميل
                 self.theme_combo.blockSignals(True)
                 self.accent_color_input.blockSignals(True)
 
+            # استعادة الإعدادات الأساسية
+            self.settings_data = self.original_settings.copy()
+
+            # تحديث واجهة المستخدم بالقيم الأصلية
+            if hasattr(self, 'theme_combo'):
                 self.theme_combo.setCurrentText(self.original_settings.get("theme", "dark"))
                 self.accent_color_input.setText(self.original_settings.get("accent_color", "#ff6f00"))
 
@@ -1601,47 +1655,49 @@ class SettingsUI(ThemeAwareDialog):
                 self.theme_combo.blockSignals(False)
                 self.accent_color_input.blockSignals(False)
 
-                ui_settings = self.original_settings.get("ui_settings", {})
+            # استعادة جميع إعدادات واجهة المستخدم
+            ui_settings = self.original_settings.get("ui_settings", {})
 
-                # تحميل إعدادات الخطوط الأصلية
-                if hasattr(self, 'font_size_slider'):
-                    self.font_size_slider.setValue(ui_settings.get("font_size", 14))
-                if hasattr(self, 'font_family_combo'):
-                    font_family = ui_settings.get("font_family", tr("system_default_font"))
-                    index = self.font_family_combo.findText(font_family)
-                    if index >= 0:
-                        self.font_family_combo.setCurrentIndex(index)
-                if hasattr(self, 'font_weight_combo'):
-                    font_weight = ui_settings.get("font_weight", tr("font_weight_normal"))
-                    index = self.font_weight_combo.findText(font_weight)
-                    if index >= 0:
-                        self.font_weight_combo.setCurrentIndex(index)
-                if hasattr(self, 'text_direction_combo'):
-                    text_direction = ui_settings.get("text_direction", tr("text_direction_auto"))
-                    index = self.text_direction_combo.findText(text_direction)
-                    if index >= 0:
-                        self.text_direction_combo.setCurrentIndex(index)
+            # إعدادات الخطوط
+            if hasattr(self, 'font_size_slider'):
+                self.font_size_slider.setValue(ui_settings.get("font_size", 14))
+            if hasattr(self, 'font_family_combo'):
+                font_family = ui_settings.get("font_family", tr("system_default_font"))
+                index = self.font_family_combo.findText(font_family)
+                if index >= 0:
+                    self.font_family_combo.setCurrentIndex(index)
+            if hasattr(self, 'font_weight_combo'):
+                font_weight = ui_settings.get("font_weight", tr("font_weight_normal"))
+                index = self.font_weight_combo.findText(font_weight)
+                if index >= 0:
+                    self.font_weight_combo.setCurrentIndex(index)
+            if hasattr(self, 'text_direction_combo'):
+                text_direction = ui_settings.get("text_direction", tr("text_direction_auto"))
+                index = self.text_direction_combo.findText(text_direction)
+                if index >= 0:
+                    self.text_direction_combo.setCurrentIndex(index)
 
-                # تحميل إعدادات النصوص الأصلية
-                if hasattr(self, 'show_tooltips_check'):
-                    self.show_tooltips_check.setChecked(ui_settings.get("show_tooltips", True))
-                if hasattr(self, 'enable_animations_check'):
-                    self.enable_animations_check.setChecked(ui_settings.get("enable_animations", True))
+            # إعدادات النصوص
+            if hasattr(self, 'show_tooltips_check'):
+                self.show_tooltips_check.setChecked(ui_settings.get("show_tooltips", True))
+            if hasattr(self, 'enable_animations_check'):
+                self.enable_animations_check.setChecked(ui_settings.get("enable_animations", True))
 
-                # تحميل إعدادات السمة المتقدمة الأصلية
-                if hasattr(self, 'transparency_slider'):
-                    self.transparency_slider.setValue(ui_settings.get("transparency", 80))
-                if hasattr(self, 'size_combo'):
-                    size = ui_settings.get("size", tr("size_medium"))
-                    index = self.size_combo.findText(size)
-                    if index >= 0:
-                        self.size_combo.setCurrentIndex(index)
-                if hasattr(self, 'contrast_combo'):
-                    contrast = ui_settings.get("contrast", tr("contrast_normal"))
-                    index = self.contrast_combo.findText(contrast)
-                    if index >= 0:
-                        self.contrast_combo.setCurrentIndex(index)
+            # إعدادات السمة المتقدمة
+            if hasattr(self, 'transparency_slider'):
+                self.transparency_slider.setValue(ui_settings.get("transparency", 80))
+            if hasattr(self, 'size_combo'):
+                size = ui_settings.get("size", tr("size_medium"))
+                index = self.size_combo.findText(size)
+                if index >= 0:
+                    self.size_combo.setCurrentIndex(index)
+            if hasattr(self, 'contrast_combo'):
+                contrast = ui_settings.get("contrast", tr("contrast_normal"))
+                index = self.contrast_combo.findText(contrast)
+                if index >= 0:
+                    self.contrast_combo.setCurrentIndex(index)
 
+            # إعدادات الضغط
             if hasattr(self, 'compression_slider'):
                 self.compression_slider.setValue(self.original_settings.get("compression_level", 3))
 
@@ -1651,18 +1707,70 @@ class SettingsUI(ThemeAwareDialog):
                 if hasattr(self, 'preserve_metadata_check'):
                     self.preserve_metadata_check.setChecked(merge_settings.get("preserve_metadata", True))
 
+            # إعدادات الأداء
             if hasattr(self, 'max_memory_slider'):
                 performance_settings = self.original_settings.get("performance_settings", {})
                 self.max_memory_slider.setValue(performance_settings.get("max_memory_usage", 512))
-                self.enable_multithreading_check.setChecked(performance_settings.get("enable_multithreading", True))
+                if hasattr(self, 'enable_multithreading_check'):
+                    self.enable_multithreading_check.setChecked(performance_settings.get("enable_multithreading", True))
 
+            # إعدادات الأمان
             if hasattr(self, 'enable_password_check'):
                 security_settings = self.original_settings.get("security_settings", {})
                 self.enable_password_check.setChecked(security_settings.get("enable_password_protection", False))
-                self.privacy_mode_check.setChecked(security_settings.get("privacy_mode", False))
+                if hasattr(self, 'privacy_mode_check'):
+                    self.privacy_mode_check.setChecked(security_settings.get("privacy_mode", False))
+
+            # إعدادات الإعدادات العامة
+            if hasattr(self, 'disable_welcome_checkbox'):
+                self.disable_welcome_checkbox.setChecked(self.original_settings.get("disable_welcome_message", False))
+            if hasattr(self, 'remember_state_checkbox'):
+                self.remember_state_checkbox.setChecked(self.original_settings.get("remember_settings_on_exit", False))
+            if hasattr(self, 'reset_to_defaults_checkbox'):
+                self.reset_to_defaults_checkbox.setChecked(self.original_settings.get("reset_to_defaults_next_time", False))
+
+            # إعدادات الإشعارات
+            if hasattr(self, 'show_success_notifications_checkbox'):
+                notification_settings = self.original_settings.get("notification_settings", {})
+                self.show_success_notifications_checkbox.setChecked(notification_settings.get("success", True))
+            if hasattr(self, 'show_warning_notifications_checkbox'):
+                notification_settings = self.original_settings.get("notification_settings", {})
+                self.show_warning_notifications_checkbox.setChecked(notification_settings.get("warning", True))
+            if hasattr(self, 'show_error_notifications_checkbox'):
+                notification_settings = self.original_settings.get("notification_settings", {})
+                self.show_error_notifications_checkbox.setChecked(notification_settings.get("error", True))
+            if hasattr(self, 'show_info_notifications_checkbox'):
+                notification_settings = self.original_settings.get("notification_settings", {})
+                self.show_info_notifications_checkbox.setChecked(notification_settings.get("info", True))
+
+            # إعدادات اللغة
+            if hasattr(self, 'language_combo'):
+                language = self.original_settings.get("language", "ar")
+                language_text = "العربية" if language == "ar" else "English"
+                index = self.language_combo.findText(language_text)
+                if index >= 0:
+                    self.language_combo.setCurrentIndex(index)
+
+            # إعدادات اختصارات لوحة المفاتيح
+            if hasattr(self, 'shortcuts_table'):
+                keyboard_shortcuts = self.original_settings.get("keyboard_shortcuts", {})
+                # تحديث الجدول بالاختصارات الأصلية
+                for i in range(self.shortcuts_table.rowCount()):
+                    shortcut_name_item = self.shortcuts_table.item(i, 0)
+                    if shortcut_name_item:
+                        shortcut_name = shortcut_name_item.text()
+                        if shortcut_name in keyboard_shortcuts:
+                            shortcut_value_item = self.shortcuts_table.item(i, 1)
+                            if shortcut_value_item:
+                                shortcut_value_item.setText(keyboard_shortcuts[shortcut_name])
+
+            # تحديث المعاينة
+            self.update_preview_only()
 
         except Exception as e:
             print(tr("error_loading_original_settings", e=e))
+            import traceback
+            traceback.print_exc()
 
     def on_language_changed(self, language_text):
         """Handle language change from the settings UI."""
