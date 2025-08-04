@@ -1530,6 +1530,11 @@ class SettingsUI(ThemeAwareDialog):
                 self.has_unsaved_changes = False
                 self.update_changes_report()
                 
+                # إعلام النافذة الرئيسية بعدم وجود عمل غير منجز
+                main_window = self._get_main_window()
+                if main_window:
+                    main_window.set_page_has_work(7, False)
+                
                 # 6. تطبيق إعدادات الإشعارات مباشرة
                 if "notification_settings" in self.settings_data:
                     from .notification_system import global_notification_manager
@@ -1570,6 +1575,12 @@ class SettingsUI(ThemeAwareDialog):
         self.load_original_settings()
         self.update_changes_report()
         self.has_unsaved_changes = False  # إعادة تعيين حالة التغييرات
+        
+        # إعلام النافذة الرئيسية بعدم وجود عمل غير منجز
+        main_window = self._get_main_window()
+        if main_window:
+            main_window.set_page_has_work(7, False)
+
         self.update_preview_only()  # تحديث المعاينة للإعدادات الأصلية
         self.update_save_buttons_state()  # تحديث حالة أزرار الحفظ والإلغاء
 
@@ -1819,6 +1830,12 @@ class SettingsUI(ThemeAwareDialog):
             self.show_info_message(tr("settings_modified_notification"))
 
         self.has_unsaved_changes = True
+        
+        # إعلام النافذة الرئيسية بوجود عمل غير منجز
+        main_window = self._get_main_window()
+        if main_window:
+            main_window.set_page_has_work(7, True)
+
         # تحديث تقرير التغييرات فوراً
         QTimer.singleShot(100, self.update_changes_report)
         # تحديث حالة أزرار الحفظ والإلغاء

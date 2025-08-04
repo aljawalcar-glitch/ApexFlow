@@ -4,7 +4,7 @@
 صفحة حماية وخصائص ملفات PDF
 """
 
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
+from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
                                QPushButton, QFormLayout, QCheckBox, QFileDialog, QScrollArea, QGridLayout)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
@@ -28,6 +28,18 @@ class SecurityPage(BasePage):
         self.source_file = None
         self.has_unsaved_changes = False
         self.init_ui()
+
+    def _get_main_window(self):
+        """الحصول على النافذة الرئيسية للتطبيق"""
+        parent = self.parent()
+        while parent:
+            if parent.__class__.__name__ == 'ApexFlow':
+                return parent
+            parent = parent.parent()
+        for widget in QApplication.topLevelWidgets():
+            if widget.__class__.__name__ == 'ApexFlow':
+                return widget
+        return None
 
     def init_ui(self):
         """إنشاء واجهة المستخدم للصفحة"""
@@ -489,8 +501,14 @@ class SecurityPage(BasePage):
         self.allow_printing_cb.setChecked(True)
         self.allow_copying_cb.setChecked(True)
         self.update_ui_state()
+        main_window = self._get_main_window()
+        if main_window:
+            main_window.set_page_has_work(main_window.get_page_index(self), False)
 
     def mark_as_changed(self):
         """يسجل أن هناك تغييرات غير محفوظة."""
         if self.source_file:
             self.has_unsaved_changes = True
+            main_window = self._get_main_window()
+            if main_window:
+                main_window.set_page_has_work(main_window.get_page_index(self), True)

@@ -3,7 +3,7 @@
 صفحة تدوير ملفات PDF
 """
 
-from PySide6.QtWidgets import (QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, QLabel, QFileDialog, QMessageBox, QGraphicsOpacityEffect, QProgressBar)
+from PySide6.QtWidgets import (QApplication, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, QLabel, QFileDialog, QMessageBox, QGraphicsOpacityEffect, QProgressBar)
 from PySide6.QtGui import QPixmap, QImage, QTransform, QCursor, QBrush, QPainter
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer
 import fitz  # PyMuPDF
@@ -218,6 +218,18 @@ class RotatePage(QWidget):
 
         # تسجيل callback لتغيير اللغة
         register_language_change_callback(self.update_button_order_for_language)
+
+    def _get_main_window(self):
+        """الحصول على النافذة الرئيسية للتطبيق"""
+        parent = self.parent()
+        while parent:
+            if parent.__class__.__name__ == 'ApexFlow':
+                return parent
+            parent = parent.parent()
+        for widget in QApplication.topLevelWidgets():
+            if widget.__class__.__name__ == 'ApexFlow':
+                return widget
+        return None
 
     def update_button_order_for_language(self):
         """إعادة ترتيب أزرار التنقل والتدوير عند تغيير اللغة"""
@@ -603,6 +615,9 @@ class RotatePage(QWidget):
     def select_file(self):
         """اختيار ملف PDF"""
         self.reset_ui()
+        main_window = self._get_main_window()
+        if main_window:
+            main_window.set_page_has_work(main_window.get_page_index(self), True)
         import os
         # مجلد Documents كافتراضي
         default_dir = os.path.join(os.path.expanduser("~"), "Documents")
@@ -920,3 +935,7 @@ class RotatePage(QWidget):
         self.save_btn.setEnabled(False)
         self.zoom_in_btn.setVisible(False)
         self.zoom_out_btn.setVisible(False)
+
+        main_window = self._get_main_window()
+        if main_window:
+            main_window.set_page_has_work(main_window.get_page_index(self), False)

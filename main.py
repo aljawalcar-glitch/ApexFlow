@@ -61,6 +61,13 @@ class ApexFlow(QMainWindow):
     def __init__(self):
         super().__init__()
         self._settings_ui_module = None
+        
+        # Track unfinished work in pages
+        self._has_unfinished_work = {}  # Dictionary to track unfinished work per page
+        
+        # Initialize all pages as having no unfinished work
+        for i in range(8):  # We have 8 pages (0-7)
+            self._has_unfinished_work[i] = False
 
         # Load basic settings only (speed up startup)
         self.settings_data = load_settings()
@@ -127,6 +134,39 @@ class ApexFlow(QMainWindow):
                 self.operations_manager = DummyOperationsManager()
 
         return self.operations_manager
+
+    def set_page_has_work(self, page_index, has_work):
+        """تعيين حالة العمل لصفحة معينة"""
+        if 0 <= page_index < len(self._has_unfinished_work):
+            self._has_unfinished_work[page_index] = has_work
+            debug(f"Page {page_index} work status set to: {has_work}")
+    
+    def get_page_has_work(self, page_index):
+        """الحصول على حالة العمل لصفحة معينة"""
+        return self._has_unfinished_work.get(page_index, False)
+    
+    def has_any_unfinished_work(self):
+        """التحقق من وجود أي عمل غير منجز في أي صفحة"""
+        return any(self._has_unfinished_work.values())
+    
+    def get_pages_with_work(self):
+        """الحصول على قائمة بأسماء الصفحات التي تحتوي على عمل غير منجز"""
+        page_names = [
+            tr("menu_home"), tr("menu_merge_print"), tr("menu_split"),
+            tr("menu_compress"), tr("menu_stamp_rotate"), tr("menu_convert"),
+            tr("menu_security"), tr("menu_settings")
+        ]
+        
+        pages_with_work = []
+        for page_index, has_work in self._has_unfinished_work.items():
+            if has_work:
+                page_name = page_names[page_index] if page_index < len(page_names) else f"Page {page_index}"
+                pages_with_work.append(page_name)
+        return pages_with_work
+
+    def get_page_index(self, page):
+        """Gets the index of a page widget in the stack."""
+        return self.stack.indexOf(page)
 
     def _initialize_delayed(self):
         """Delayed initialization of heavy components"""
@@ -373,40 +413,53 @@ class ApexFlow(QMainWindow):
         """
         Handles menu selection simply and directly.
         """
+        # Get the row immediately after click
         desired_row = self.menu_list.row(item)
         current_index = self.stack.currentIndex()
+        
+        # Return if same page is selected
         if current_index == desired_row:
             return
-
-        # Load the desired page directly
-        
-        # Reset selection visually and load page
-
-        # Reset selection visually
-        self.menu_list.blockSignals(True)
-        self.menu_list.setCurrentRow(current_index)
-        self.menu_list.blockSignals(False)
-
-        # Load the desired page directly
-        
-        # All pages work the same way
-        if current_index == 7:
-            # Navigate directly from settings without any confirmation
             
-            # Load the page directly
-            self.load_page_on_demand(desired_row)
-            # Update the menu selection
-            self.menu_list.setCurrentRow(desired_row)
+        # Get page names for confirmation message
+        page_names = [
+            tr("menu_home"), tr("menu_merge_print"), tr("menu_split"),
+            tr("menu_compress"), tr("menu_stamp_rotate"), tr("menu_convert"),
+            tr("menu_security"), tr("menu_settings")
+        ]
+        
+        current_page_name = page_names[current_index] if current_index < len(page_names) else f"Page {current_index}"
+        target_page_name = page_names[desired_row] if desired_row < len(page_names) else f"Page {desired_row}"
+
+        # If current page has unfinished work, show confirmation dialog
+        if self.get_page_has_work(current_index):
+            message = tr("navigation_with_work_warning", 
+                        current_page=current_page_name, 
+                        target_page=target_page_name)
+            
+            from PySide6.QtWidgets import QMessageBox
+            confirm_dialog = QMessageBox(self)
+            confirm_dialog.setWindowTitle(tr("confirm_navigation"))
+            confirm_dialog.setText(message)
+            confirm_dialog.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            confirm_dialog.setDefaultButton(QMessageBox.Yes)
+            
+            try:
+                from ui.theme_manager import apply_theme
+                apply_theme(confirm_dialog, "dialog")
+            except:
+                pass
                 
-            # No need to check for changes or show dialog
-            pass
-        # For all other pages, navigate without confirmation
-        else:
-            can_navigate = True
-            # Load the page directly
-            self.load_page_on_demand(desired_row)
-            # Update the menu selection
-            self.menu_list.setCurrentRow(desired_row)
+            if confirm_dialog.exec() != QMessageBox.Yes:
+                # Reset selection to current page
+                self.menu_list.blockSignals(True)
+                self.menu_list.setCurrentRow(current_index)
+                self.menu_list.blockSignals(False)
+                return
+
+        # Proceed with navigation
+        self.load_page_on_demand(desired_row)
+        self.menu_list.setCurrentRow(desired_row)
             
     def on_menu_selection_changed(self, current_row):
         """دالة قديمة للحفاظ على التوافق مع الإشارات القديمة"""

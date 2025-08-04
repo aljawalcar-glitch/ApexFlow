@@ -3,7 +3,7 @@
 صفحة دمج وطباعة ملفات PDF
 """
 
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QMessageBox, QComboBox, QLabel
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QMessageBox, QComboBox, QLabel, QApplication
 from .base_page import BasePageWidget
 from .ui_helpers import create_button
 from .theme_manager import apply_theme_style
@@ -189,12 +189,28 @@ class MergePage(BasePageWidget):
         except Exception as e:
             self.notification_manager.show_notification(f"{tr('printing_error')}: {str(e)}", "error")
 
+    def _get_main_window(self):
+        """الحصول على النافذة الرئيسية للتطبيق"""
+        parent = self.parent()
+        while parent:
+            if parent.__class__.__name__ == 'ApexFlow':
+                return parent
+            parent = parent.parent()
+        for widget in QApplication.topLevelWidgets():
+            if widget.__class__.__name__ == 'ApexFlow':
+                return widget
+        return None
+
     def on_files_changed(self, files):
         """إظهار أو إخفاء العناصر بناءً على وجود الملفات."""
         has_files = len(files) > 0
         self.file_list_frame.setVisible(has_files)
         self.action_widget.setVisible(has_files)
         self.has_unsaved_changes = has_files
+
+        main_window = self._get_main_window()
+        if main_window:
+            main_window.set_page_has_work(main_window.get_page_index(self), has_files)
 
         # تحميل الطابعات عند إظهار عناصر التحكم لأول مرة
         if has_files and not self._printers_loaded:
@@ -208,3 +224,6 @@ class MergePage(BasePageWidget):
         self.file_list_frame.clear_all_files()
         self.has_unsaved_changes = False
         self.on_files_changed([])
+        main_window = self._get_main_window()
+        if main_window:
+            main_window.set_page_has_work(main_window.get_page_index(self), False)

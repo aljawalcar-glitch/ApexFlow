@@ -6,7 +6,7 @@
 from .base_page import BasePageWidget
 from PySide6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QSlider, QLabel, QCheckBox,
-    QGroupBox, QFormLayout, QPushButton, QComboBox, QProgressBar
+    QGroupBox, QFormLayout, QPushButton, QComboBox, QProgressBar, QApplication
 )
 from PySide6.QtCore import Qt
 from .theme_manager import apply_theme_style, make_theme_aware
@@ -32,6 +32,33 @@ class CompressPage(BasePageWidget):
         self.current_file_path = ""
         self.selected_files = []
         self.has_unsaved_changes = False
+        
+        # Store reference to main window for work tracking
+        self.main_window = parent
+        while self.main_window and not hasattr(self.main_window, 'set_page_has_work'):
+            self.main_window = self.main_window.parent()
+    
+    def _get_main_window(self):
+        """الحصول على النافذة الرئيسية للتطبيق"""
+        parent = self.parent()
+        while parent:
+            if parent.__class__.__name__ == 'ApexFlow':
+                return parent
+            parent = parent.parent()
+        for widget in QApplication.topLevelWidgets():
+            if widget.__class__.__name__ == 'ApexFlow':
+                return widget
+        return None
+
+    def update_work_status(self):
+        """تحديث حالة العمل في النافذة الرئيسية"""
+        has_work = len(self.selected_files) > 0 or self.has_unsaved_changes
+        main_window = self._get_main_window()
+        if main_window:
+            main_window.set_page_has_work(main_window.get_page_index(self), has_work)
+        
+        # Page index for compress page is 3
+        self.page_index = 3
 
         self.select_button = self.add_top_button(
             text=tr("select_pdf_to_compress"),
@@ -268,6 +295,9 @@ class CompressPage(BasePageWidget):
                 self.notification_manager.show_notification(f"{tr('file_selected_for_compression')}: {file_name}", "info", duration=3000)
 
             self.on_files_changed(self.selected_files)
+            
+            # تحديث حالة العمل بعد تحميل الملفات
+            self.update_work_status()
 
         except Exception as e:
             self.notification_manager.show_notification(f"{tr('error_selecting_files')}: {str(e)}", "error")
@@ -424,3 +454,4 @@ class CompressPage(BasePageWidget):
         self.hide_all_frames()
         self.save_location_label.setText(tr("path_not_selected"))
         self.batch_save_label.setText(tr("new_folder_will_be_created"))
+        self.update_work_status()

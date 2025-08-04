@@ -7,6 +7,7 @@ import os
 from .theme_manager import apply_theme
 from modules.translator import tr
 
+# هذا ليس ملف الواجهه الرئيسية - الواجهه الرئيسية هي Main.py
 # استيراد معلومات الإصدار
 try:
     import sys

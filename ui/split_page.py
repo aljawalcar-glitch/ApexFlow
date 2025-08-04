@@ -5,7 +5,7 @@
 
 from .base_page import BasePageWidget
 from PySide6.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QLabel, QGroupBox, QPushButton, QWidget
+    QVBoxLayout, QHBoxLayout, QLabel, QGroupBox, QPushButton, QWidget, QApplication
 )
 from PySide6.QtCore import Qt
 from .theme_manager import apply_theme_style
@@ -198,6 +198,18 @@ class SplitPage(BasePageWidget):
                 self.auto_save_path = self.create_unique_folder(directory, folder_name)
                 self.save_location_label.setText(f"{tr('path_prefix')} {self.auto_save_path}")
 
+    def _get_main_window(self):
+        """الحصول على النافذة الرئيسية للتطبيق"""
+        parent = self.parent()
+        while parent:
+            if parent.__class__.__name__ == 'ApexFlow':
+                return parent
+            parent = parent.parent()
+        for widget in QApplication.topLevelWidgets():
+            if widget.__class__.__name__ == 'ApexFlow':
+                return widget
+        return None
+
     def execute_split(self):
         """
         تنفيذ عملية التقسيم باستخدام مدير العمليات.
@@ -239,6 +251,10 @@ class SplitPage(BasePageWidget):
         """
         has_file = len(files) == 1
         self.has_unsaved_changes = has_file
+
+        main_window = self._get_main_window()
+        if main_window:
+            main_window.set_page_has_work(main_window.get_page_index(self), has_file)
         
         if hasattr(self, 'save_and_split_widget'):
             self.save_and_split_widget.setVisible(has_file)
@@ -261,3 +277,7 @@ class SplitPage(BasePageWidget):
         if hasattr(self, 'save_and_split_widget'):
             self.save_and_split_widget.setVisible(False)
         self.save_location_label.setText(tr("auto_folder_creation"))
+        
+        main_window = self._get_main_window()
+        if main_window:
+            main_window.set_page_has_work(main_window.get_page_index(self), False)

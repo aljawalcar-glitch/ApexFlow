@@ -4,7 +4,7 @@
 """
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton, QWidget, QGroupBox
+from PySide6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QPushButton, QWidget, QGroupBox
 from .base_page import BasePageWidget
 from .ui_helpers import create_button, create_title
 from modules.translator import tr, register_language_change_callback, get_current_language
@@ -45,6 +45,18 @@ class ConvertPage(BasePageWidget):
 
         # تسجيل callback لتغيير اللغة
         register_language_change_callback(self.update_button_order_for_language)
+
+    def _get_main_window(self):
+        """الحصول على النافذة الرئيسية للتطبيق"""
+        parent = self.parent()
+        while parent:
+            if parent.__class__.__name__ == 'ApexFlow':
+                return parent
+            parent = parent.parent()
+        for widget in QApplication.topLevelWidgets():
+            if widget.__class__.__name__ == 'ApexFlow':
+                return widget
+        return None
 
     def create_header_layout(self):
         """إنشاء التخطيط العلوي الذي يحتوي على العنوان وتبويبات العمليات."""
@@ -500,6 +512,10 @@ class ConvertPage(BasePageWidget):
         """إظهار/إخفاء العناصر بناءً على وجود الملفات"""
         has_files = bool(files) and len(files) > 0
         self.has_unsaved_changes = has_files
+
+        main_window = self._get_main_window()
+        if main_window:
+            main_window.set_page_has_work(main_window.get_page_index(self), has_files)
 
         # إظهار/إخفاء الفريمات الثلاثة
         self.file_list_frame.setVisible(has_files)
