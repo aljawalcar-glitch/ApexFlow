@@ -232,8 +232,9 @@
     "dont_ask_again_and_discard_option": "عدم السؤال مرة أخرى وتجاهل التغييرات عند الانتقال بين الصفحات",
     "remember_my_choice": "تذكر اختياري ولا تسألني مرة أخرى",
     "unsaved_changes_prompt": "لديك تغييرات غير محفوظة في الإعدادات. هل تريد حفظها قبل الانتقال إلى صفحة أخرى؟",
-    "save_and_close": "حفظ ومتابعة",
-    "discard_changes": "تجاهل التغييرات",
+    "save_and_close": "حفظ وإغلاق",
+    "discard_changes": "تجاهل",
+    "go_back": "رجوع",
     "cancel_button": "إلغاء",
     "dont_ask_again_and_discard": "عدم السؤال مرة أخرى وتجاهل التغييرات",
     "dont_ask_again_info": "تم تفعيل خيار عدم السؤال مرة أخرى وتجاهل التغييرات. يمكنك العودة إلى هذا الخيار في قسم الإعدادات من صفحة الحفظ.",
@@ -459,7 +460,8 @@
     "ok_button": "موافق",
     "change_location_button": "تغيير المكان",
     "save_merged_file_title": "حفظ الملف المدمج",
-    "merge_failed_check_files": "فشل في دمج الملفات. تحقق من صحة الملفات."
+    "merge_failed_check_files": "فشل في دمج الملفات. تحقق من صحة الملفات.",
+    "unsaved_work_warning": "لديك عمل غير محفوظ. هل تريد تجاهل التغييرات والمتابعة؟"
   },
   "en": {
     "merge_page_title": "Merge & Print",
@@ -684,8 +686,9 @@
     "dont_ask_again_and_discard_option": "Don't ask again and discard changes when navigating between pages",
     "remember_my_choice": "Remember my choice and don't ask again",
     "unsaved_changes_prompt": "You have unsaved changes in the settings. Do you want to save them before moving to another page?",
-    "save_and_close": "Save and Continue",
-    "discard_changes": "Discard Changes",
+    "save_and_close": "Save and Close",
+    "discard_changes": "Discard",
+    "go_back": "Back",
     "cancel_button": "Cancel",
     "dont_ask_again_and_discard": "Don't ask again and discard changes",
     "dont_ask_again_info": "The option to not ask again and discard changes has been activated. You can return to this option in the settings section from the save page.",
@@ -905,6 +908,7 @@
     "conversion_completed_notification_count": "{count} file(s) converted successfully!",
     "ui_reset_notification": "UI has been reset",
     "save_path_not_set": "Save path is not set",
-    "invalid_operation_error": "Invalid operation"
+    "invalid_operation_error": "Invalid operation",
+    "unsaved_work_warning": "You have unsaved work. Do you want to discard the changes and continue?"
   }
 }

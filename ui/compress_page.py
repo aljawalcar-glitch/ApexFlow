@@ -31,6 +31,7 @@ class CompressPage(BasePageWidget):
         self.current_file_size = 0
         self.current_file_path = ""
         self.selected_files = []
+        self.has_unsaved_changes = False
 
         self.select_button = self.add_top_button(
             text=tr("select_pdf_to_compress"),
@@ -231,8 +232,7 @@ class CompressPage(BasePageWidget):
         self.file_list_frame.show()
 
     def on_mode_changed(self):
-        self.clear_files()
-        self.hide_all_frames()
+        self.reset_ui()
         button_text = tr("select_pdfs_for_batch_compression") if self.batch_mode_checkbox.isChecked() else tr("select_pdf_to_compress")
         self.top_buttons_layout.itemAt(0).widget().setText(button_text)
 
@@ -241,11 +241,14 @@ class CompressPage(BasePageWidget):
         title = tr("select_pdfs_for_batch_compression") if is_batch else tr("select_pdf_to_compress_single")
 
         try:
+            self.reset_ui()
             files = self.file_manager.select_pdf_files(title=title, multiple=is_batch)
 
             if not files: return
 
             self.selected_files = files if is_batch else [files]
+            self.has_unsaved_changes = True
+
             if is_batch:
                 self.file_list_frame.add_files(self.selected_files)
                 base_dir = os.path.dirname(self.selected_files[0])
@@ -270,6 +273,7 @@ class CompressPage(BasePageWidget):
             self.notification_manager.show_notification(f"{tr('error_selecting_files')}: {str(e)}", "error")
 
     def on_files_changed(self, files):
+        self.has_unsaved_changes = bool(files)
         if not files:
             self.hide_all_frames()
             self.current_file_size = 0
@@ -405,5 +409,18 @@ class CompressPage(BasePageWidget):
         try:
             # The manager will handle everything: getting files, paths, levels, and showing messages.
             self.operations_manager.compress_files(self)
+            # Assuming success, reset the UI. A better implementation would be for compress_files to return a status.
+            self.reset_ui()
         except Exception as e:
             self.notification_manager.show_notification(f"{tr('compression_error')}: {str(e)}", "error")
+
+    def reset_ui(self):
+        """Resets the UI to its initial state."""
+        self.file_list_frame.clear_all_files()
+        self.has_unsaved_changes = False
+        self.current_file_size = 0
+        self.current_file_path = ""
+        self.selected_files = []
+        self.hide_all_frames()
+        self.save_location_label.setText(tr("path_not_selected"))
+        self.batch_save_label.setText(tr("new_folder_will_be_created"))

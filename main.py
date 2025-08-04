@@ -369,17 +369,147 @@ class ApexFlow(QMainWindow):
             self.menu_list.setCurrentRow(index)
             self.load_page_on_demand(index)
 
-    def handle_menu_selection(self, current_row):
-        """التعامل مع تغيير التحديد في القائمة"""
-        # عند بدء التطبيق، لا تقم بتحميل الصفحات غير الضرورية
-        # current_row سيكون 0 عند بدء التطبيق
-        if current_row >= 0:
-            self.load_page_on_demand(current_row)
-            
+    def handle_menu_selection(self, desired_row):
+        """
+        Handles menu selection with a confirmation dialog for unsaved changes,
+        preventing visual glitches by managing selection flow correctly.
+        """
+        current_index = self.stack.currentIndex()
+        if current_index == desired_row:
+            return
+
+        page_container = self.stack.widget(current_index)
+        page = page_container.widget() if hasattr(page_container, 'widget') else page_container
+        has_changes = hasattr(page, 'has_unsaved_changes') and page.has_unsaved_changes
+        has_files = hasattr(page, 'file_list_frame') and page.file_list_frame is not None and page.file_list_frame.get_valid_files()
+
+        if not (has_changes or has_files):
+            self.load_page_on_demand(desired_row)
+            return
+
+        # --- Changes exist, must confirm ---
+
+        # 1. Reset selection visually to prevent jumpiness
+        self.menu_list.blockSignals(True)
+        self.menu_list.setCurrentRow(current_index)
+        self.menu_list.blockSignals(False)
+
+        # 2. Ask for confirmation
+        can_navigate = False
+        # Special case for settings page (index 7)
+        if current_index == 7:
+            result, dont_ask_again = self._show_custom_unsaved_changes_dialog()
+            if dont_ask_again:
+                set_setting("dont_ask_again_and_discard", True)
+                if hasattr(page, 'load_original_settings'): page.load_original_settings()
+                page.has_unsaved_changes = False
+                can_navigate = True
+            elif result == "save":
+                if hasattr(page, 'save_all_settings'): page.save_all_settings()
+                can_navigate = True
+            elif result == "discard":
+                if hasattr(page, 'load_original_settings'): page.load_original_settings()
+                page.has_unsaved_changes = False
+                can_navigate = True
+        # Standard confirmation for all other pages
+        else:
+            from PySide6.QtWidgets import QMessageBox
+            from ui.theme_manager import apply_theme
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle(tr("warning"))
+            msg_box.setText(tr("unsaved_work_warning"))
+            msg_box.setStandardButtons(QMessageBox.Discard | QMessageBox.Cancel)
+            msg_box.setDefaultButton(QMessageBox.Cancel)
+            msg_box.button(QMessageBox.Discard).setText(tr("discard_changes"))
+            msg_box.button(QMessageBox.Cancel).setText(tr("cancel_button"))
+            apply_theme(msg_box, "dialog")
+            reply = msg_box.exec()
+            if reply == QMessageBox.Discard:
+                if hasattr(page, 'reset_ui'): page.reset_ui()
+                page.has_unsaved_changes = False
+                can_navigate = True
+
+        # 3. Navigate if confirmed by the user
+        if can_navigate:
+            # This will trigger load_page_on_demand
+            self.menu_list.setCurrentRow(desired_row)
+        # If not confirmed, do nothing. The selection is already correct.
+
+    def _show_custom_unsaved_changes_dialog(self):
+        """Shows a theme-aware custom dialog for unsaved changes."""
+        from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QCheckBox, QSpacerItem, QSizePolicy
+        from modules.translator import tr
+        from ui import apply_theme_style
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(tr("warning"))
+        dialog.setModal(True)
+        apply_theme_style(dialog, "dialog")
+
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        message_label = QLabel(tr("unsaved_changes_prompt"))
+        message_label.setWordWrap(True)
+        apply_theme_style(message_label, "label")
+        layout.addWidget(message_label)
+
+        # Spacer
+        layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
+
+        # Buttons
+        buttons_layout = QHBoxLayout()
+        discard_button = QPushButton(tr("discard_changes"))
+        save_button = QPushButton(tr("save_and_close"))
+        back_button = QPushButton(tr("go_back"))
+        
+        apply_theme_style(discard_button, "button")
+        apply_theme_style(save_button, "button")
+        apply_theme_style(back_button, "button")
+
+        buttons_layout.addWidget(discard_button)
+        buttons_layout.addStretch()
+        buttons_layout.addWidget(save_button)
+        buttons_layout.addWidget(back_button)
+        layout.addLayout(buttons_layout)
+        
+        # Checkbox
+        dont_ask_checkbox = QCheckBox(tr("dont_ask_again_and_discard_option"))
+        apply_theme_style(dont_ask_checkbox, "checkbox")
+        layout.addWidget(dont_ask_checkbox)
+
+        # Result variables
+        result = "back"  # Default to "back" if dialog is closed
+        
+        def on_save():
+            nonlocal result
+            result = "save"
+            dialog.accept()
+
+        def on_discard():
+            nonlocal result
+            result = "discard"
+            dialog.accept()
+
+        def on_back():
+            nonlocal result
+            result = "back"
+            dialog.reject()
+
+        save_button.clicked.connect(on_save)
+        discard_button.clicked.connect(on_discard)
+        back_button.clicked.connect(on_back)
+
+        dialog.exec()
+
+        return result, dont_ask_checkbox.isChecked()
+
     def on_menu_selection_changed(self, current_row):
         """دالة قديمة للحفاظ على التوافق مع الإشارات القديمة"""
         # دالة محجوبة الآن، يتم استخدام handle_menu_selection بدلاً منها
-        self.handle_menu_selection(current_row)
+        # تم تعطيل هذا الاستدعاء لتجنب الاستدعاء المزدوج
+        pass
 
 
 

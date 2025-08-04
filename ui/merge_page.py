@@ -28,6 +28,7 @@ class MergePage(BasePageWidget):
 
         self.file_manager = file_manager
         self.operations_manager = operations_manager
+        self.has_unsaved_changes = False
 
         # --- إزالة الأزرار العلوية الافتراضية ---
         for i in reversed(range(self.top_buttons_layout.count())): 
@@ -114,8 +115,8 @@ class MergePage(BasePageWidget):
         files = self.file_manager.select_pdf_files(title=tr("select_pdf_files_title"), multiple=True)
         if files:
             self.file_list_frame.add_files(files)
-            # استدعاء on_files_changed يدوياً لضمان تحديث الواجهة
             self.on_files_changed(self.file_list_frame.get_valid_files())
+            self.has_unsaved_changes = True
 
     def add_folder(self):
         """فتح حوار لاختيار مجلد وإضافة كل ملفات PDF فيه."""
@@ -129,8 +130,8 @@ class MergePage(BasePageWidget):
             files = self.file_manager.get_pdf_files_from_folder(folder)
             if files:
                 self.file_list_frame.add_files(files)
-                # استدعاء on_files_changed يدوياً لضمان تحديث الواجهة
                 self.on_files_changed(self.file_list_frame.get_valid_files())
+                self.has_unsaved_changes = True
 
     def execute_merge(self):
         """تنفيذ عملية الدمج مع إشعارات للمستخدم."""
@@ -149,6 +150,7 @@ class MergePage(BasePageWidget):
 
             if success:
                 self.notification_manager.show_notification(f"{tr('merging_completed_successfully')} ({len(files_to_merge)} ملف)", "success", duration=4000)
+                self.reset_ui()
             else:
                 # عرض رسالة خطأ أكثر تحديدًا
                 QMessageBox.critical(self, tr("error_title"), tr("merge_failed_check_files"))
@@ -180,6 +182,7 @@ class MergePage(BasePageWidget):
 
             if success:
                 self.notification_manager.show_notification(f"{tr('printing_completed_successfully')} ({len(selected_files)} ملف)", "success", duration=4000)
+                self.reset_ui()
             else:
                 self.notification_manager.show_notification(tr("printing_failed"), "error")
 
@@ -191,6 +194,7 @@ class MergePage(BasePageWidget):
         has_files = len(files) > 0
         self.file_list_frame.setVisible(has_files)
         self.action_widget.setVisible(has_files)
+        self.has_unsaved_changes = has_files
 
         # تحميل الطابعات عند إظهار عناصر التحكم لأول مرة
         if has_files and not self._printers_loaded:
@@ -198,3 +202,9 @@ class MergePage(BasePageWidget):
 
         self.merge_button.setEnabled(True)
         self.print_button.setEnabled(has_files)
+
+    def reset_ui(self):
+        """إعادة تعيين الواجهة إلى حالتها الأولية."""
+        self.file_list_frame.clear_all_files()
+        self.has_unsaved_changes = False
+        self.on_files_changed([])

@@ -1372,100 +1372,12 @@ class SettingsUI(ThemeAwareDialog):
 
     def closeEvent(self, event):
         """معالجة حدث إغلاق النافذة"""
-        # التحقق من وجود تغييرات غير محفوظة
-        if hasattr(self, 'has_unsaved_changes') and self.has_unsaved_changes:
-            # التحقق من إعدادات إظهار رسالة التحذير
-            show_warning = True
-            if hasattr(self, 'show_exit_warning_checkbox'):
-                show_warning = self.show_exit_warning_checkbox.isChecked()
-
-            if show_warning:
-                # إنشاء رسالة تحذير مخصصة باستخدام الثيم الحالي
-                dialog = QDialog(self)
-                dialog.setWindowTitle(tr("unsaved_changes_warning"))
-                dialog.setMinimumWidth(400)
-
-                # تطبيق الثيم على مربع الحوار
-                apply_theme_style(dialog, "dialog")
-
-                # إنشاء تخطيط مربع الحوار
-                layout = QVBoxLayout(dialog)
-                layout.setSpacing(15)
-                layout.setContentsMargins(20, 20, 20, 20)
-
-                # إضافة رسالة التحذير
-                message_label = QLabel(tr("unsaved_changes_prompt"))
-                message_label.setWordWrap(True)
-                apply_theme_style(message_label, "label")
-                layout.addWidget(message_label)
-
-                # إضافة خيار تذكر الاختيار (إذا كان الخيار مفعلاً)
-                remember_checkbox = None
-                if hasattr(self, 'remember_exit_choice_checkbox') and self.remember_exit_choice_checkbox.isChecked():
-                    remember_checkbox = QCheckBox(tr("remember_my_choice"))
-                    apply_theme_style(remember_checkbox, "checkbox")
-                    layout.addWidget(remember_checkbox)
-
-                # إضافة أزرار الخيارات
-                buttons_layout = QHBoxLayout()
-
-                save_button = QPushButton(tr("save_and_close"))
-                apply_theme_style(save_button, "button")
-                save_button.clicked.connect(lambda: self.save_and_close(dialog, remember_checkbox))
-                buttons_layout.addWidget(save_button)
-
-                discard_button = QPushButton(tr("discard_changes"))
-                apply_theme_style(discard_button, "button")
-                discard_button.clicked.connect(lambda: self.discard_and_close(dialog, remember_checkbox))
-                buttons_layout.addWidget(discard_button)
-
-                cancel_button = QPushButton(tr("cancel_button"))
-                apply_theme_style(cancel_button, "button")
-                cancel_button.clicked.connect(dialog.reject)
-                buttons_layout.addWidget(cancel_button)
-
-                layout.addLayout(buttons_layout)
-
-                # عرض مربع الحوار ومنع إغلاق النافذة الأصلية
-                dialog.exec_()
-
-                # منع إغلاق النافذة إذا تم إلغاء العملية
-                event.ignore()
-                return
-
-        # إذا لم تكن هناك تغييرات أو تم تعطيل رسالة التحذير، أغلق النافذة بشكل طبيعي
+        # تم نقل منطق التحقق من التغييرات غير المحفوظة إلى النافذة الرئيسية
+        # هذه الدالة تتعامل فقط مع إغلاق النافذة بشكل طبيعي
         super().closeEvent(event)
 
-    def save_and_close(self, dialog, remember_checkbox):
-        """حفظ التغييرات وإغلاق النافذة"""
-        # تذكر اختيار المستخدم إذا كان الخيار مفعلاً
-        if remember_checkbox and remember_checkbox.isChecked():
-            # حفظ اختيار المستخدم (حفظ التغييرات دائمًا)
-            settings_data = settings.load_settings()
-            settings_data["always_save_on_exit"] = True
-            settings_data["show_exit_warning"] = False  # تعطيل الرسالة في المستقبل
-            settings.save_settings(settings_data)
-
-        # حفظ الإعدادات الحالية
-        self.save_all_settings()
-
-        # إغلاق مربع الحوار والنافذة
-        dialog.accept()
-        self.accept()
-
-    def discard_and_close(self, dialog, remember_checkbox):
-        """تجاهل التغييرات وإغلاق النافذة"""
-        # تذكر اختيار المستخدم إذا كان الخيار مفعلاً
-        if remember_checkbox and remember_checkbox.isChecked():
-            # حفظ اختيار المستخدم (تجاهل التغييرات دائمًا)
-            settings_data = settings.load_settings()
-            settings_data["always_discard_on_exit"] = True
-            settings_data["show_exit_warning"] = False  # تعطيل الرسالة في المستقبل
-            settings.save_settings(settings_data)
-
-        # إغلاق مربع الحوار والنافذة
-        dialog.accept()
-        self.reject()
+    # تم إزالة الدوال cancel_close و save_and_close و discard_and_close
+    # لأن منطق التحقق من التغييرات غير المحفوظة تم نقله إلى النافذة الرئيسية
 
     # ===============================
     # دوال مساعدة لتقليل التكرار

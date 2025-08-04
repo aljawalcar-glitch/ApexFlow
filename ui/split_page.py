@@ -32,6 +32,7 @@ class SplitPage(BasePageWidget):
 
         self.file_manager = file_manager
         self.operations_manager = operations_manager
+        self.has_unsaved_changes = False
 
         # متغيرات لحفظ معلومات المسار
         self.current_file_path = ""
@@ -113,13 +114,13 @@ class SplitPage(BasePageWidget):
         """
         try:
             # مسح الملفات القديمة قبل إضافة الجديد
-            self.clear_files()
-            self.save_and_split_widget.setVisible(False)
+            self.reset_ui()
 
             file = self.file_manager.select_pdf_files(title=tr("select_pdf_to_split_title"), multiple=False)
             if file and os.path.exists(file):
                 self.current_file_path = file
                 self.file_list_frame.add_files([file])
+                self.has_unsaved_changes = True
 
                 # إنشاء مسار الحفظ التلقائي
                 self.create_auto_save_path(file)
@@ -225,6 +226,7 @@ class SplitPage(BasePageWidget):
 
             if success:
                 self.notification_manager.show_notification(f"{tr('splitting_completed_successfully')}: {file_name}", "success", duration=4000)
+                self.reset_ui()
             else:
                 self.notification_manager.show_notification(tr("splitting_failed"), "error")
 
@@ -235,14 +237,13 @@ class SplitPage(BasePageWidget):
         """
         إظهار أو إخفاء العناصر بناءً على عدد الملفات.
         """
-        if len(files) == 1:
-            # إظهار التخطيط الكامل (فريم الحفظ + زر التقسيم)
-            if hasattr(self, 'save_and_split_widget'):
-                self.save_and_split_widget.setVisible(True)
-        else:
-            # إخفاء التخطيط الكامل
-            if hasattr(self, 'save_and_split_widget'):
-                self.save_and_split_widget.setVisible(False)
+        has_file = len(files) == 1
+        self.has_unsaved_changes = has_file
+        
+        if hasattr(self, 'save_and_split_widget'):
+            self.save_and_split_widget.setVisible(has_file)
+        
+        if not has_file:
             # مسح المسار المحفوظ
             self.current_file_path = ""
             self.auto_save_path = ""
@@ -250,3 +251,13 @@ class SplitPage(BasePageWidget):
     def get_save_path(self):
         """الحصول على مسار الحفظ المحدد"""
         return self.auto_save_path if self.auto_save_path else ""
+
+    def reset_ui(self):
+        """إعادة تعيين الواجهة إلى حالتها الأولية."""
+        self.file_list_frame.clear_all_files()
+        self.current_file_path = ""
+        self.auto_save_path = ""
+        self.has_unsaved_changes = False
+        if hasattr(self, 'save_and_split_widget'):
+            self.save_and_split_widget.setVisible(False)
+        self.save_location_label.setText(tr("auto_folder_creation"))

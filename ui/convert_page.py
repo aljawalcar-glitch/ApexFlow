@@ -25,6 +25,7 @@ class ConvertPage(BasePageWidget):
         self.file_manager = file_manager
         self.operations_manager = operations_manager
         self.active_operation = None
+        self.has_unsaved_changes = False
 
         # إزالة التخطيطات الافتراضية من BasePageWidget
         if hasattr(self, 'title_layout'):
@@ -348,6 +349,7 @@ class ConvertPage(BasePageWidget):
 
     def on_files_added(self, files):
         self.file_list_frame.add_files(files)
+        self.has_unsaved_changes = True
         # إشعار نجاح إضافة الملفات
         self.notification_manager.show_notification(tr("files_added_successfully", count=len(files)), "success", 2500)
         # تحديث المسار عند إضافة ملفات
@@ -473,6 +475,7 @@ class ConvertPage(BasePageWidget):
 
         # مسح العملية النشطة أولاً
         self.active_operation = None
+        self.has_unsaved_changes = False
 
         # مسح الملفات
         if self.file_list_frame.get_files():
@@ -491,11 +494,12 @@ class ConvertPage(BasePageWidget):
 
     def clear_files(self):
         self.reset_ui()
-        super().clear_files()
+        self.file_list_frame.clear_all_files()
 
     def update_controls_visibility(self, files):
         """إظهار/إخفاء العناصر بناءً على وجود الملفات"""
         has_files = bool(files) and len(files) > 0
+        self.has_unsaved_changes = has_files
 
         # إظهار/إخفاء الفريمات الثلاثة
         self.file_list_frame.setVisible(has_files)

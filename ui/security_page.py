@@ -26,6 +26,7 @@ class SecurityPage(BasePage):
         self.file_manager = file_manager
         self.operations_manager = operations_manager
         self.source_file = None
+        self.has_unsaved_changes = False
         self.init_ui()
 
     def init_ui(self):
@@ -210,6 +211,16 @@ class SecurityPage(BasePage):
 
         # تحديث حالة الواجهة
         self.update_ui_state()
+
+        # ربط الإشارات لتتبع التغييرات
+        self.password_input.textChanged.connect(self.mark_as_changed)
+        self.owner_password_input.textChanged.connect(self.mark_as_changed)
+        self.allow_printing_cb.stateChanged.connect(self.mark_as_changed)
+        self.allow_copying_cb.stateChanged.connect(self.mark_as_changed)
+        self.title_input.textChanged.connect(self.mark_as_changed)
+        self.author_input.textChanged.connect(self.mark_as_changed)
+        self.subject_input.textChanged.connect(self.mark_as_changed)
+        self.keywords_input.textChanged.connect(self.mark_as_changed)
 
     def select_file(self):
         """فتح مربع حوار لاختيار ملف PDF"""
@@ -467,3 +478,19 @@ class SecurityPage(BasePage):
 
         except Exception as e:
             self.notification_manager.show_notification(f"{tr('pdf_properties_update_error')}: {str(e)}", "error")
+
+    def reset_ui(self):
+        """إعادة تعيين الواجهة إلى حالتها الأولية."""
+        self.source_file = None
+        self.has_unsaved_changes = False
+        self.clear_properties_fields()
+        self.password_input.clear()
+        self.owner_password_input.clear()
+        self.allow_printing_cb.setChecked(True)
+        self.allow_copying_cb.setChecked(True)
+        self.update_ui_state()
+
+    def mark_as_changed(self):
+        """يسجل أن هناك تغييرات غير محفوظة."""
+        if self.source_file:
+            self.has_unsaved_changes = True

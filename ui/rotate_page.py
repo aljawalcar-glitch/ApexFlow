@@ -74,6 +74,7 @@ class RotatePage(QWidget):
         self.current_page = 0
         self.page_rotations = {}  # قاموس لتخزين زاوية دوران كل صفحة
         self.pages = []  # List to store loaded pages as images
+        self.has_unsaved_changes = False
 
         # متغيرات الختم
         self.stamps = {}  # قاموس لتخزين الأختام لكل صفحة {page_num: [stamps]}
@@ -574,6 +575,7 @@ class RotatePage(QWidget):
         if not self.is_transitioning:
             rotation = self.page_rotations.get(self.current_page, 0)
             self.page_rotations[self.current_page] = (rotation - 90) % 360
+            self.has_unsaved_changes = True
             self.show_page(use_transition=True)
             # إعادة تطبيق الأختام بعد التدوير
             self.show_page_stamps()
@@ -582,6 +584,7 @@ class RotatePage(QWidget):
         if not self.is_transitioning:
             rotation = self.page_rotations.get(self.current_page, 0)
             self.page_rotations[self.current_page] = (rotation + 90) % 360
+            self.has_unsaved_changes = True
             self.show_page(use_transition=True)
             # إعادة تطبيق الأختام بعد التدوير
             self.show_page_stamps()
@@ -599,6 +602,7 @@ class RotatePage(QWidget):
 
     def select_file(self):
         """اختيار ملف PDF"""
+        self.reset_ui()
         import os
         # مجلد Documents كافتراضي
         default_dir = os.path.join(os.path.expanduser("~"), "Documents")
@@ -691,6 +695,7 @@ class RotatePage(QWidget):
                 message = tr("save_success_summary", path=save_path, rotated_count=len(rotations_to_apply), stamp_count=stamp_summary['total_stamps'], page_count=stamp_summary['total_pages_with_stamps'])
                 
                 self.notification_manager.show_notification(message, "success", duration=5000)
+                self.reset_ui()
             else:
                 self.notification_manager.show_notification(tr("save_failed"), "error")
 
@@ -767,6 +772,7 @@ class RotatePage(QWidget):
         if self.current_page not in self.stamps:
             self.stamps[self.current_page] = []
         self.stamps[self.current_page].append(stamp)
+        self.has_unsaved_changes = True
 
         # تفعيل أزرار التكبير والتصغير
         self.update_stamp_buttons_state()
@@ -783,12 +789,14 @@ class RotatePage(QWidget):
         selected_stamp = self.get_selected_stamp()
         if selected_stamp:
             selected_stamp.zoom_in()
+            self.has_unsaved_changes = True
 
     def zoom_selected_stamp_out(self):
         """تصغير الختم المحدد"""
         selected_stamp = self.get_selected_stamp()
         if selected_stamp:
             selected_stamp.zoom_out()
+            self.has_unsaved_changes = True
 
     def get_selected_stamp(self):
         """الحصول على الختم المحدد حالياً"""
@@ -890,3 +898,25 @@ class RotatePage(QWidget):
         if self.scene and self.scene.items():
             # ملاءمة الصفحة في العرض مع الحفاظ على نسبة الأبعاد
             self.view.fitInView(self.scene.itemsBoundingRect(), Qt.AspectRatioMode.KeepAspectRatio)
+
+    def reset_ui(self):
+        """إعادة تعيين الواجهة إلى حالتها الأولية."""
+        self.file_path = None
+        self.pages = []
+        self.scene.clear()
+        self.page_rotations = {}
+        self.stamps = {}
+        self.has_unsaved_changes = False
+        self.current_page = 0
+        self.update_page_label()
+
+        # تعطيل الأزرار
+        self.prev_btn.setEnabled(False)
+        self.next_btn.setEnabled(False)
+        self.rotate_left_btn.setEnabled(False)
+        self.rotate_right_btn.setEnabled(False)
+        self.stamp_btn.setEnabled(False)
+        self.reset_btn.setEnabled(False)
+        self.save_btn.setEnabled(False)
+        self.zoom_in_btn.setVisible(False)
+        self.zoom_out_btn.setVisible(False)
