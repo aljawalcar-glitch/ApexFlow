@@ -5,10 +5,12 @@ New Integrated Notification System
 """
 from PySide6.QtWidgets import (QWidget, QLabel, QHBoxLayout, QVBoxLayout, QPushButton, 
                                QFrame, QStackedWidget, QListWidget, QListWidgetItem,
-                               QDialog, QDialogButtonBox, QApplication, QCheckBox)
+                               QDialog, QDialogButtonBox, QApplication, QCheckBox,
+                               QTreeWidget, QTreeWidgetItem, QAbstractItemView, QScrollArea)
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, QRect, Signal, QSize
 from PySide6.QtGui import QIcon, QColor, QPainter, QPainterPath
 import os
+import json
 from modules.logger import debug
 from modules.translator import tr
 from .theme_manager import apply_theme, global_theme_manager
@@ -150,7 +152,69 @@ class NotificationBar(QFrame):
             self.animation.finished.disconnect(self.on_hide_finished)
         self.closed.emit()
 
-# --- 2. Notification Center (The History) ---
+# --- 2. Notification Detail Dialog ---
+
+class NotificationDetailDialog(QDialog):
+    """
+    نافذة حوارية لعرض تفاصيل الإشعار بشكل كامل
+    """
+    def __init__(self, notification_data, parent=None):
+        super().__init__(parent)
+        self.notification_data = notification_data
+        self.setWindowTitle(tr("notification_details"))
+        self.setMinimumSize(400, 300)
+        # تعيين الحجم الأقصى لمنع النافذة من أن تكون كبيرة جدًا
+        self.setMaximumSize(800, 600)
+        # السماح بتغيير الحجم تلقائيًا حسب المحتوى
+        self.setSizeGripEnabled(True)
+        apply_theme(self, "dialog")
+
+        # Layout
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(15)
+
+        # تم حذف عنوان الإشعار لمنع التكرار
+        
+        # تم حذف عنوان الإشعار لمنع التكرار
+        
+        # تم حذف الجزء الأخير من العنوان
+
+        # نص الإشعار
+        self.message_text = QLabel(self.notification_data.get("message", ""))
+        self.message_text.setWordWrap(True)
+        self.message_text.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.message_text.setStyleSheet("background-color: transparent; border: none; padding: 10px;")
+        # إضافة التمرير للنصوص الطويلة
+        scroll = QScrollArea()
+        scroll.setWidget(self.message_text)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        layout.addWidget(scroll, 1)
+
+        # معلومات الإشعار
+        info_layout = QHBoxLayout()
+        self.time_label = QLabel(self.notification_data.get("time", ""))
+        self.time_label.setStyleSheet("color: #888; font-size: 10px;")
+        info_layout.addWidget(self.time_label)
+        info_layout.addStretch()
+        layout.addLayout(info_layout)
+
+        # زر الإغلاق
+        close_button = QPushButton(tr("close_button"))
+        apply_theme(close_button, "button")
+        close_button.clicked.connect(self.accept)
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(close_button)
+        layout.addLayout(button_layout)
+        
+        # تحديث الحجم بعد عرض النافذة
+        QTimer.singleShot(100, self.adjustSize)
+
+
+# --- 3. Notification Center (The History) ---
 
 class NotificationCenter(QDialog):
     """
@@ -159,9 +223,9 @@ class NotificationCenter(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle(tr("notification_center_title"))
-        self.setMinimumSize(500, 400)
-        self.setMaximumSize(800, 600)
-        self.resize(500, 400)
+        self.setMinimumSize(500, 350)
+        self.setMaximumSize(700, 550)
+        self.resize(550, 400)
         apply_theme(self, "dialog")
         
         # تطبيق السمة عند تغييرها
@@ -171,14 +235,22 @@ class NotificationCenter(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
 
-        # List for notifications
-        self.history_list = QListWidget()
-        from PySide6.QtWidgets import QAbstractItemView, QScrollArea
-        self.history_list.setSizeAdjustPolicy(QAbstractItemView.AdjustToContents)
-        self.history_list.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.history_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        apply_theme(self.history_list, "list_widget")
-        layout.addWidget(self.history_list)
+        # شجرة الإشعارات (الفهرس الرئيسي)
+        self.notification_tree = QTreeWidget()
+        self.notification_tree.setHeaderHidden(True)
+        self.notification_tree.setExpandsOnDoubleClick(True)
+        self.notification_tree.setAnimated(True)
+        self.notification_tree.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.notification_tree.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        apply_theme(self.notification_tree, "tree_widget")
+        
+        # ربط النقر المزدوج بعرض التفاصيل
+        self.notification_tree.itemDoubleClicked.connect(self.show_notification_details)
+        
+        layout.addWidget(self.notification_tree)
+        
+        # إنشاء فئات الإشعارات
+        self.create_notification_categories()
 
         # Buttons
         button_layout = QHBoxLayout()
@@ -216,28 +288,152 @@ class NotificationCenter(QDialog):
         
     def clear_history(self):
         """مسح جميع الإشعارات من التاريخ"""
-        self.history_list.clear()
+        self.notification_tree.clear()
+        self.save_notifications_to_file()
+    
+    def save_notifications_to_file(self):
+        """حفظ الإشعارات في ملف JSON"""
+        if get_setting("notification_settings", {}).get("do_not_save", False):
+            return
+            
+        try:
+            # تحويل الإشعارات إلى تنسيق قابل للحفظ
+            notifications_data = {}
+            for category, data in self.categories.items():
+                notifications_data[category] = data["notifications"]
+            
+            # تحديد مسار الملف
+            data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
+            if not os.path.exists(data_dir):
+                os.makedirs(data_dir)
+                
+            file_path = os.path.join(data_dir, "notifications.json")
+            
+            # حفظ البيانات في الملف
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(notifications_data, f, ensure_ascii=False, indent=2)
+                
+            debug(f"Notifications saved to {file_path}")
+        except Exception as e:
+            debug(f"Error saving notifications: {str(e)}")
 
     def _apply_theme(self):
         """تطبيق السمة الحالية على النافذة"""
         apply_theme(self, "dialog")
-        apply_theme(self.history_list, "list_widget")
+        apply_theme(self.notification_tree, "tree_widget")
         
         # تحديث الألوان في العناصر الموجودة
         theme_colors = global_theme_manager.get_current_colors()
-        for i in range(self.history_list.count()):
-            item = self.history_list.item(i)
-            # استخراج نوع الإشعار من النص
-            text = item.text()
-            if text.startswith("✓ "):
-                color = theme_colors.get("success", "#4ade80")
-            elif text.startswith("⚠ "):
-                color = theme_colors.get("warning", "#fbbf24")
-            elif text.startswith("✗ "):
-                color = theme_colors.get("error", "#f87171")
-            else:
-                color = theme_colors.get("accent", "#60a5fa")
-            item.setForeground(QColor(color))
+        # تحديث الألوان في عناصر الشجرة
+        # سيتم تحديث الألوان عند إضافة العناصر الجديدة
+    
+    def load_notifications_from_file(self):
+        """تحميل الإشعارات من ملف JSON"""
+        try:
+            # تحديد مسار الملف
+            data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
+            file_path = os.path.join(data_dir, "notifications.json")
+            
+            # التحقق من وجود الملف
+            if not os.path.exists(file_path):
+                return
+                
+            # قراءة البيانات من الملف
+            with open(file_path, "r", encoding="utf-8") as f:
+                notifications_data = json.load(f)
+                
+            debug(f"Notifications loaded from {file_path}")
+            
+            # استعادة الإشعارات في الفئات
+            for category, notifications in notifications_data.items():
+                if category in self.categories:
+                    for notification_id, notification_data in notifications.items():
+                        # إنشاء عنصر جديد للإشعار
+                        notification_item = QTreeWidgetItem(self.categories[category]["item"])
+                        notification_item.setText(0, notification_data.get("title", ""))
+                        notification_item.setData(0, Qt.UserRole, notification_data)
+                        
+                        # إضافة الإشعار إلى قائمة إشعارات الفئة
+                        self.categories[category]["notifications"][notification_id] = notification_data
+                        
+                    # تحديث عداد الإشعارات للفئة
+                        self.update_category_counter(category)
+                    
+        except Exception as e:
+            debug(f"Error loading notifications: {str(e)}")
+    
+    def create_notification_categories(self):
+        """إنشاء فئات الإشعارات في الفهرس الرئيسي"""
+        theme_colors = global_theme_manager.get_current_colors()
+        
+        # إنشاء فئات الإشعارات الرئيسية
+        self.categories = {}
+        
+        # 1. إشعارات النظام
+        system_item = QTreeWidgetItem(self.notification_tree)
+        system_item.setText(0, f"📱 {tr('system_notifications')} (0)")
+        system_item.setData(0, Qt.UserRole, "system")
+        system_category = {}
+        self.categories["system"] = {"item": system_item, "notifications": system_category}
+        
+        # 2. إشعارات المهام
+        tasks_item = QTreeWidgetItem(self.notification_tree)
+        tasks_item.setText(0, f"✅ {tr('tasks_notifications')} (0)")
+        tasks_item.setData(0, Qt.UserRole, "tasks")
+        tasks_category = {}
+        self.categories["tasks"] = {"item": tasks_item, "notifications": tasks_category}
+        
+        # 3. إشعارات التنبيه
+        alerts_item = QTreeWidgetItem(self.notification_tree)
+        alerts_item.setText(0, f"🔔 {tr('alerts_notifications')} (0)")
+        alerts_item.setData(0, Qt.UserRole, "alerts")
+        alerts_category = {}
+        self.categories["alerts"] = {"item": alerts_item, "notifications": alerts_category}
+        
+        # 4. رسائل التحذير
+        warnings_item = QTreeWidgetItem(self.notification_tree)
+        warnings_item.setText(0, f"⚠️ {tr('warning_messages')} (0)")
+        warnings_item.setData(0, Qt.UserRole, "warnings")
+        warnings_category = {}
+        self.categories["warnings"] = {"item": warnings_item, "notifications": warnings_category}
+        
+        # توسيع جميع الفئات افتراضيًا
+        self.notification_tree.expandAll()
+        
+        # تحميل الإشعارات المحفوظة
+        self.load_notifications_from_file()
+    
+    def update_category_counter(self, category):
+        """تحديث عداد الإشعارات لفئة معينة"""
+        count = len(self.categories[category]["notifications"])
+        # استخدام طريقة آمنة للحصول على اسم الفئة المترجم
+        try:
+            category_name = tr(f"{category}_notifications")
+        except:
+            category_name = category
+        
+        # تحديث نص الفئة مع العداد الجديد
+        if category == "system":
+            self.categories[category]["item"].setText(0, f"📱 {category_name} ({count})")
+        elif category == "tasks":
+            self.categories[category]["item"].setText(0, f"✅ {category_name} ({count})")
+        elif category == "alerts":
+            self.categories[category]["item"].setText(0, f"🔔 {category_name} ({count})")
+        elif category == "warnings":
+            self.categories[category]["item"].setText(0, f"⚠️ {category_name} ({count})")
+    
+    def show_notification_details(self, item):
+        """عرض تفاصيل الإشعار عند النقر المزدوج"""
+        # الحصول على بيانات الإشعار
+        notification_data = item.data(0, Qt.UserRole)
+        
+        # إذا كان العنصر فئة وليس إشعارًا، لا تفعل شيئًا
+        if not isinstance(notification_data, dict):
+            return
+            
+        # إنشاء وعرض نافذة التفاصيل
+        details_dialog = NotificationDetailDialog(notification_data, self)
+        details_dialog.exec()
     
     def add_notification(self, message, notification_type):
         """Adds a new notification to the history list."""
@@ -254,12 +450,56 @@ class NotificationCenter(QDialog):
         # إنشاء نص الإشعار مع الأيقونة
         display_text = f"{icon_text} {message}"
         
-        # إنشاء عنصر القائمة مباشرة
-        item = QListWidgetItem(display_text)
-        item.setForeground(QColor(icon_color))
+
         
-        # إضافة العنصر إلى القائمة
-        self.history_list.insertItem(0, item)
+        # تحديد الفئة المناسبة
+        category = "info"  # فئة افتراضية
+        if notification_type == "error":
+            category = "alerts"
+        elif notification_type == "warning":
+            category = "warnings"
+        elif notification_type == "success":
+            category = "tasks"
+            
+        # التحقق من وجود الفئات
+        if not hasattr(self, "categories") or not self.categories:
+            # إنشاء الفئات إذا لم تكن موجودة
+            self.create_notification_categories()
+            
+        # التحقق من وجود الفئة المحددة
+        if category not in self.categories:
+            # استخدام فئة النظام كبديل
+            category = "system"
+            
+        # إنشاء عنصر الإشعار تحت الفئة المناسبة
+        notification_item = QTreeWidgetItem(self.categories[category]["item"])
+        notification_item.setText(0, display_text)
+        
+        # حفظ بيانات الإشعار
+        import datetime
+        notification_data = {
+            "icon": icon_text,
+            "color": icon_color,
+            "title": display_text,
+            "message": message,
+            "type": notification_type,
+            "category": category,
+            "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "read": False
+        }
+        
+        # تخزين البيانات في العنصر
+        notification_item.setData(0, Qt.UserRole, notification_data)
+        
+        # إضافة الإشعار إلى قائمة إشعارات الفئة
+        notification_id = f"{category}_{len(self.categories[category]['notifications']) + 1}"
+        self.categories[category]["notifications"][notification_id] = notification_data
+        
+        # تحديث عداد الإشعارات للفئة
+        self.update_category_counter(category)
+        
+        # حفظ الإشعارات في الملف
+        self.save_notifications_to_file()
 
 # --- Custom Widget for Notification Items ---
 class NotificationItemWidget(QWidget):
@@ -330,11 +570,26 @@ class NotificationSettingsDialog(QDialog):
             apply_theme(checkbox, "checkbox")
             layout.addWidget(checkbox)
             self.checkboxes[notif_type] = checkbox
+        
+        # إضافة خيار عدم حفظ الإشعارات في الذاكرة
+        layout.addSpacing(10)
+        separator = QLabel()
+        separator.setFrameStyle(QFrame.HLine | QFrame.Sunken)
+        layout.addWidget(separator)
+        layout.addSpacing(10)
+        
+        memory_checkbox = QCheckBox(tr("do_not_save_notifications"))
+        memory_checkbox.setChecked(current_settings.get("do_not_save", False))
+        apply_theme(memory_checkbox, "checkbox")
+        layout.addWidget(memory_checkbox)
+        self.checkboxes["do_not_save"] = memory_checkbox
 
         # Buttons
         button_box = QDialogButtonBox()
         save_button = button_box.addButton(tr("save_all_changes_button"), QDialogButtonBox.AcceptRole)
         cancel_button = button_box.addButton(tr("cancel_changes_button"), QDialogButtonBox.RejectRole)
+        apply_theme(save_button, "button")
+        apply_theme(cancel_button, "button")
         button_box.accepted.connect(self.save_settings)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
@@ -364,7 +619,8 @@ class NotificationManager:
             "success": True,
             "warning": True,
             "error": True,
-            "info": True
+            "info": True,
+            "do_not_save": False
         }
         self.notification_settings = get_setting("notification_settings", default_settings)
         debug(f"Notification settings loaded: {self.notification_settings}")
@@ -398,8 +654,8 @@ class NotificationManager:
         Shows a message on the notification bar and adds it to the history,
         respecting the user's settings.
         """
-        # Add to history regardless of settings, so it's always logged
-        if self.notification_center:
+        # Add to history only if not disabled in settings
+        if self.notification_center and not self.notification_settings.get("do_not_save", False):
             self.notification_center.add_notification(message, notification_type)
         
         # Check if this type of notification is enabled

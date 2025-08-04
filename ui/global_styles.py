@@ -527,6 +527,18 @@ def get_widget_style(widget_type, colors, accent_color):
             }}
         """
 
+    elif widget_type == "card_colors_only":
+        return f"""
+            QFrame {{
+                background-color: {colors["surface"]};
+                border: 1px solid {colors["border"]};
+            }}
+            QFrame:hover {{
+                border-color: {accent_color};
+                background-color: {darken_color(colors["surface"], 0.1)};
+            }}
+        """
+        
     else:  # default
         return f"""
             QWidget {{

@@ -294,6 +294,7 @@ class SettingsUI(ThemeAwareDialog):
         self.show_warning_notifications_checkbox = QCheckBox(tr("show_warning_notifications"))
         self.show_error_notifications_checkbox = QCheckBox(tr("show_error_notifications"))
         self.show_info_notifications_checkbox = QCheckBox(tr("show_info_notifications"))
+        self.do_not_save_notifications_checkbox = QCheckBox(tr("do_not_save_notifications"))
 
         # --- إنشاء عناصر صفحة الحفظ ---
         self.reset_defaults_btn = QPushButton(tr("reset_to_defaults_button"))
@@ -332,6 +333,7 @@ class SettingsUI(ThemeAwareDialog):
         self.show_warning_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
         self.show_error_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
         self.show_info_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
+        self.do_not_save_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
 
         # --- ربط إشارات صفحة الحفظ ---
         self.reset_defaults_btn.clicked.connect(self.reset_to_defaults)
@@ -895,6 +897,17 @@ class SettingsUI(ThemeAwareDialog):
         apply_theme_style(self.show_info_notifications_checkbox, "checkbox", auto_register=True)
         self.show_info_notifications_checkbox.setChecked(self.settings_data.get("notification_settings", {}).get("info", True))
         notifications_layout.addWidget(self.show_info_notifications_checkbox)
+        
+        # إضافة خيار عدم حفظ الإشعارات في الذاكرة
+        notifications_layout.addSpacing(10)
+        separator = QLabel()
+        separator.setFrameStyle(QFrame.HLine | QFrame.Sunken)
+        notifications_layout.addWidget(separator)
+        notifications_layout.addSpacing(5)
+        
+        apply_theme_style(self.do_not_save_notifications_checkbox, "checkbox", auto_register=True)
+        self.do_not_save_notifications_checkbox.setChecked(self.settings_data.get("notification_settings", {}).get("do_not_save", False))
+        notifications_layout.addWidget(self.do_not_save_notifications_checkbox)
 
         layout.addWidget(notifications_group)
         layout.addStretch()
@@ -1352,7 +1365,8 @@ class SettingsUI(ThemeAwareDialog):
                 "success": self.show_success_notifications_checkbox.isChecked(),
                 "warning": self.show_warning_notifications_checkbox.isChecked(),
                 "error": self.show_error_notifications_checkbox.isChecked(),
-                "info": self.show_info_notifications_checkbox.isChecked()
+                "info": self.show_info_notifications_checkbox.isChecked(),
+                "do_not_save": self.do_not_save_notifications_checkbox.isChecked()
             }
 
         except Exception as e:

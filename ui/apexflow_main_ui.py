@@ -66,7 +66,7 @@ class WelcomePage(QWidget):
         self.setup_animations()
 
         # تطبيق التنسيق العام
-        # apply_theme_style(self, "main_window") # تم التعطيل بناءً على طلب المستخدم
+        apply_theme(self, "main_window")
 
         # تحميل الأيقونات بشكل مؤجل لتسريع البدء
         from PySide6.QtCore import QTimer
@@ -122,29 +122,57 @@ class WelcomePage(QWidget):
 
         # قسم الميزات الرئيسية
         features_frame = QFrame()
-        features_frame.setStyleSheet("background: transparent; border: none;")
+        # الحصول على ألوان السمة الحالية
+        from .theme_manager import global_theme_manager
+        colors = global_theme_manager.get_current_colors()
+        
+        # استخراج قيم RGB من لون السطح
+        try:
+            # محاولة استخراج القيم من تنسيق QColor
+            surface_color = colors["surface"]
+            if "QColor" in str(surface_color):
+                # استخدام QColor مباشرة
+                # QColor تم استيراده بالفعل من PySide6.QtGui في بداية الملف
+                qcolor = QColor(surface_color)
+                r, g, b = qcolor.red(), qcolor.green(), qcolor.blue()
+            else:
+                # استخدام اللون مباشرة إذا كان بتنسيق hex
+                qcolor = QColor(surface_color)
+                r, g, b = qcolor.red(), qcolor.green(), qcolor.blue()
+                
+            # تطبيق خلفية شفافة 50% مع حدود خفيفة
+            features_frame.setStyleSheet(f"""
+                background-color: rgba({r}, {g}, {b}, 0.5);
+                border: 1px solid {colors["border"]};
+                border-radius: 10px;
+                padding: 10px;
+            """)
+        except Exception as e:
+            # في حالة وجود خطأ، استخدام خلفية رمادية شفافة كخيار احتياطي
+            features_frame.setStyleSheet("""
+                background-color: rgba(128, 128, 128, 0.5);
+                border: 1px solid #555;
+                border-radius: 10px;
+                padding: 10px;
+            """)
         # استخدام نظام السمات الموحد للفريم فقط
-        # apply_theme_style(features_frame, "frame") # تم التعطيل بناءً على طلب المستخدم
+        apply_theme(features_frame, "frame")
 
         features_layout = QVBoxLayout(features_frame)
 
         # عنوان الميزات
         features_title = QLabel(tr("key_features"))
-        features_title.setStyleSheet("""
-            font-size: 24px !important;
-            font-weight: bold !important;
-            color: #e2e8f0 !important;
-            margin-bottom: 20px !important;
-            text-align: center !important;
-            background: transparent !important;
-            border: none !important;
-        """)
+        apply_theme(features_title, "title_text")
         features_title.setAlignment(Qt.AlignCenter)
+        # إضافة هوامش للعنوان لزيادة المسافة من الأعلى والأسفل
+        features_title.setContentsMargins(0, 15, 0, 25)
         features_layout.addWidget(features_title)
 
         # شبكة الميزات - سيتم ملؤها لاحقاً
         self.features_grid = QGridLayout()
         self.features_grid.setSpacing(10)
+        # إضافة هوامش للشبكة لزيادة المسافة من الأسفل
+        self.features_grid.setContentsMargins(0, 0, 0, 15)
 
         # حفظ قائمة الميزات للتحميل المؤجل
         self.features_data = [
@@ -171,7 +199,7 @@ class WelcomePage(QWidget):
         quick_start_frame = QFrame()
         quick_start_frame.setStyleSheet("background: transparent; border: none;")
         # استخدام نظام السمات الموحد للفريم فقط
-        # apply_theme_style(quick_start_frame, "frame") # تم التعطيل بناءً على طلب المستخدم
+        apply_theme(quick_start_frame, "frame")
 
         quick_start_layout = QVBoxLayout(quick_start_frame)
 
@@ -245,17 +273,23 @@ class WelcomePage(QWidget):
     def create_placeholder_card(self, title, description):
         """إنشاء بطاقة ميزة مؤقتة بدون أيقونات"""
         card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: rgba(26, 32, 44, 0.7);
-                border: 1px solid rgba(45, 55, 72, 0.8);
+        # الحصول على ألوان السمة الحالية
+        from .theme_manager import global_theme_manager
+        colors = global_theme_manager.get_current_colors()
+        accent = global_theme_manager.current_accent
+        
+        # تطبيق النمط الكامل مع الأحجام والألوان
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: {colors["surface"]};
+                border: 1px solid {colors["border"]};
                 border-radius: 10px;
                 padding: 15px;
-            }
-            QFrame:hover {
-                border-color: #ff6f00;
+            }}
+            QFrame:hover {{
+                border-color: {accent};
                 background-color: rgba(45, 55, 72, 0.8);
-            }
+            }}
         """)
 
         layout = QVBoxLayout(card)
@@ -269,10 +303,10 @@ class WelcomePage(QWidget):
 
         # العنوان
         title_label = QLabel(title)
-        title_label.setStyleSheet("""
+        title_label.setStyleSheet(f"""
             font-size: 14px;
             font-weight: bold;
-            color: white;
+            color: {colors["text_title"]};
             text-align: center;
             background: transparent;
             border: none;
@@ -282,9 +316,9 @@ class WelcomePage(QWidget):
 
         # الوصف
         desc_label = QLabel(description)
-        desc_label.setStyleSheet("""
+        desc_label.setStyleSheet(f"""
             font-size: 11px;
-            color: #a0aec0;
+            color: {colors["text_secondary"]};
             text-align: center;
             background: transparent;
             border: none;
@@ -355,17 +389,23 @@ class WelcomePage(QWidget):
     def create_feature_card(self, icon, title, description):
         """إنشاء بطاقة ميزة"""
         card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: rgba(26, 32, 44, 0.7);
-                border: 1px solid rgba(45, 55, 72, 0.8);
+        # الحصول على ألوان السمة الحالية
+        from .theme_manager import global_theme_manager
+        colors = global_theme_manager.get_current_colors()
+        accent = global_theme_manager.current_accent
+        
+        # تطبيق النمط الكامل مع الأحجام والألوان
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: {colors["surface"]};
+                border: 1px solid {colors["border"]};
                 border-radius: 10px;
                 padding: 15px;
-            }
-            QFrame:hover {
-                border-color: #ff6f00;
+            }}
+            QFrame:hover {{
+                border-color: {accent};
                 background-color: rgba(45, 55, 72, 0.8);
-            }
+            }}
         """)
 
         layout = QVBoxLayout(card)
@@ -377,7 +417,8 @@ class WelcomePage(QWidget):
         # تحميل الأيقونة الحقيقية مع fallback محسن
         device_ratio = self.devicePixelRatio() if hasattr(self, 'devicePixelRatio') else 2.0
         high_res_size = int(32 * device_ratio)
-        icon_pixmap = load_feature_icon(icon, size=high_res_size, color="white")
+        # استخدام لون النص الرئيسي من السمة الحالية
+        icon_pixmap = load_feature_icon(icon, size=high_res_size, color=colors["text_title"])
         if icon_pixmap:
             icon_pixmap.setDevicePixelRatio(device_ratio)
             icon_label.setPixmap(icon_pixmap)
@@ -407,10 +448,10 @@ class WelcomePage(QWidget):
 
         # العنوان
         title_label = QLabel(title)
-        title_label.setStyleSheet("""
+        title_label.setStyleSheet(f"""
             font-size: 12px;
             font-weight: bold;
-            color: #e2e8f0;
+            color: {colors["text_title"]};
             text-align: center;
             margin: 5px 0;
         """)
@@ -419,9 +460,9 @@ class WelcomePage(QWidget):
 
         # الوصف
         desc_label = QLabel(description)
-        desc_label.setStyleSheet("""
+        desc_label.setStyleSheet(f"""
             font-size: 12px;
-            color: #a0aec0;
+            color: {colors["text_secondary"]};
             text-align: center;
             line-height: 1.4;
         """)
