@@ -84,7 +84,7 @@ Section "Main Application (Required)" SecApp
   SectionIn RO
   SetOutPath "$INSTDIR"
   DetailPrint "Installing main application files..."
-  File /r "..\dist\ApexFlow\*.*"
+  File /r "dist\ApexFlow\*.*"
   DetailPrint "Installing translation and settings files..."
   WriteRegStr HKLM "Software\${APP_NAME}" "InstallDir" "$INSTDIR"
   WriteRegStr HKLM "Software\${APP_NAME}" "Version" "${VERSION}"
