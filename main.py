@@ -298,8 +298,8 @@ class ApexFlow(QMainWindow):
         self.sidebar_widget = self._create_sidebar()
         self.right_panel_widget = self._create_main_content()
 
-        # Connect signals after UI creation
-        self.menu_list.currentRowChanged.connect(self.handle_menu_selection)
+        # Connect menu selection directly
+        self.menu_list.itemClicked.connect(self.handle_menu_selection)
 
         # Add widgets to the main layout
         self.main_layout.addWidget(self.sidebar_widget)
@@ -369,149 +369,50 @@ class ApexFlow(QMainWindow):
             self.menu_list.setCurrentRow(index)
             self.load_page_on_demand(index)
 
-    def handle_menu_selection(self, desired_row):
+    def handle_menu_selection(self, item):
         """
-        Handles menu selection with a confirmation dialog for unsaved changes,
-        preventing visual glitches by managing selection flow correctly.
+        Handles menu selection simply and directly.
         """
+        desired_row = self.menu_list.row(item)
         current_index = self.stack.currentIndex()
         if current_index == desired_row:
             return
 
-        page_container = self.stack.widget(current_index)
-        page = page_container.widget() if hasattr(page_container, 'widget') else page_container
-        has_changes = hasattr(page, 'has_unsaved_changes') and page.has_unsaved_changes
-        has_files = hasattr(page, 'file_list_frame') and page.file_list_frame is not None and page.file_list_frame.get_valid_files()
+        # Load the desired page directly
+        
+        # Reset selection visually and load page
 
-        if not (has_changes or has_files):
-            self.load_page_on_demand(desired_row)
-            return
-
-        # --- Changes exist, must confirm ---
-
-        # 1. Reset selection visually to prevent jumpiness
+        # Reset selection visually
         self.menu_list.blockSignals(True)
         self.menu_list.setCurrentRow(current_index)
         self.menu_list.blockSignals(False)
 
-        # 2. Ask for confirmation
-        can_navigate = False
-        # Special case for settings page (index 7)
+        # Load the desired page directly
+        
+        # All pages work the same way
         if current_index == 7:
-            result, dont_ask_again = self._show_custom_unsaved_changes_dialog()
-            if dont_ask_again:
-                set_setting("dont_ask_again_and_discard", True)
-                if hasattr(page, 'load_original_settings'): page.load_original_settings()
-                page.has_unsaved_changes = False
-                can_navigate = True
-            elif result == "save":
-                if hasattr(page, 'save_all_settings'): page.save_all_settings()
-                can_navigate = True
-            elif result == "discard":
-                if hasattr(page, 'load_original_settings'): page.load_original_settings()
-                page.has_unsaved_changes = False
-                can_navigate = True
-        # Standard confirmation for all other pages
-        else:
-            from PySide6.QtWidgets import QMessageBox
-            from ui.theme_manager import apply_theme
-            msg_box = QMessageBox(self)
-            msg_box.setWindowTitle(tr("warning"))
-            msg_box.setText(tr("unsaved_work_warning"))
-            msg_box.setStandardButtons(QMessageBox.Discard | QMessageBox.Cancel)
-            msg_box.setDefaultButton(QMessageBox.Cancel)
-            msg_box.button(QMessageBox.Discard).setText(tr("discard_changes"))
-            msg_box.button(QMessageBox.Cancel).setText(tr("cancel_button"))
-            apply_theme(msg_box, "dialog")
-            reply = msg_box.exec()
-            if reply == QMessageBox.Discard:
-                if hasattr(page, 'reset_ui'): page.reset_ui()
-                page.has_unsaved_changes = False
-                can_navigate = True
-
-        # 3. Navigate if confirmed by the user
-        if can_navigate:
-            # This will trigger load_page_on_demand
+            # Navigate directly from settings without any confirmation
+            
+            # Load the page directly
+            self.load_page_on_demand(desired_row)
+            # Update the menu selection
             self.menu_list.setCurrentRow(desired_row)
-        # If not confirmed, do nothing. The selection is already correct.
-
-    def _show_custom_unsaved_changes_dialog(self):
-        """Shows a theme-aware custom dialog for unsaved changes."""
-        from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QCheckBox, QSpacerItem, QSizePolicy
-        from modules.translator import tr
-        from ui import apply_theme_style
-
-        dialog = QDialog(self)
-        dialog.setWindowTitle(tr("warning"))
-        dialog.setModal(True)
-        apply_theme_style(dialog, "dialog")
-
-        layout = QVBoxLayout(dialog)
-        layout.setSpacing(15)
-        layout.setContentsMargins(20, 20, 20, 20)
-
-        message_label = QLabel(tr("unsaved_changes_prompt"))
-        message_label.setWordWrap(True)
-        apply_theme_style(message_label, "label")
-        layout.addWidget(message_label)
-
-        # Spacer
-        layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
-
-        # Buttons
-        buttons_layout = QHBoxLayout()
-        discard_button = QPushButton(tr("discard_changes"))
-        save_button = QPushButton(tr("save_and_close"))
-        back_button = QPushButton(tr("go_back"))
-        
-        apply_theme_style(discard_button, "button")
-        apply_theme_style(save_button, "button")
-        apply_theme_style(back_button, "button")
-
-        buttons_layout.addWidget(discard_button)
-        buttons_layout.addStretch()
-        buttons_layout.addWidget(save_button)
-        buttons_layout.addWidget(back_button)
-        layout.addLayout(buttons_layout)
-        
-        # Checkbox
-        dont_ask_checkbox = QCheckBox(tr("dont_ask_again_and_discard_option"))
-        apply_theme_style(dont_ask_checkbox, "checkbox")
-        layout.addWidget(dont_ask_checkbox)
-
-        # Result variables
-        result = "back"  # Default to "back" if dialog is closed
-        
-        def on_save():
-            nonlocal result
-            result = "save"
-            dialog.accept()
-
-        def on_discard():
-            nonlocal result
-            result = "discard"
-            dialog.accept()
-
-        def on_back():
-            nonlocal result
-            result = "back"
-            dialog.reject()
-
-        save_button.clicked.connect(on_save)
-        discard_button.clicked.connect(on_discard)
-        back_button.clicked.connect(on_back)
-
-        dialog.exec()
-
-        return result, dont_ask_checkbox.isChecked()
-
+                
+            # No need to check for changes or show dialog
+            pass
+        # For all other pages, navigate without confirmation
+        else:
+            can_navigate = True
+            # Load the page directly
+            self.load_page_on_demand(desired_row)
+            # Update the menu selection
+            self.menu_list.setCurrentRow(desired_row)
+            
     def on_menu_selection_changed(self, current_row):
         """دالة قديمة للحفاظ على التوافق مع الإشارات القديمة"""
         # دالة محجوبة الآن، يتم استخدام handle_menu_selection بدلاً منها
         # تم تعطيل هذا الاستدعاء لتجنب الاستدعاء المزدوج
         pass
-
-
 
     def load_page_on_demand(self, index):
         """تحميل الصفحات عند الطلب باستخدام المدراء"""
@@ -550,25 +451,8 @@ class ApexFlow(QMainWindow):
         self.stack.setCurrentIndex(index)
 
     def _reset_all_loaded_pages(self):
-        """Resets all loaded pages, checking for unsaved changes first."""
+        """Resets all loaded pages."""
         try:
-            current_index = self.stack.currentIndex()
-            if current_index > 0 and self.pages_loaded[current_index]:
-                widget = self.stack.widget(current_index)
-                inner_widget = widget.widget() if hasattr(widget, 'widget') else widget
-
-                if hasattr(inner_widget, 'has_unsaved_changes') and inner_widget.has_unsaved_changes:
-                    from modules import settings
-                    from PySide6.QtWidgets import QDialog
-
-                    settings_data = settings.load_settings()
-                    if settings_data.get("dont_ask_again_and_discard", False):
-                        pass  # Continue to reset
-                    else:
-                        result = self.message_manager.ask_for_save_confirmation(inner_widget)
-                        if result == QDialog.Rejected:
-                            return  # User cancelled, do not reset pages
-
             # Proceed to reset all other pages
             for i in range(1, self.stack.count()):
                 if self.pages_loaded[i]:
@@ -918,16 +802,8 @@ def main():
     except Exception as e:
         print(f"تحذير: خطأ في إعداد أول تشغيل: {e}")
 
-    # التحقق من التشغيل الأول وعرض واجهة الإعداد
+    # التحقق من التشغيل الأول
     settings_data = load_settings()
-    if not settings_data:
-        # Create and show first run dialog
-        first_run_dialog = FirstRunDialog()
-        # The dialog is modal and should handle saving the settings itself.
-        if not first_run_dialog.exec():
-            sys.exit(0)  # Exit if the user closes the dialog
-        # Reload settings after the first run dialog has presumably saved them.
-        settings_data = load_settings()
 
     # --- تطبيق اتجاه الواجهة قبل إنشاء أي نافذة ---
     language = settings_data.get("language", "ar")

@@ -151,7 +151,7 @@ Section "Main Application (Required)" SecApp
   SectionIn RO
   SetOutPath "$INSTDIR"
   DetailPrint "Installing main application files..."
-  File /r "..\\dist\\{APP_NAME}\\*.*"
+  File /r "dist\\{APP_NAME}\\*.*"
   DetailPrint "Installing translation and settings files..."
   WriteRegStr HKLM "Software\\${{APP_NAME}}" "InstallDir" "$INSTDIR"
   WriteRegStr HKLM "Software\\${{APP_NAME}}" "Version" "${{VERSION}}"
@@ -291,6 +291,8 @@ def run_pyinstaller():
         sys.executable,
         "-m", "PyInstaller",
         str(SPEC_FILE_PATH),
+        f"--distpath={DIST_DIR}",
+        f"--workpath={BUILD_DIR}",
         "--clean",
         "--noconfirm"
     ]
@@ -299,6 +301,7 @@ def run_pyinstaller():
         # We are in build_scripts, so chdir is not needed
         subprocess.run(command, check=True, shell=True)
         print("[SUCCESS] PyInstaller completed successfully.")
+        print(f"--> Output located in: {DIST_DIR}")
     except subprocess.CalledProcessError as e:
         print(f"[ERROR] PyInstaller failed with exit code {e.returncode}")
         sys.exit(1)

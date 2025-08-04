@@ -290,9 +290,6 @@ class SettingsUI(ThemeAwareDialog):
         self.disable_welcome_checkbox = QCheckBox(tr("disable_welcome_message_option"))
         self.remember_state_checkbox = QCheckBox(tr("remember_settings_on_exit_option"))
         self.reset_to_defaults_checkbox = QCheckBox(tr("reset_to_defaults_next_time_option"))
-        self.show_exit_warning_checkbox = QCheckBox(tr("show_exit_warning_option"))
-        self.remember_exit_choice_checkbox = QCheckBox(tr("remember_exit_choice_option"))
-        self.dont_ask_again_checkbox = QCheckBox(tr("dont_ask_again_and_discard_option"))
         self.show_success_notifications_checkbox = QCheckBox(tr("show_success_notifications"))
         self.show_warning_notifications_checkbox = QCheckBox(tr("show_warning_notifications"))
         self.show_error_notifications_checkbox = QCheckBox(tr("show_error_notifications"))
@@ -331,9 +328,6 @@ class SettingsUI(ThemeAwareDialog):
         self.remember_state_checkbox.stateChanged.connect(self.mark_as_changed)
         self.reset_to_defaults_checkbox.stateChanged.connect(self.mark_as_changed)
         self.reset_to_defaults_checkbox.stateChanged.connect(self.on_reset_defaults_changed)
-        self.show_exit_warning_checkbox.stateChanged.connect(self.mark_as_changed)
-        self.remember_exit_choice_checkbox.stateChanged.connect(self.mark_as_changed)
-        self.dont_ask_again_checkbox.stateChanged.connect(self.mark_as_changed)
         self.show_success_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
         self.show_warning_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
         self.show_error_notifications_checkbox.stateChanged.connect(self.mark_as_changed)
@@ -880,26 +874,6 @@ class SettingsUI(ThemeAwareDialog):
 
         layout.addWidget(startup_group)
 
-        # مجموعة إعدادات الرسائل والتحذيرات
-        messages_group = QGroupBox(tr("messages_and_warnings_settings_group"))
-        apply_theme_style(messages_group, "group_box", auto_register=True)
-        messages_layout = QVBoxLayout(messages_group)
-        messages_layout.setSpacing(10)
-
-        apply_theme_style(self.show_exit_warning_checkbox, "checkbox", auto_register=True)
-        self.show_exit_warning_checkbox.setChecked(self.settings_data.get("show_exit_warning", True))
-        messages_layout.addWidget(self.show_exit_warning_checkbox)
-
-        apply_theme_style(self.remember_exit_choice_checkbox, "checkbox", auto_register=True)
-        self.remember_exit_choice_checkbox.setChecked(self.settings_data.get("remember_exit_choice", False))
-        messages_layout.addWidget(self.remember_exit_choice_checkbox)
-
-        apply_theme_style(self.dont_ask_again_checkbox, "checkbox", auto_register=True)
-        self.dont_ask_again_checkbox.setChecked(self.settings_data.get("dont_ask_again_and_discard", False))
-        messages_layout.addWidget(self.dont_ask_again_checkbox)
-
-        layout.addWidget(messages_group)
-
         # مجموعة إعدادات الإشعارات
         notifications_group = QGroupBox(tr("notifications_settings_group"))
         apply_theme_style(notifications_group, "group_box", auto_register=True)
@@ -1327,15 +1301,6 @@ class SettingsUI(ThemeAwareDialog):
 
             # إعدادات العودة للإعدادات الافتراضية
             current["reset_to_defaults_next_time"] = self.reset_to_defaults_checkbox.isChecked()
-
-            # إعدادات إظهار رسالة التحذير عند الخروج
-            current["show_exit_warning"] = self.show_exit_warning_checkbox.isChecked()
-
-            # إعدادات تذكر اختيار المستخدم في رسالة التحذير
-            current["remember_exit_choice"] = self.remember_exit_choice_checkbox.isChecked()
-
-            # إعدادات عدم السؤال مرة أخرى وتجاهل التغييرات
-            current["dont_ask_again_and_discard"] = self.dont_ask_again_checkbox.isChecked()
 
             # إعدادات الإشعارات
             current["notification_settings"] = {
