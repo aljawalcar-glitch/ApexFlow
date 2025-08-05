@@ -538,6 +538,66 @@ def get_widget_style(widget_type, colors, accent_color):
                 background-color: {darken_color(colors["surface"], 0.1)};
             }}
         """
+
+    elif widget_type == "tree_widget":
+        return f"""
+            QTreeWidget {{
+                background-color: {colors["surface"]};
+                alternate-background-color: {colors["surface"]};
+                border: 1px solid {colors["border"]};
+                border-radius: 6px;
+                color: {colors["text_body"]};
+            }}
+            QTreeWidget::item {{
+                border-bottom: 1px solid {colors["border"]};
+                padding: 4px;
+            }}
+            QTreeWidget::item:selected {{
+                background-color: {accent_color};
+                color: white;
+            }}
+            QTreeWidget::item:hover {{
+                background-color: rgba(255, 255, 255, 0.1);
+            }}
+            QScrollBar:vertical {{
+                background: {colors["surface"]};
+                width: 8px;
+                border-radius: 4px;
+                margin: 0;
+                border: 1px solid {colors["border"]};
+            }}
+            QScrollBar::handle:vertical {{
+                background: {accent_color};
+                border-radius: 4px;
+                min-height: 20px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background: {darken_color(accent_color)};
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0;
+                background: none;
+            }}
+            QScrollBar:horizontal {{
+                background: {colors["surface"]};
+                height: 8px;
+                border-radius: 4px;
+                margin: 0;
+                border: 1px solid {colors["border"]};
+            }}
+            QScrollBar::handle:horizontal {{
+                background: {accent_color};
+                border-radius: 4px;
+                min-width: 20px;
+            }}
+            QScrollBar::handle:horizontal:hover {{
+                background: {darken_color(accent_color)};
+            }}
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+                width: 0;
+                background: none;
+            }}
+        """
         
     else:  # default
         return f"""

@@ -83,12 +83,12 @@ class InteractiveStamp(QGraphicsPixmapItem):
     
     def zoom_in(self):
         """تكبير الختم"""
-        new_scale = min(self.scale_factor + 0.03, 3.0)  # زيادة 3% مع حد أقصى 3x
+        new_scale = min(self.scale_factor + 0.1, 3.0)  # زيادة 10% مع حد أقصى 3x
         self.apply_scale(new_scale)
 
     def zoom_out(self):
         """تصغير الختم"""
-        new_scale = max(self.scale_factor - 0.03, 0.2)  # تقليل 3% مع حد أدنى 0.2x
+        new_scale = max(self.scale_factor - 0.1, 0.2)  # تقليل 10% مع حد أدنى 0.2x
         self.apply_scale(new_scale)
     
     def mousePressEvent(self, event):
@@ -126,10 +126,6 @@ class InteractiveStamp(QGraphicsPixmapItem):
         elif not self.isSelected():
             self.setCursor(Qt.ArrowCursor)  # مؤشر عادي عند عدم التحديد
         super().hoverMoveEvent(event)
-    
-
-
-
     
     def apply_scale(self, new_scale):
         """تطبيق مقياس جديد على الختم مع حفظ دقيق للمعلومات"""
@@ -169,12 +165,12 @@ class InteractiveStamp(QGraphicsPixmapItem):
         current_width = current_pixmap.width()
         current_height = current_pixmap.height()
 
-        # تعديل الموضع لمعالجة مشكلة الانزياح للأسفل
+        # تم نقل معالجة الانزياح العمودي إلى stamp_processor.py لتوحيد المنطق
         # معامل التحكم في الانزياح العمودي (يمكن تعديله حسب الحاجة)
-        vertical_offset_factor = 50  # زيادة معامل الانزياح العمودي لجعل الختم ينزاح لأعلى بشكل أكبر
+        # vertical_offset_factor = 50
         
         pos_x = self.pos().x()
-        pos_y = self.pos().y() - vertical_offset_factor  # تعديل الموضع العمودي باستخدام المعامل
+        pos_y = self.pos().y()  # إرجاع الموضع العمودي الأصلي
         
         stamp_data = {
             'image_path': self.image_path,

@@ -5,8 +5,71 @@
 
 from PySide6.QtWidgets import QPushButton, QLabel, QDialog, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QComboBox
 from PySide6.QtCore import Signal
-from .theme_manager import apply_theme_style
+from .theme_manager import apply_theme_style, global_theme_manager
 from modules.translator import tr
+from .global_styles import get_font_settings
+
+def get_special_button_style(color_rgb="13, 110, 253"):
+    """Generate a special button style with a given color."""
+    font_settings = get_font_settings()
+    return f"""
+        QPushButton {{
+            background: rgba({color_rgb}, 0.2);
+            border: 1px solid rgba({color_rgb}, 0.4);
+            border-radius: 8px;
+            font-size: {font_settings['size']}px;
+            font-weight: bold;
+            padding: 12px 24px;
+        }}
+        QPushButton:hover {{
+            background: rgba({color_rgb}, 0.3);
+            border: 1px solid rgba({color_rgb}, 0.5);
+        }}
+        QPushButton:pressed {{
+            background: rgba({color_rgb}, 0.1);
+        }}
+    """
+
+def get_scroll_area_style():
+    """تنسيق منطقة التمرير - ربط مباشر بالمدير المركزي"""
+    colors = global_theme_manager.get_current_colors()
+    accent = global_theme_manager.current_accent
+    return f"""
+        QScrollArea {{
+            background: transparent;
+            border: none;
+        }}
+        QScrollArea > QWidget > QWidget {{
+            background: transparent;
+        }}
+        QScrollBar:vertical {{
+            background: transparent;
+            width: 12px;
+            border-radius: 6px;
+            margin: 0px;
+        }}
+        QScrollBar::handle:vertical {{
+            background: {accent};
+            border-radius: 6px;
+            min-height: 20px;
+            margin: 2px;
+        }}
+        QScrollBar::handle:vertical:hover {{
+            background: {colors['text_accent']};
+        }}
+        QScrollBar::handle:vertical:pressed {{
+            background: {colors['text']};
+        }}
+        QScrollBar::add-line:vertical,
+        QScrollBar::sub-line:vertical {{
+            height: 0px;
+            background: none;
+        }}
+        QScrollBar::add-page:vertical,
+        QScrollBar::sub-page:vertical {{
+            background: none;
+        }}
+    """
 
 def create_button(text, on_click=None, is_default=False):
     """

@@ -15,6 +15,7 @@ from modules.logger import debug
 from modules.translator import tr
 from .theme_manager import apply_theme, global_theme_manager
 from modules.settings import get_setting, set_setting
+from .system_diagnostics import SystemDiagnosticsDialog
 
 # --- 1. Notification Bar (The "Toast") ---
 
@@ -83,6 +84,70 @@ class NotificationBar(QFrame):
     def show_message(self, message, notification_type="info", duration=5000):
         """Displays a notification message using the current theme."""
         theme_colors = global_theme_manager.get_current_colors()
+
+        # Base background from theme, with transparency
+        bg_color = QColor(theme_colors.get("frame_bg", "#2D3748"))
+        bg_color.setAlpha(210) # ~82% opacity for a glassy effect
+
+        # Icon and border colors
+        type_styles = {
+            "success": ("✓", theme_colors.get("success", "#4ade80")),
+            "warning": ("⚠", theme_colors.get("warning", "#fbbf24")),
+            "error": ("✗", theme_colors.get("error", "#f87171")),
+            "info": ("ℹ", theme_colors.get("accent", "#60a5fa"))
+        }
+        icon_text, border_color = type_styles.get(notification_type, type_styles["info"])
+
+        # Apply styles
+        self.setStyleSheet(f"""
+            #NotificationBar {{
+                background-color: {bg_color.name(QColor.NameFormat.HexArgb)};
+                border-radius: 6px;
+                margin: 0 4px;
+            }}
+            #NotificationBar > QPushButton {{
+                background-color: transparent;
+                border: none;
+                border-radius: 4px;
+            }}
+            #NotificationBar > QPushButton:hover {{
+                background-color: rgba(255, 255, 255, 25);
+            }}
+            #NotificationBar > QPushButton:pressed {{
+                background-color: rgba(255, 255, 255, 15);
+            }}
+        """)
+        self.icon_label.setText(icon_text)
+        self.icon_label.setStyleSheet(f"color: {border_color}; font-size: 18px; font-weight: bold; background-color: transparent; border: none;")
+
+        # تحديد الحد الأقصى لعدد الأحرف في رسالة الإشعار
+        max_chars = 100  # يمكن تعديل هذا الرقم حسب الحاجة
+        if len(message) > max_chars:
+            # اقتطاع النص وإضافة "..." للإشارة إلى وجود نص مخفي
+            truncated_message = message[:max_chars-3] + "..."
+            self.message_label.setText(truncated_message)
+            # حفظ النص الأصلي في تلميح الأداة
+            self.message_label.setToolTip(message)
+        else:
+            self.message_label.setText(message)
+            self.message_label.setToolTip("")
+
+        # Show animation
+        if self.animation:
+            self.animation.setStartValue(self.height())
+            self.animation.setEndValue(45) # Target height
+            self.animation.start()
+        else:
+            # بدون حركات، قم بتعيين الارتفاع مباشرة
+            self.setMaximumHeight(45)
+
+        # Start hide timer
+        if duration > 0:
+            self.hide_timer.start(duration)
+        
+    def show_message_with_action(self, message, notification_type="info", duration=5000, action_button=None):
+        """Displays a notification message with an action button using the current theme."""
+        theme_colors = global_theme_manager.get_current_colors()
         
         # Base background from theme, with transparency
         bg_color = QColor(theme_colors.get("frame_bg", "#2D3748"))
@@ -118,7 +183,18 @@ class NotificationBar(QFrame):
         """)
         self.icon_label.setText(icon_text)
         self.icon_label.setStyleSheet(f"color: {border_color}; font-size: 18px; font-weight: bold; background-color: transparent; border: none;")
-        self.message_label.setText(message)
+
+        # تحديد الحد الأقصى لعدد الأحرف في رسالة الإشعار
+        max_chars = 100  # يمكن تعديل هذا الرقم حسب الحاجة
+        if len(message) > max_chars:
+            # اقتطاع النص وإضافة "..." للإشارة إلى وجود نص مخفي
+            truncated_message = message[:max_chars-3] + "..."
+            self.message_label.setText(truncated_message)
+            # حفظ النص الأصلي في تلميح الأداة
+            self.message_label.setToolTip(message)
+        else:
+            self.message_label.setText(message)
+            self.message_label.setToolTip("")
 
         # Show animation
         if self.animation:
@@ -132,6 +208,18 @@ class NotificationBar(QFrame):
         # Start hide timer
         if duration > 0:
             self.hide_timer.start(duration)
+
+    def show_message_with_action(self, message, notification_type="info", duration=5000, action_button=None):
+        """Displays a notification message with an action button using the current theme."""
+        # استدعاء الدالة الأصلية أولاً
+        self.show_message(message, notification_type, duration)
+        
+        # إضافة زر الإجراء إذا تم توفيره
+        if action_button:
+            # إخفاء زر التاريخ مؤقتاً واستبداله بزر الإجراء
+            self.history_button.hide()
+            action_button.setParent(self)
+            self.layout().insertWidget(3, action_button)  # إضافته قبل زر الإغلاق
 
     def hide_notification(self):
         """Hides the notification bar with an animation."""
@@ -158,6 +246,15 @@ class NotificationDetailDialog(QDialog):
     """
     نافذة حوارية لعرض تفاصيل الإشعار بشكل كامل
     """
+    def _darken_color(self, color, factor=0.2):
+        """تغميق اللون"""
+        from PySide6.QtGui import QColor
+        color = QColor(color)
+        h, s, l, a = color.getHsl()
+        l = max(0, int(l * (1 - factor)))
+        color.setHsl(h, s, l, a)
+        return color.name()
+        
     def __init__(self, notification_data, parent=None):
         super().__init__(parent)
         self.notification_data = notification_data
@@ -191,6 +288,52 @@ class NotificationDetailDialog(QDialog):
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        
+        # تطبيق السمة على شريط التمرير
+        theme_colors = global_theme_manager.get_current_colors()
+        accent_color = global_theme_manager.current_accent
+        scrollbar_style = f"""
+            QScrollBar:vertical {{
+                background: {theme_colors["surface"]};
+                width: 8px;
+                border-radius: 4px;
+                margin: 0;
+                border: 1px solid {theme_colors["border"]};
+            }}
+            QScrollBar::handle:vertical {{
+                background: {accent_color};
+                border-radius: 4px;
+                min-height: 20px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background: {self._darken_color(accent_color)};
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0;
+                background: none;
+            }}
+            QScrollBar:horizontal {{
+                background: {theme_colors["surface"]};
+                height: 8px;
+                border-radius: 4px;
+                margin: 0;
+                border: 1px solid {theme_colors["border"]};
+            }}
+            QScrollBar::handle:horizontal {{
+                background: {accent_color};
+                border-radius: 4px;
+                min-width: 20px;
+            }}
+            QScrollBar::handle:horizontal:hover {{
+                background: {self._darken_color(accent_color)};
+            }}
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+                width: 0;
+                background: none;
+            }}
+        """
+        scroll.setStyleSheet(scroll.styleSheet() + scrollbar_style)
+        
         layout.addWidget(scroll, 1)
 
         # معلومات الإشعار
@@ -260,23 +403,27 @@ class NotificationCenter(QDialog):
         apply_theme(settings_button, "button")
         settings_button.clicked.connect(self.show_settings_dialog)
         button_layout.addWidget(settings_button)
-        
+
         # Clear button
         clear_button = QPushButton(tr("clear_all"))
         apply_theme(clear_button, "button")
         clear_button.clicked.connect(self.clear_history)
         button_layout.addWidget(clear_button)
+
+        # Add stretch to separate button groups
+        button_layout.addStretch()
+
+        # Diagnostics button
+        diagnostics_button = QPushButton(tr("diagnostics"))
+        apply_theme(diagnostics_button, "button")
+        diagnostics_button.clicked.connect(self.show_diagnostics)
+        button_layout.addWidget(diagnostics_button)
         
         # Close button
         close_button = QPushButton(tr("close_button"))
         apply_theme(close_button, "button")
         close_button.clicked.connect(self.accept)
         button_layout.addWidget(close_button)
-        
-        # Add stretch to push buttons to the right in LTR mode
-        button_layout.addStretch()
-        
-        # تم ربط الأحداث سابقاً عند إنشاء الأزرار
         
         # Add button layout to main layout
         layout.addLayout(button_layout)
@@ -285,6 +432,11 @@ class NotificationCenter(QDialog):
         """Opens the notification settings dialog."""
         settings_dialog = NotificationSettingsDialog(self)
         settings_dialog.exec()
+        
+    def show_diagnostics(self):
+        """Opens the system diagnostics dialog."""
+        diagnostics_dialog = SystemDiagnosticsDialog(self)
+        diagnostics_dialog.exec()
         
     def clear_history(self):
         """مسح جميع الإشعارات من التاريخ"""
@@ -317,13 +469,26 @@ class NotificationCenter(QDialog):
         except Exception as e:
             debug(f"Error saving notifications: {str(e)}")
 
+    def _darken_color(self, color, factor=0.2):
+        """تغميق اللون"""
+        from PySide6.QtGui import QColor
+        color = QColor(color)
+        h, s, l, a = color.getHsl()
+        l = max(0, int(l * (1 - factor)))
+        color.setHsl(h, s, l, a)
+        return color.name()
+        
     def _apply_theme(self):
         """تطبيق السمة الحالية على النافذة"""
         apply_theme(self, "dialog")
         apply_theme(self.notification_tree, "tree_widget")
         
-        # تحديث الألوان في العناصر الموجودة
+
         theme_colors = global_theme_manager.get_current_colors()
+        accent_color = global_theme_manager.current_accent
+        
+        # تم حذف كود شريط التمرير اليدوي - نستخدم الآن النمط الموحد من global_styles.py
+        
         # تحديث الألوان في عناصر الشجرة
         # سيتم تحديث الألوان عند إضافة العناصر الجديدة
     
@@ -375,6 +540,58 @@ class NotificationCenter(QDialog):
         system_item.setData(0, Qt.UserRole, "system")
         system_category = {}
         self.categories["system"] = {"item": system_item, "notifications": system_category}
+        theme_colors = global_theme_manager.get_current_colors()
+        accent_color = global_theme_manager.current_accent
+        self.notification_tree.setStyleSheet(f"""
+            QTreeWidget::item {{
+                padding: 4px 0;
+            }}
+            QTreeWidget::item[text^='📱'] {{
+                border: 1px dotted #888;
+                border-radius: 4px;
+                padding: 6px;
+                margin-top: 2px;
+                font-size: 14px;
+            }}
+            QScrollBar:vertical {{
+                background: {theme_colors["surface"]};
+                width: 8px;
+                border-radius: 4px;
+                margin: 0;
+                border: 1px solid {theme_colors["border"]};
+            }}
+            QScrollBar::handle:vertical {{
+                background: {accent_color};
+                border-radius: 4px;
+                min-height: 20px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background: {self._darken_color(accent_color)};
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0;
+                background: none;
+            }}
+            QScrollBar:horizontal {{
+                background: {theme_colors["surface"]};
+                height: 8px;
+                border-radius: 4px;
+                margin: 0;
+                border: 1px solid {theme_colors["border"]};
+            }}
+            QScrollBar::handle:horizontal {{
+                background: {accent_color};
+                border-radius: 4px;
+                min-width: 20px;
+            }}
+            QScrollBar::handle:horizontal:hover {{
+                background: {self._darken_color(accent_color)};
+            }}
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+                width: 0;
+                background: none;
+            }}
+        """)
         
         # 2. إشعارات المهام
         tasks_item = QTreeWidgetItem(self.notification_tree)
@@ -397,8 +614,8 @@ class NotificationCenter(QDialog):
         warnings_category = {}
         self.categories["warnings"] = {"item": warnings_item, "notifications": warnings_category}
         
-        # توسيع جميع الفئات افتراضيًا
-        self.notification_tree.expandAll()
+        # طي جميع الفئات افتراضيًا
+        self.notification_tree.collapseAll()
         
         # تحميل الإشعارات المحفوظة
         self.load_notifications_from_file()
@@ -672,6 +889,42 @@ class NotificationManager:
         self.notification_bar.show_message(message, notification_type, duration)
         
         debug(f"Notification shown: [{notification_type}] {message}")
+        
+    def show_notification_with_action(self, notification_data):
+        """
+        Shows a notification with an action button.
+        """
+        message = notification_data.get("message", "")
+        notification_type = notification_data.get("type", "info")
+        duration = notification_data.get("duration", 5000)
+        action_button = notification_data.get("action_button")
+        details = notification_data.get("details", {})
+        
+        # Add to history only if not disabled in settings
+        if self.notification_center and not self.notification_settings.get("do_not_save", False):
+            # Add details to the notification
+            full_message = message
+            if isinstance(details, list) and details:
+                full_message += "\nالمكتبات المفقودة:\n"
+                for lib, install_cmd, desc, category in details:
+                    full_message += f"- {lib}: {desc}\n"
+            
+            self.notification_center.add_notification(full_message, notification_type)
+
+        # Check if this type of notification is enabled
+        if not self.notification_settings.get(notification_type, True):
+            debug(f"Notification hidden by settings: [{notification_type}] {message}")
+            return
+
+        # Ensure widgets are registered for showing the bar
+        if not self.notification_bar:
+            debug("Notification bar not registered. Aborting display.")
+            return
+
+        # Show on the bar with action button
+        self.notification_bar.show_message_with_action(message, notification_type, duration, action_button)
+
+        debug(f"Notification with action shown: [{notification_type}] {message}")
 
 # --- Global Instance and Helper Functions ---
 
@@ -689,10 +942,135 @@ def show_warning(message, duration=5000):
     """Shows a warning notification."""
     show_notification(message, "warning", duration)
 
-def show_error(message, duration=6000):
+def show_error(message, details="", duration=6000):
     """Shows an error notification."""
-    show_notification(message, "error", duration)
+    full_message = message
+    if details:
+        full_message += f"\n\n{tr('details')}:\n{details}"
+    show_notification(full_message, "error", duration)
 
 def show_info(message, duration=4000):
     """Shows an info notification."""
     show_notification(message, "info", duration)
+
+def check_required_libraries():
+    """التحقق من المكتبات المطلوبة للتطبيق"""
+    required_libs = [
+        ('PySide6', 'pip install PySide6==6.8.0.2', 'مكتبة واجهة المستخدم الرسومية', 'core'),
+        ('pypdf', 'pip install pypdf==5.0.0', 'مكتبة معالجة ملفات PDF', 'core'),
+        ('fitz', 'pip install PyMuPDF==1.26.3', 'مكتبة معالجة متقدمة لملفات PDF', 'core'),
+        ('PIL', 'pip install Pillow==11.3.0', 'مكتبة معالجة الصور', 'core'),
+        ('arabic_reshaper', 'pip install arabic-reshaper==3.0.0', 'مكتبة إعادة تشكيل النص العربي', 'arabic'),
+        ('bidi.algorithm', 'pip install python-bidi==0.6.6', 'مكتبة دعم النصوص ثنائية الاتجاه', 'arabic'),
+        ('psutil', 'pip install psutil==6.0.0', 'مكتبة مراقبة النظام', 'system'),
+        ('win32api', 'pip install pywin32==306', 'مكتبة وظائف ويندوز', 'system')
+    ]
+    
+    missing_libs = []
+    for lib, install_cmd, desc, category in required_libs:
+        try:
+            __import__(lib)
+        except ImportError:
+            missing_libs.append((lib, install_cmd, desc, category))
+    
+    return missing_libs
+
+def install_missing_libraries(missing_libs):
+    """تثبيت المكتبات المفقودة"""
+    import subprocess
+    import sys
+    from PySide6.QtCore import QThread, Signal
+    
+    class InstallThread(QThread):
+        finished = Signal(bool)
+        progress = Signal(str)
+        
+        def __init__(self, libs):
+            super().__init__()
+            self.libs = libs
+        
+        def run(self):
+            success = True
+            for lib, install_cmd, desc, category in self.libs:
+                try:
+                    self.progress.emit(f"جاري تثبيت {lib}...")
+                    subprocess.check_call([sys.executable, "-m", "pip", "install"] + install_cmd.split()[1:])
+                    self.progress.emit(f"تم تثبيت {lib} بنجاح")
+                except subprocess.CalledProcessError as e:
+                    self.progress.emit(f"فشل تثبيت {lib}: {e}")
+                    success = False
+            
+            self.finished.emit(success)
+    
+    # إنشاء وتشغيل خيط التثبيت
+    install_thread = InstallThread(missing_libs)
+    
+    # عرض إشعار التقدم
+    from PySide6.QtWidgets import QProgressDialog, QApplication
+    progress_dialog = QProgressDialog("جاري تثبيت المكتبات...", "إلغاء", 0, len(missing_libs))
+    progress_dialog.setWindowModality(Qt.WindowModal)
+    progress_dialog.show()
+    
+    # ربط الإشارات
+    def update_progress(message):
+        progress_dialog.setLabelText(message)
+        QApplication.processEvents()
+    
+    def on_install_finished(success):
+        progress_dialog.close()
+        if success:
+            show_success("تم تثبيت جميع المكتبات بنجاح. يرجى إعادة تشغيل التطبيق.", duration=10000)
+        else:
+            show_error("فشل تثبيت بعض المكتبات. يرجى التثبيت يدوياً.", duration=10000)
+    
+    install_thread.progress.connect(update_progress)
+    install_thread.finished.connect(on_install_finished)
+    
+    # بدء التثبيت
+    install_thread.start()
+    
+    return install_thread
+
+def check_and_notify_missing_libraries():
+    """التحقق من المكتبات المفقودة وإعلام المستخدم"""
+    missing_libs = check_required_libraries()
+    
+    if missing_libs:
+        # تعريف دالة رد الاتصال لتثبيت المكتبات
+        def install_callback():
+            install_missing_libraries(missing_libs)
+        
+        # عرض الإشعار مع خيار التثبيت
+        show_library_missing_notification(missing_libs, install_callback)
+        
+        return False
+    
+    return True
+
+def show_library_missing_notification(missing_libs, auto_install_callback=None):
+    """عرض إشعار للمكتبات المفقودة مع خيارات التثبيت"""
+    from PySide6.QtWidgets import QPushButton, QHBoxLayout, QWidget
+    
+    # إنشاء رسالة الإشعار
+    message = "بعض المكتبات المطلوبة غير متوفرة. "
+    message += f"عدد المكتبات المفقودة: {len(missing_libs)}"
+    
+    # إنشاء زر التثبيت التلقائي
+    if auto_install_callback:
+        install_btn = QPushButton("تثبيت الآن")
+        install_btn.clicked.connect(auto_install_callback)
+        
+        # إضافة الزر إلى الإشعار
+        notification_data = {
+            "message": message,
+            "type": "warning",
+            "duration": 0,  # لا يختفي تلقائياً
+            "action_button": install_btn,
+            "details": missing_libs
+        }
+        
+        global_notification_manager.show_notification_with_action(notification_data)
+    else:
+        show_warning(message, duration=0)  # لا يختفي تلقائياً
+    
+    return True

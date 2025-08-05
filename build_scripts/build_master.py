@@ -51,16 +51,33 @@ spec_data_files = [
 ]
 
 spec_hidden_imports = [
+    # PySide6 modules
     'PySide6.QtCore', 'PySide6.QtGui', 'PySide6.QtWidgets',
-    'PySide6.QtPrintSupport', 'PySide6.QtSvg', 'PyPDF2', 'fitz',
-    'PIL', 'PIL.Image', 'arabic_reshaper', 'bidi', 'bidi.algorithm',
+    'PySide6.QtPrintSupport', 'PySide6.QtSvg', 'PySide6.QtNetwork',
+    
+    # PDF processing modules
+    'pypdf', 'pypdf.PdfReader', 'pypdf.PdfWriter', 'fitz',
+    
+    # Image processing modules
+    'PIL', 'PIL.Image', 'PIL.ImageDraw', 'PIL.ImageFont',
+    
+    # Arabic text support
+    'arabic_reshaper', 'bidi', 'bidi.algorithm',
+    
+    # System modules
     'psutil', 'win32api', 'win32print', 'win32gui', 'pywintypes',
+    
+    # Standard library modules
     'json', 'pathlib', 'logging', 'threading', 'queue', 'tkinter',
+    'io', 'tempfile', 'os', 'sys', 'importlib',
+    
+    # Additional modules that might be missed
+    'pkg_resources', 'setuptools', 'numpy',
 ]
 
 spec_excludes = [
     'matplotlib', 'numpy', 'scipy', 'pandas', 'jupyter',
-    'IPython', 'notebook', 'tornado', 'zmq',
+    'IPython', 'notebook', 'tornado', 'zmq', 'PyQt6',
 ]
 
 # --- NSIS Script Template ---
@@ -250,6 +267,11 @@ exe = EXE(
     entitlements_file=None,
     icon='../assets/icons/ApexFlow.ico',
     version_file=None,
+    # Add runtime hooks for better library detection
+    runtime_hooks=['../config/rthooks/pyi_rth_pyside6.py', '../config/rthooks/pyi_rth_pkgutil.py', '../config/rthooks/pyi_rth_multiprocessing.py'],
+    # Add additional options for better compatibility
+    uac_admin=True,
+    uac_uiaccess=False,
 )
 
 # Collect all files
@@ -299,7 +321,7 @@ def run_pyinstaller():
     
     try:
         # We are in build_scripts, so chdir is not needed
-        subprocess.run(command, check=True, shell=True)
+        subprocess.run(command, check=True)
         print("[SUCCESS] PyInstaller completed successfully.")
         print(f"--> Output located in: {DIST_DIR}")
     except subprocess.CalledProcessError as e:
@@ -320,7 +342,7 @@ def run_nsis():
         print("Please install NSIS and/or correct the NSIS_EXE_PATH in this script.")
         sys.exit(1)
         
-    command = [NSIS_EXE_PATH, str(NSI_FILE_PATH)]
+    command = f'"{NSIS_EXE_PATH}" "{str(NSI_FILE_PATH)}"'
     
     try:
         # We are in build_scripts, so chdir is not needed

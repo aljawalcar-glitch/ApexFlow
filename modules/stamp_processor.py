@@ -5,271 +5,216 @@ Stamp Processor - Merge stamps with PDF files
 """
 
 import fitz  # PyMuPDF
-from PySide6.QtGui import QPixmap, QPainter
-from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap, QPainter, QImage, QTransform
+from PySide6.QtCore import Qt, QRectF
 import tempfile
 import os
 from .coordinate_calibrator import CoordinateCalibrator, validate_coordinates
 
-def save_pdf_with_stamps(input_path, output_path, page_rotations, page_stamps, view_scale_factor=1.0):
+def save_pdf_with_stamps(input_path, output_path, page_rotations, page_stamps, view_rect=None, scene_rect=None):
     """
-    حفظ ملف PDF مع التدوير والأختام مع تحسينات دقة الحفظ
+    حفظ ملف PDF مع الأختام عن طريق تحويل الصفحات إلى صور ودمجها.
+    هذه الطريقة تضمن تطابق "ما تراه هو ما تحصل عليه" على حساب قابلية تحرير النص.
 
     Args:
         input_path (str): مسار الملف الأصلي
         output_path (str): مسار الملف المحفوظ
         page_rotations (dict): قاموس التدوير {page_num: angle}
         page_stamps (dict): قاموس الأختام {page_num: [stamp_objects]}
-        view_scale_factor (float): عامل تحجيم العرض لتصحيح الإحداثيات
+        view_rect (QRect): أبعاد منطقة العرض (viewport) - غير مستخدم حالياً
+        scene_rect (QRectF): أبعاد المشهد (scene) - مهم لحساب مواضع الأختام
 
     Returns:
         bool: True إذا نجحت العملية
     """
     try:
-        print(f"بدء حفظ PDF مع الأختام:")
-        print(f"  - الملف المصدر: {input_path}")
-        print(f"  - الملف الهدف: {output_path}")
-        print(f"  - عامل تحجيم العرض: {view_scale_factor}")
-
-        # فتح المستند الأصلي
-        doc = fitz.open(input_path)
+        print(f"بدء الحفظ بطريقة الصورة: {input_path} -> {output_path}")
+        
+        input_doc = fitz.open(input_path)
+        output_doc = fitz.open()  # إنشاء مستند PDF جديد فارغ
+        
+        temp_files = []
 
         # معالجة كل صفحة
-        for page_num in range(len(doc)):
-            page = doc[page_num]
-            page_rect = page.rect
+        for page_num in range(len(input_doc)):
+            print(f"\n--- معالجة الصفحة {page_num + 1}/{len(input_doc)} ---")
+            
+            # 1. الحصول على بيانات الصفحة
+            page = input_doc[page_num]
+            rotation = page_rotations.get(page_num, 0)
+            stamps = page_stamps.get(page_num, [])
+            
+            # 2. تحويل صفحة PDF إلى صورة عالية الجودة (QPixmap)
+            #    - نستخدم مصفوفة تكبير (zoom matrix) للحصول على دقة أعلى (e.g., 3x for better quality)
+            zoom_matrix = fitz.Matrix(3, 3)
+            page_pixmap_fitz = page.get_pixmap(matrix=zoom_matrix)
+            
+            # تحويل من fitz.Pixmap إلى QPixmap
+            image_format = QImage.Format_RGB888
+            if page_pixmap_fitz.alpha:
+                image_format = QImage.Format_RGBA8888
+            
+            qimage = QImage(page_pixmap_fitz.samples, page_pixmap_fitz.width, page_pixmap_fitz.height, page_pixmap_fitz.stride, image_format)
+            page_pixmap = QPixmap.fromImage(qimage)
 
-            print(f"\nمعالجة الصفحة {page_num + 1}:")
-            print(f"  - أبعاد الصفحة: {page_rect.width:.1f} x {page_rect.height:.1f}")
+            # تطبيق التدوير يدويًا إذا لزم الأمر
+            if rotation != 0:
+                transform = QTransform().rotate(rotation)
+                page_pixmap = page_pixmap.transformed(transform, Qt.SmoothTransformation)
 
-            # تطبيق التدوير إذا كان موجوداً
-            if page_num in page_rotations and page_rotations[page_num] != 0:
-                rotation_angle = page_rotations[page_num]
-                page.set_rotation(rotation_angle)
-                print(f"  - تم تطبيق التدوير: {rotation_angle} درجة")
+            print(f"  - تم تحويل الصفحة إلى صورة بحجم: {page_pixmap.width()}x{page_pixmap.height()}")
 
-            # إضافة الأختام إذا كانت موجودة
-            if page_num in page_stamps and page_stamps[page_num]:
-                stamps_count = len(page_stamps[page_num])
-                print(f"  - عدد الأختام: {stamps_count}")
-                add_stamps_to_page(page, page_stamps[page_num], view_scale_factor, input_path, page_num)
+            # 3. رسم الأختام على الصورة
+            image_format = QImage.Format_RGB888
+            if page_pixmap_fitz.alpha:
+                image_format = QImage.Format_RGBA8888
+            
+            # 3. رسم الأختام على الصورة
+            if stamps:
+                print(f"  - سيتم إضافة {len(stamps)} ختم")
+                # نستخدم أبعاد الصورة كمشهد مرجعي جديد للختم
+                final_pixmap = create_stamped_image(page_pixmap, stamps, scene_rect)
             else:
-                print(f"  - لا توجد أختام")
+                final_pixmap = page_pixmap
+                print("  - لا توجد أختام لهذه الصفحة.")
 
-        # حفظ المستند مع خيارات محسنة
-        print(f"\nحفظ المستند...")
-        doc.save(output_path, garbage=4, deflate=True, clean=True)
-        doc.close()
+            # 4. حفظ الصورة النهائية مؤقتاً
+            temp_image_path = os.path.join(tempfile.gettempdir(), f"stamped_page_{page_num}.png")
+            if not final_pixmap.save(temp_image_path, "PNG"):
+                 raise Exception(f"فشل حفظ الصورة المؤقتة: {temp_image_path}")
+            temp_files.append(temp_image_path)
+            print(f"  - تم حفظ الصورة المختومة مؤقتاً في: {temp_image_path}")
 
-        print(f"تم حفظ الملف بنجاح: {output_path}")
+            # 5. إضافة الصورة كصفحة جديدة في ملف PDF الناتج
+            img_doc = fitz.open(temp_image_path)
+            pdf_bytes = img_doc.convert_to_pdf()
+            img_pdf_doc = fitz.open("pdf", pdf_bytes)
+            output_doc.insert_pdf(img_pdf_doc)
+            img_doc.close()
+            img_pdf_doc.close()
+            print(f"  - تم إضافة الصورة كصفحة جديدة في الملف الناتج.")
 
-        # التحقق من جودة الحفظ
-        print(f"\nالتحقق من جودة الحفظ...")
-        verification_result = verify_stamp_placement(output_path, page_stamps)
-
-        if verification_result['success']:
-            print(f"✓ تم التحقق من جودة الحفظ بنجاح")
+        # 6. حفظ المستند النهائي
+        if len(output_doc) > 0:
+            print("\nحفظ المستند النهائي...")
+            output_doc.save(output_path, garbage=4, deflate=True, clean=True)
+            print(f"✓ تم حفظ الملف بنجاح: {output_path}")
         else:
-            print(f"⚠ تحذير: تم العثور على مشاكل في الحفظ:")
-            for issue in verification_result['issues']:
-                print(f"  - {issue}")
+            print("⚠ تحذير: لم يتم إنشاء أي صفحات في الملف الناتج.")
 
         return True
 
     except Exception as e:
-        print(f"خطأ في حفظ PDF مع الأختام: {e}")
+        print(f"❌ خطأ فادح في حفظ PDF بطريقة الصورة: {e}")
         import traceback
         print(f"تفاصيل الخطأ: {traceback.format_exc()}")
         return False
-
-def add_stamps_to_page(page, stamps, view_scale_factor=1.0, pdf_path=None, page_number=0):
-    """
-    إضافة الأختام إلى صفحة PDF مع تحويل دقيق للإحداثيات والمقاييس
-
-    Args:
-        page: صفحة PyMuPDF
-        stamps: قائمة كائنات الأختام
-        view_scale_factor: عامل تحجيم العرض (اختياري)
-        pdf_path: مسار ملف PDF للمعايرة (اختياري)
-        page_number: رقم الصفحة للمعايرة (اختياري)
-    """
-    try:
-        # الحصول على أبعاد الصفحة
-        page_rect = page.rect
-
-        # إنشاء معايرة الإحداثيات إذا كانت المعلومات متوفرة
-        calibrator = None
-        if pdf_path:
-            calibrator = CoordinateCalibrator(pdf_path, page_number)
-            # تقدير أبعاد العرض بناءً على عامل التحجيم
-            estimated_view_width = page_rect.width / view_scale_factor
-            estimated_view_height = page_rect.height / view_scale_factor
-            from PySide6.QtCore import QRectF
-            calibrator.set_view_page_rect(QRectF(0, 0, estimated_view_width, estimated_view_height))
-
-        for stamp in stamps:
-            # الحصول على بيانات الختم
-            stamp_data = stamp.get_stamp_data()
-            image_path = stamp_data['image_path']
-            position = stamp_data['position']
-            scale = stamp_data['scale']
-            opacity = stamp_data['opacity']
-
-            # استخدام البيانات المحسنة إذا كانت متوفرة
-            if 'current_width' in stamp_data and 'current_height' in stamp_data:
-                display_width = stamp_data['current_width']
-                display_height = stamp_data['current_height']
-                final_scale = stamp_data.get('final_scale', scale)
-            else:
-                # الطريقة القديمة كاحتياطي
-                current_pixmap = stamp.pixmap()
-                display_width = current_pixmap.width()
-                display_height = current_pixmap.height()
-                final_scale = scale
-
-            # حساب الحجم النهائي للختم في PDF
-            final_width = display_width
-            final_height = display_height
-
-            # إصلاح تحويل الإحداثيات - تعديل لمعالجة الانزياح للأسفل
-            pdf_x = position[0]
-            # تعديل الإحداثي Y لمعالجة الانزياح للأسفل
-            pdf_y = position[1] - 75  # زيادة التعديل لرفع الختم لأعلى بشكل أكبر
-            scaled_width = final_width
-            scaled_height = final_height
-
-            print(f"إحداثيات مباشرة (بدون تحويل Y):")
-            print(f"  - الموضع: ({pdf_x:.1f}, {pdf_y:.1f})")
-            print(f"  - الحجم: ({scaled_width:.1f}x{scaled_height:.1f})")
-            print(f"  - أبعاد الصفحة: ({page_rect.width:.1f}x{page_rect.height:.1f})")
-
-            # طباعة معلومات التصحيح قبل التحقق
-            print(f"قبل التحقق - الموضع: ({pdf_x:.1f}, {pdf_y:.1f}), الحجم: ({scaled_width:.1f}x{scaled_height:.1f})")
-            print(f"أبعاد الصفحة: ({page_rect.width:.1f}x{page_rect.height:.1f})")
-
-            # التحقق من الحدود وتصحيحها
-            if pdf_x < 0 or pdf_y < 0 or pdf_x + scaled_width > page_rect.width or pdf_y + scaled_height > page_rect.height:
-                print("⚠️ الختم خارج حدود الصفحة - سيتم تصحيحه")
-                pdf_x = max(0, min(pdf_x, page_rect.width - scaled_width))
-                pdf_y = max(0, min(pdf_y, page_rect.height - scaled_height))
-                scaled_width = min(scaled_width, page_rect.width - pdf_x)
-                scaled_height = min(scaled_height, page_rect.height - pdf_y)
-                print(f"بعد التصحيح - الموضع: ({pdf_x:.1f}, {pdf_y:.1f}), الحجم: ({scaled_width:.1f}x{scaled_height:.1f})")
-            else:
-                print("✅ الختم داخل حدود الصفحة")
-
-            # استخدام الأبعاد المصححة
-            final_width = scaled_width
-            final_height = scaled_height
-
-            stamp_rect = fitz.Rect(
-                pdf_x,
-                pdf_y,
-                pdf_x + final_width,
-                pdf_y + final_height
-            )
-
-            # إدراج الصورة مع معلومات التصحيح محسنة وخيارات متقدمة
-            print(f"إدراج ختم محسن:")
-            print(f"  - المسار: {image_path}")
-            print(f"  - الموضع الأصلي: ({position[0]:.1f}, {position[1]:.1f})")
-            print(f"  - الموضع في PDF: ({pdf_x:.1f}, {pdf_y:.1f})")
-            print(f"  - الحجم المعروض: ({display_width}x{display_height})")
-            print(f"  - الحجم النهائي: ({final_width:.1f}x{final_height:.1f})")
-            print(f"  - المقياس: {scale:.2f}, الشفافية: {opacity:.2f}")
-            print(f"  - عامل تحجيم العرض: {view_scale_factor:.2f}")
-            print(f"  - مستطيل الختم: ({stamp_rect.x0:.1f}, {stamp_rect.y0:.1f}, {stamp_rect.x1:.1f}, {stamp_rect.y1:.1f})")
-
-            # التحقق من وجود ملف الصورة أولاً
-            import os
-            if not os.path.exists(image_path):
-                print(f"❌ خطأ: ملف الصورة غير موجود: {image_path}")
-                continue
-
-            print(f"✅ ملف الصورة موجود: {image_path}")
-
-            # إدراج الصورة مع معالجة الأخطاء
-            try:
-                # الطريقة البسيطة والمضمونة
-                page.insert_image(stamp_rect, filename=image_path, alpha=int(opacity * 255))
-                print(f"✅ تم إدراج الختم بنجاح في الموضع ({pdf_x:.1f}, {pdf_y:.1f})")
-
-            except Exception as insert_error:
-                print(f"❌ خطأ في إدراج الختم: {insert_error}")
-                print(f"   - مسار الصورة: {image_path}")
-                print(f"   - مستطيل الختم: {stamp_rect}")
-                print(f"   - شفافية: {int(opacity * 255)}")
-                continue
-
-    except Exception as e:
-        print(f"خطأ في إضافة الأختام للصفحة: {e}")
-        import traceback
-        print(f"تفاصيل الخطأ: {traceback.format_exc()}")
-
-def create_preview_with_stamps(page_pixmap, stamps, page_rotation=0):
-    """
-    إنشاء معاينة للصفحة مع الأختام
-    
-    Args:
-        page_pixmap: صورة الصفحة الأصلية
-        stamps: قائمة الأختام
-        page_rotation: زاوية دوران الصفحة
-    
-    Returns:
-        QPixmap: صورة الصفحة مع الأختام
-    """
-    try:
-        # إنشاء صورة جديدة بنفس حجم الصفحة
-        result_pixmap = QPixmap(page_pixmap.size())
-        result_pixmap.fill(Qt.white)
-        
-        # إنشاء رسام
-        painter = QPainter(result_pixmap)
-        painter.setRenderHint(QPainter.Antialiasing)
-        
-        # رسم الصفحة الأساسية
-        if page_rotation != 0:
-            # تطبيق التدوير
-            painter.translate(result_pixmap.width()/2, result_pixmap.height()/2)
-            painter.rotate(page_rotation)
-            painter.translate(-page_pixmap.width()/2, -page_pixmap.height()/2)
-        
-        painter.drawPixmap(0, 0, page_pixmap)
-        
-        # رسم الأختام
-        for stamp in stamps:
-            stamp_data = stamp.get_stamp_data()
-            position = stamp_data['position']
-            scale = stamp_data['scale']
-            opacity = stamp_data['opacity']
+    finally:
+        # 7. تنظيف الملفات المؤقتة
+        if 'output_doc' in locals() and output_doc:
+            output_doc.close()
+        if 'input_doc' in locals() and input_doc:
+            input_doc.close()
             
-            # تحميل صورة الختم
+        print("\nتنظيف الملفات المؤقتة...")
+        for f in temp_files:
+            try:
+                os.remove(f)
+                print(f"  - تم حذف: {f}")
+            except OSError as e:
+                print(f"  - فشل حذف {f}: {e}")
+
+def create_stamped_image(base_pixmap, stamps, scene_rect):
+    """
+    يرسم الأختام على صورة (QPixmap) موجودة.
+    هذه هي النسخة المستخدمة في الحفظ النهائي والمعاينة.
+
+    Args:
+        base_pixmap (QPixmap): الصورة الأساسية للصفحة (قد تكون مدورة).
+        stamps (list): قائمة كائنات الأختام.
+        scene_rect (QRectF): أبعاد المشهد الأصلي الذي تم وضع الأختام فيه (مهم للتحويل).
+
+    Returns:
+        QPixmap: صورة جديدة مع الأختام مرسومة عليها.
+    """
+    try:
+        result_pixmap = base_pixmap.copy()
+        painter = QPainter(result_pixmap)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        painter.setRenderHint(QPainter.SmoothPixmapTransform, True)
+
+        target_rect = result_pixmap.rect()
+        if not scene_rect or scene_rect.width() == 0 or scene_rect.height() == 0:
+            print("تحذير: أبعاد المشهد المصدر غير صالحة. لا يمكن رسم الأختام بدقة.")
+            return base_pixmap
+
+        for stamp in stamps:
+            stamp_data = stamp.get_stamp_data()
             stamp_pixmap = QPixmap(stamp_data['image_path'])
-            if not stamp_pixmap.isNull():
-                # تطبيق التحجيم
-                if scale != 1.0:
-                    stamp_pixmap = stamp_pixmap.scaled(
-                        int(stamp_pixmap.width() * scale),
-                        int(stamp_pixmap.height() * scale),
-                        Qt.KeepAspectRatio,
-                        Qt.SmoothTransformation
-                    )
-                
-                # تطبيق الشفافية
-                painter.setOpacity(opacity)
-                
-                # رسم الختم
-                painter.drawPixmap(int(position[0]), int(position[1]), stamp_pixmap)
-                
-                # إعادة تعيين الشفافية
-                painter.setOpacity(1.0)
-        
+            if stamp_pixmap.isNull():
+                print(f"تحذير: لا يمكن تحميل صورة الختم: {stamp_data['image_path']}")
+                continue
+
+            original_pos = stamp_data['position']
+            original_width = stamp_data['current_width']
+            original_height = stamp_data['current_height']
+
+            x_ratio = original_pos[0] / scene_rect.width()
+            y_ratio = original_pos[1] / scene_rect.height()
+            width_ratio = original_width / scene_rect.width()
+            height_ratio = original_height / scene_rect.height()
+
+            target_x = x_ratio * target_rect.width()
+            target_y = y_ratio * target_rect.height()
+            target_width = width_ratio * target_rect.width()
+            target_height = height_ratio * target_rect.height()
+            
+            painter.setOpacity(stamp_data['opacity'])
+            target_draw_rect = QRectF(target_x, target_y, target_width, target_height)
+            painter.drawPixmap(target_draw_rect, stamp_pixmap, stamp_pixmap.rect())
+            painter.setOpacity(1.0)
+
         painter.end()
         return result_pixmap
         
     except Exception as e:
+        print(f"خطأ في إنشاء صورة مختومة: {e}")
+        import traceback
+        print(f"تفاصيل الخطأ: {traceback.format_exc()}")
+        return base_pixmap
+
+def create_preview_with_stamps(page_pixmap, stamps, scene_rect, page_rotation=0):
+    """
+    إنشاء معاينة للصفحة مع الأختام (للعرض في الواجهة).
+    هذه الدالة تقوم بتطبيق التدوير قبل استدعاء دالة الرسم الأساسية.
+
+    Args:
+        page_pixmap (QPixmap): صورة الصفحة الأصلية (غير مدورة).
+        stamps (list): قائمة الأختام.
+        scene_rect (QRectF): أبعاد المشهد الذي تم وضع الأختام فيه.
+        page_rotation (int): زاوية دوران الصفحة.
+
+    Returns:
+        QPixmap: صورة الصفحة النهائية مع التدوير والأختام.
+    """
+    try:
+        # 1. إنشاء QTransform لتطبيق التدوير
+        transform = QTransform()
+        transform.translate(page_pixmap.width() / 2, page_pixmap.height() / 2)
+        transform.rotate(page_rotation)
+        transform.translate(-page_pixmap.width() / 2, -page_pixmap.height() / 2)
+
+        # 2. تطبيق التدوير على صورة الصفحة الأساسية
+        rotated_pixmap = page_pixmap.transformed(transform, Qt.SmoothTransformation)
+
+        # 3. استدعاء الدالة الأساسية لرسم الأختام على الصورة المدورة
+        return create_stamped_image(rotated_pixmap, stamps, scene_rect)
+
+    except Exception as e:
         print(f"خطأ في إنشاء معاينة مع الأختام: {e}")
-        return page_pixmap
+        import traceback
+        print(f"تفاصيل الخطأ: {traceback.format_exc()}")
+        return page_pixmap # إرجاع الصورة الأصلية في حالة الخطأ
 
 def export_page_as_image(page_pixmap, stamps, output_path, page_rotation=0):
     """

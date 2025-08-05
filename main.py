@@ -879,6 +879,24 @@ class ApexFlow(QMainWindow):
 def main():
     """الدالة الرئيسية لتشغيل التطبيق"""
     app = SingleApplication(sys.argv)
+    
+    # تسجيل نظام الإشعارات قبل التحقق من المكتبات
+    try:
+        from ui.notification_system import global_notification_manager, NotificationBar
+        
+        # إنشاء شريط الإشعارات المؤقت إذا لم يكن مسجلاً
+        if not global_notification_manager.notification_bar:
+            from PySide6.QtWidgets import QMainWindow
+            temp_window = QMainWindow()
+            notification_bar = NotificationBar(temp_window)
+            global_notification_manager.register_widgets(temp_window, notification_bar)
+            
+        # الآن التحقق من المكتبات المطلوبة
+        from ui.notification_system import check_and_notify_missing_libraries
+        # سيتم عرض الإشعارات إذا كانت هناك مكتبات مفقودة
+        check_and_notify_missing_libraries()
+    except Exception as e:
+        print(f"تحذير: خطأ في التحقق من المكتبات: {e}")
 
     # إعداد أول تشغيل للتطبيق
     try:

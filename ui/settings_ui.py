@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer, Signal
 from modules import settings
 from .theme_manager import global_theme_manager, apply_theme_style
-from .ui_helpers import FocusAwareComboBox
+from .ui_helpers import FocusAwareComboBox, get_special_button_style, get_scroll_area_style
 from .theme_aware_widget import ThemeAwareDialog
 from .svg_icon_button import create_navigation_button
 from .notification_system import show_success, show_warning, show_error, show_info
@@ -408,9 +408,9 @@ class SettingsUI(ThemeAwareDialog):
                 apply_theme_style(msg, "dialog")
 
                 # تخصيص ألوان الأزرار
-                save_btn.setStyleSheet(self.get_special_button_style("40, 167, 69"))  # أخضر للحفظ
-                discard_btn.setStyleSheet(self.get_special_button_style("255, 193, 7"))  # أصفر للتراجع
-                cancel_btn.setStyleSheet(self.get_special_button_style("220, 53, 69"))  # أحمر للإلغاء
+                save_btn.setStyleSheet(get_special_button_style("40, 167, 69"))  # أخضر للحفظ
+                discard_btn.setStyleSheet(get_special_button_style("255, 193, 7"))  # أصفر للتراجع
+                cancel_btn.setStyleSheet(get_special_button_style("220, 53, 69"))  # أحمر للإلغاء
                 msg.exec()
 
                 if msg.clickedButton() == save_btn:
@@ -433,28 +433,6 @@ class SettingsUI(ThemeAwareDialog):
         self.has_unsaved_changes = False
         self.update_changes_report()
         self.update_save_buttons_state()
-
-    def get_special_button_style(self, color_rgb="13, 110, 253"):
-        """Generate a special button style with a given color."""
-        from .global_styles import get_font_settings
-        font_settings = get_font_settings()
-        return f"""
-            QPushButton {{
-                background: rgba({color_rgb}, 0.2);
-                border: 1px solid rgba({color_rgb}, 0.4);
-                border-radius: 8px;
-                font-size: {font_settings['size']}px;
-                font-weight: bold;
-                padding: 12px 24px;
-            }}
-            QPushButton:hover {{
-                background: rgba({color_rgb}, 0.3);
-                border: 1px solid rgba({color_rgb}, 0.5);
-            }}
-            QPushButton:pressed {{
-                background: rgba({color_rgb}, 0.1);
-            }}
-        """
 
     def init_ui(self):
         """إنشاء واجهة المستخدم"""
@@ -554,7 +532,7 @@ class SettingsUI(ThemeAwareDialog):
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll_area.setStyleSheet(self.get_scroll_area_style())
+        scroll_area.setStyleSheet(get_scroll_area_style())
 
         scroll_content = QWidget()
         layout = QVBoxLayout(scroll_content)
@@ -619,7 +597,7 @@ class SettingsUI(ThemeAwareDialog):
         self.accent_color_input.textChanged.connect(self.on_accent_color_changed)
 
         self.accent_color_btn = QPushButton(tr("choose_color_button"))
-        self.accent_color_btn.setStyleSheet(self.get_special_button_style())
+        self.accent_color_btn.setStyleSheet(get_special_button_style())
         self.accent_color_btn.clicked.connect(self.choose_accent_color)
         # ربط تغيير اللون بتسجيل التغييرات
         self.accent_color_btn.clicked.connect(lambda: self.mark_as_changed())
@@ -939,10 +917,10 @@ class SettingsUI(ThemeAwareDialog):
         save_buttons_layout = QHBoxLayout()
 
         # تطبيق الأنماط على الأزرار التي تم إنشاؤها مسبقاً
-        self.reset_defaults_btn.setStyleSheet(self.get_special_button_style("255, 193, 7"))  # أصفر
-        self.save_as_default_btn.setStyleSheet(self.get_special_button_style("40, 167, 69"))  # أخضر
-        self.save_all_btn.setStyleSheet(self.get_special_button_style("40, 167, 69"))  # أخضر
-        self.cancel_btn.setStyleSheet(self.get_special_button_style("220, 53, 69"))  # أحمر
+        self.reset_defaults_btn.setStyleSheet(get_special_button_style("255, 193, 7"))  # أصفر
+        self.save_as_default_btn.setStyleSheet(get_special_button_style("40, 167, 69"))  # أخضر
+        self.save_all_btn.setStyleSheet(get_special_button_style("40, 167, 69"))  # أخضر
+        self.cancel_btn.setStyleSheet(get_special_button_style("220, 53, 69"))  # أحمر
 
         # إضافة الأزرار إلى التخطيط
         save_buttons_layout.addWidget(self.reset_defaults_btn)
@@ -974,8 +952,8 @@ class SettingsUI(ThemeAwareDialog):
         apply_theme_style(msg, "dialog")
 
         # تخصيص ألوان الأزرار
-        reset_btn.setStyleSheet(self.get_special_button_style("255, 193, 7"))  # أصفر للتراجع
-        cancel_btn.setStyleSheet(self.get_special_button_style("220, 53, 69"))  # أحمر للإلغاء
+        reset_btn.setStyleSheet(get_special_button_style("255, 193, 7"))  # أصفر للتراجع
+        cancel_btn.setStyleSheet(get_special_button_style("220, 53, 69"))  # أحمر للإلغاء
 
         msg.exec()
 
@@ -1041,8 +1019,8 @@ class SettingsUI(ThemeAwareDialog):
         apply_theme_style(msg, "dialog")
 
         # تخصيص ألوان الأزرار
-        save_btn.setStyleSheet(self.get_special_button_style("40, 167, 69"))  # أخضر للحفظ
-        cancel_btn.setStyleSheet(self.get_special_button_style("220, 53, 69"))  # أحمر للإلغاء
+        save_btn.setStyleSheet(get_special_button_style("40, 167, 69"))  # أخضر للحفظ
+        cancel_btn.setStyleSheet(get_special_button_style("220, 53, 69"))  # أحمر للإلغاء
 
         msg.exec()
 
@@ -1192,127 +1170,57 @@ class SettingsUI(ThemeAwareDialog):
         except Exception as e:
             print(f"خطأ في تحديث حالة أزرار الحفظ: {e}")
 
+    def _compare_and_append_change(self, original_value, current_value, changes_list, message_callback):
+        """Compare two values and append a formatted message to the list if they differ."""
+        if original_value != current_value:
+            changes_list.append(message_callback(original=original_value, current=current_value))
+
     def update_changes_report(self):
         """تحديث تقرير التغييرات مع معالجة أخطاء محسنة"""
         try:
             current_settings = self.get_current_settings()
             changes = []
-
-            # مقارنة الإعدادات مع معالجة آمنة
-            original_theme = self.original_settings.get("theme", "dark")
-            current_theme = self.theme_combo.currentText()
-            if original_theme != current_theme:
-                changes.append(f"السمة: {original_theme} ← {current_theme}")
-
-            original_color = self.original_settings.get("accent_color", "#ff6f00")
-            current_color = self.accent_color_input.text() or "#ff6f00"
-            if original_color != current_color:
-                changes.append(f"لون التمييز: {original_color} ← {current_color}")
-
-            # مقارنة إعدادات الخطوط الجديدة
-            original_font_size = self.original_settings.get("ui_settings", {}).get("font_size", 14)
-            current_font_size = self.font_size_slider.value()
-            if original_font_size != current_font_size:
-                changes.append(tr("change_report_font_size", original=original_font_size, current=current_font_size))
-
-            original_font_family = self.original_settings.get("ui_settings", {}).get("font_family", tr("system_default_font"))
-            current_font_family = self.font_family_combo.currentText()
-            if original_font_family != current_font_family:
-                changes.append(tr("change_report_font_family", original=original_font_family, current=current_font_family))
-
-            original_font_weight = self.original_settings.get("ui_settings", {}).get("font_weight", tr("font_weight_normal"))
-            current_font_weight = self.font_weight_combo.currentText()
-            if original_font_weight != current_font_weight:
-                changes.append(tr("change_report_font_weight", original=original_font_weight, current=current_font_weight))
-
-            original_tooltips = self.original_settings.get("ui_settings", {}).get("show_tooltips", True)
-            current_tooltips = self.show_tooltips_check.isChecked()
-            if original_tooltips != current_tooltips:
-                status = tr("status_enabled") if current_tooltips else tr("status_disabled")
-                changes.append(tr("change_report_tooltips", status=status))
-
-            original_animations = self.original_settings.get("ui_settings", {}).get("enable_animations", True)
-            current_animations = self.enable_animations_check.isChecked()
-            if original_animations != current_animations:
-                status = tr("status_enabled") if current_animations else tr("status_disabled")
-                changes.append(tr("change_report_animations", status=status))
-
-            original_direction = self.original_settings.get("ui_settings", {}).get("text_direction", tr("text_direction_auto"))
-            current_direction = self.text_direction_combo.currentText()
-            if original_direction != current_direction:
-                changes.append(tr("change_report_text_direction", original=original_direction, current=current_direction))
-
-            # مقارنة إعدادات السمة المتقدمة
-            original_transparency = self.original_settings.get("ui_settings", {}).get("transparency", 80)
-            current_transparency = self.transparency_slider.value()
-            if original_transparency != current_transparency:
-                changes.append(tr("change_report_transparency", original=original_transparency, current=current_transparency))
-
-            original_size = self.original_settings.get("ui_settings", {}).get("size", tr("size_medium"))
-            current_size = self.size_combo.currentText()
-            if original_size != current_size:
-                changes.append(tr("change_report_element_size", original=original_size, current=current_size))
-
-            original_contrast = self.original_settings.get("ui_settings", {}).get("contrast", tr("contrast_normal"))
-            current_contrast = self.contrast_combo.currentText()
-            if original_contrast != current_contrast:
-                changes.append(tr("change_report_contrast", original=original_contrast, current=current_contrast))
-
-            # مقارنة إعدادات الإعدادات العامة
-            original_welcome = self.original_settings.get("disable_welcome_message", False)
-            current_welcome = self.disable_welcome_checkbox.isChecked()
-            if original_welcome != current_welcome:
-                status = tr("status_disabled") if current_welcome else tr("status_enabled")
-                changes.append(tr("change_report_welcome_message", status=status))
-
-            original_remember = self.original_settings.get("remember_settings_on_exit", False)
-            current_remember = self.remember_state_checkbox.isChecked()
-            if original_remember != current_remember:
-                status = tr("status_enabled") if current_remember else tr("status_disabled")
-                changes.append(tr("change_report_remember_settings", status=status))
-
-            original_reset = self.original_settings.get("reset_to_defaults_next_time", False)
-            current_reset = self.reset_to_defaults_checkbox.isChecked()
-            if original_reset != current_reset:
-                status = tr("status_enabled") if current_reset else tr("status_disabled")
-                changes.append(tr("change_report_reset_defaults", status=status))
-
-            # مقارنة إعدادات الإشعارات
+            original_ui_settings = self.original_settings.get("ui_settings", {})
             original_notifications = self.original_settings.get("notification_settings", {})
-            current_success = self.show_success_notifications_checkbox.isChecked()
-            original_success = original_notifications.get("success", True)
-            if original_success != current_success:
-                status = tr("status_enabled") if current_success else tr("status_disabled")
-                changes.append(tr("change_report_success_notifications", status=status))
 
-            current_warning = self.show_warning_notifications_checkbox.isChecked()
-            original_warning = original_notifications.get("warning", True)
-            if original_warning != current_warning:
-                status = tr("status_enabled") if current_warning else tr("status_disabled")
-                changes.append(tr("change_report_warning_notifications", status=status))
+            # --- Appearance ---
+            self._compare_and_append_change(self.original_settings.get("theme", "dark"), self.theme_combo.currentText(), changes, lambda **kwargs: f"السمة: {kwargs['original']} ← {kwargs['current']}")
+            self._compare_and_append_change(self.original_settings.get("accent_color", "#ff6f00"), self.accent_color_input.text() or "#ff6f00", changes, lambda **kwargs: f"لون التمييز: {kwargs['original']} ← {kwargs['current']}")
 
-            current_error = self.show_error_notifications_checkbox.isChecked()
-            original_error = original_notifications.get("error", True)
-            if original_error != current_error:
-                status = tr("status_enabled") if current_error else tr("status_disabled")
-                changes.append(tr("change_report_error_notifications", status=status))
+            # --- Fonts ---
+            self._compare_and_append_change(original_ui_settings.get("font_size", 14), self.font_size_slider.value(), changes, lambda **kwargs: tr("change_report_font_size", **kwargs))
+            self._compare_and_append_change(original_ui_settings.get("font_family", tr("system_default_font")), self.font_family_combo.currentText(), changes, lambda **kwargs: tr("change_report_font_family", **kwargs))
+            self._compare_and_append_change(original_ui_settings.get("font_weight", tr("font_weight_normal")), self.font_weight_combo.currentText(), changes, lambda **kwargs: tr("change_report_font_weight", **kwargs))
 
-            current_info = self.show_info_notifications_checkbox.isChecked()
-            original_info = original_notifications.get("info", True)
-            if original_info != current_info:
-                status = tr("status_enabled") if current_info else tr("status_disabled")
-                changes.append(tr("change_report_info_notifications", status=status))
+            # --- Text & Animations ---
+            self._compare_and_append_change(original_ui_settings.get("show_tooltips", True), self.show_tooltips_check.isChecked(), changes, lambda **kwargs: tr("change_report_tooltips", status=tr("status_enabled") if kwargs['current'] else tr("status_disabled")))
+            self._compare_and_append_change(original_ui_settings.get("enable_animations", True), self.enable_animations_check.isChecked(), changes, lambda **kwargs: tr("change_report_animations", status=tr("status_enabled") if kwargs['current'] else tr("status_disabled")))
+            self._compare_and_append_change(original_ui_settings.get("text_direction", tr("text_direction_auto")), self.text_direction_combo.currentText(), changes, lambda **kwargs: tr("change_report_text_direction", **kwargs))
 
-            # إنشاء التقرير
+            # --- Advanced Theme ---
+            self._compare_and_append_change(original_ui_settings.get("transparency", 80), self.transparency_slider.value(), changes, lambda **kwargs: tr("change_report_transparency", **kwargs))
+            self._compare_and_append_change(original_ui_settings.get("size", tr("size_medium")), self.size_combo.currentText(), changes, lambda **kwargs: tr("change_report_element_size", **kwargs))
+            self._compare_and_append_change(original_ui_settings.get("contrast", tr("contrast_normal")), self.contrast_combo.currentText(), changes, lambda **kwargs: tr("change_report_contrast", **kwargs))
+
+            # --- General Settings ---
+            self._compare_and_append_change(self.original_settings.get("disable_welcome_message", False), self.disable_welcome_checkbox.isChecked(), changes, lambda **kwargs: tr("change_report_welcome_message", status=tr("status_disabled") if kwargs['current'] else tr("status_enabled")))
+            self._compare_and_append_change(self.original_settings.get("remember_settings_on_exit", False), self.remember_state_checkbox.isChecked(), changes, lambda **kwargs: tr("change_report_remember_settings", status=tr("status_enabled") if kwargs['current'] else tr("status_disabled")))
+            self._compare_and_append_change(self.original_settings.get("reset_to_defaults_next_time", False), self.reset_to_defaults_checkbox.isChecked(), changes, lambda **kwargs: tr("change_report_reset_defaults", status=tr("status_enabled") if kwargs['current'] else tr("status_disabled")))
+
+            # --- Notifications ---
+            self._compare_and_append_change(original_notifications.get("success", True), self.show_success_notifications_checkbox.isChecked(), changes, lambda **kwargs: tr("change_report_success_notifications", status=tr("status_enabled") if kwargs['current'] else tr("status_disabled")))
+            self._compare_and_append_change(original_notifications.get("warning", True), self.show_warning_notifications_checkbox.isChecked(), changes, lambda **kwargs: tr("change_report_warning_notifications", status=tr("status_enabled") if kwargs['current'] else tr("status_disabled")))
+            self._compare_and_append_change(original_notifications.get("error", True), self.show_error_notifications_checkbox.isChecked(), changes, lambda **kwargs: tr("change_report_error_notifications", status=tr("status_enabled") if kwargs['current'] else tr("status_disabled")))
+            self._compare_and_append_change(original_notifications.get("info", True), self.show_info_notifications_checkbox.isChecked(), changes, lambda **kwargs: tr("change_report_info_notifications", status=tr("status_enabled") if kwargs['current'] else tr("status_disabled")))
+
+            # --- Report Generation ---
             if changes:
-                report = tr("changes_applied_report_header") + "\n".join(changes)
+                report = tr("changes_applied_report_header") + "\n".join(f"• {c}" for c in changes)
                 report += tr("total_changes_report_footer", count=len(changes))
             else:
                 report = tr("no_changes_report")
 
             self.changes_report.setText(report)
-            
-            # تحديث حالة أزرار الحفظ والإلغاء
             self.update_save_buttons_state()
 
         except Exception as e:
@@ -1652,139 +1560,16 @@ class SettingsUI(ThemeAwareDialog):
     def load_original_settings(self):
         """تحميل الإعدادات الأصلية"""
         try:
-            # منع إرسال الإشارات أثناء التحميل
-            if hasattr(self, 'theme_combo'):
-                self.theme_combo.blockSignals(True)
-                self.accent_color_input.blockSignals(True)
-
-            # استعادة الإعدادات الأساسية
+            self._block_signals(True)
             self.settings_data = self.original_settings.copy()
-
-            # تحديث واجهة المستخدم بالقيم الأصلية
-            if hasattr(self, 'theme_combo'):
-                self.theme_combo.setCurrentText(self.original_settings.get("theme", "dark"))
-                self.accent_color_input.setText(self.original_settings.get("accent_color", "#ff6f00"))
-
-                # إعادة تفعيل الإشارات
-                self.theme_combo.blockSignals(False)
-                self.accent_color_input.blockSignals(False)
-
-            # استعادة جميع إعدادات واجهة المستخدم
-            ui_settings = self.original_settings.get("ui_settings", {})
-
-            # إعدادات الخطوط
-            if hasattr(self, 'font_size_slider'):
-                self.font_size_slider.setValue(ui_settings.get("font_size", 14))
-            if hasattr(self, 'font_family_combo'):
-                font_family = ui_settings.get("font_family", tr("system_default_font"))
-                index = self.font_family_combo.findText(font_family)
-                if index >= 0:
-                    self.font_family_combo.setCurrentIndex(index)
-            if hasattr(self, 'font_weight_combo'):
-                font_weight = ui_settings.get("font_weight", tr("font_weight_normal"))
-                index = self.font_weight_combo.findText(font_weight)
-                if index >= 0:
-                    self.font_weight_combo.setCurrentIndex(index)
-            if hasattr(self, 'text_direction_combo'):
-                text_direction = ui_settings.get("text_direction", tr("text_direction_auto"))
-                index = self.text_direction_combo.findText(text_direction)
-                if index >= 0:
-                    self.text_direction_combo.setCurrentIndex(index)
-
-            # إعدادات النصوص
-            if hasattr(self, 'show_tooltips_check'):
-                self.show_tooltips_check.setChecked(ui_settings.get("show_tooltips", True))
-            if hasattr(self, 'enable_animations_check'):
-                self.enable_animations_check.setChecked(ui_settings.get("enable_animations", True))
-
-            # إعدادات السمة المتقدمة
-            if hasattr(self, 'transparency_slider'):
-                self.transparency_slider.setValue(ui_settings.get("transparency", 80))
-            if hasattr(self, 'size_combo'):
-                size = ui_settings.get("size", tr("size_medium"))
-                index = self.size_combo.findText(size)
-                if index >= 0:
-                    self.size_combo.setCurrentIndex(index)
-            if hasattr(self, 'contrast_combo'):
-                contrast = ui_settings.get("contrast", tr("contrast_normal"))
-                index = self.contrast_combo.findText(contrast)
-                if index >= 0:
-                    self.contrast_combo.setCurrentIndex(index)
-
-            # إعدادات الضغط
-            if hasattr(self, 'compression_slider'):
-                self.compression_slider.setValue(self.original_settings.get("compression_level", 3))
-
-                merge_settings = self.original_settings.get("merge_settings", {})
-                if hasattr(self, 'add_bookmarks_check'):
-                    self.add_bookmarks_check.setChecked(merge_settings.get("add_bookmarks", True))
-                if hasattr(self, 'preserve_metadata_check'):
-                    self.preserve_metadata_check.setChecked(merge_settings.get("preserve_metadata", True))
-
-            # إعدادات الأداء
-            if hasattr(self, 'max_memory_slider'):
-                performance_settings = self.original_settings.get("performance_settings", {})
-                self.max_memory_slider.setValue(performance_settings.get("max_memory_usage", 512))
-                if hasattr(self, 'enable_multithreading_check'):
-                    self.enable_multithreading_check.setChecked(performance_settings.get("enable_multithreading", True))
-
-            # إعدادات الأمان
-            if hasattr(self, 'enable_password_check'):
-                security_settings = self.original_settings.get("security_settings", {})
-                self.enable_password_check.setChecked(security_settings.get("enable_password_protection", False))
-                if hasattr(self, 'privacy_mode_check'):
-                    self.privacy_mode_check.setChecked(security_settings.get("privacy_mode", False))
-
-            # إعدادات الإعدادات العامة
-            if hasattr(self, 'disable_welcome_checkbox'):
-                self.disable_welcome_checkbox.setChecked(self.original_settings.get("disable_welcome_message", False))
-            if hasattr(self, 'remember_state_checkbox'):
-                self.remember_state_checkbox.setChecked(self.original_settings.get("remember_settings_on_exit", False))
-            if hasattr(self, 'reset_to_defaults_checkbox'):
-                self.reset_to_defaults_checkbox.setChecked(self.original_settings.get("reset_to_defaults_next_time", False))
-
-            # إعدادات الإشعارات
-            if hasattr(self, 'show_success_notifications_checkbox'):
-                notification_settings = self.original_settings.get("notification_settings", {})
-                self.show_success_notifications_checkbox.setChecked(notification_settings.get("success", True))
-            if hasattr(self, 'show_warning_notifications_checkbox'):
-                notification_settings = self.original_settings.get("notification_settings", {})
-                self.show_warning_notifications_checkbox.setChecked(notification_settings.get("warning", True))
-            if hasattr(self, 'show_error_notifications_checkbox'):
-                notification_settings = self.original_settings.get("notification_settings", {})
-                self.show_error_notifications_checkbox.setChecked(notification_settings.get("error", True))
-            if hasattr(self, 'show_info_notifications_checkbox'):
-                notification_settings = self.original_settings.get("notification_settings", {})
-                self.show_info_notifications_checkbox.setChecked(notification_settings.get("info", True))
-
-            # إعدادات اللغة
-            if hasattr(self, 'language_combo'):
-                language = self.original_settings.get("language", "ar")
-                language_text = "العربية" if language == "ar" else "English"
-                index = self.language_combo.findText(language_text)
-                if index >= 0:
-                    self.language_combo.setCurrentIndex(index)
-
-            # إعدادات اختصارات لوحة المفاتيح
-            if hasattr(self, 'shortcuts_table'):
-                keyboard_shortcuts = self.original_settings.get("keyboard_shortcuts", {})
-                # تحديث الجدول بالاختصارات الأصلية
-                for i in range(self.shortcuts_table.rowCount()):
-                    shortcut_name_item = self.shortcuts_table.item(i, 0)
-                    if shortcut_name_item:
-                        shortcut_name = shortcut_name_item.text()
-                        if shortcut_name in keyboard_shortcuts:
-                            shortcut_value_item = self.shortcuts_table.item(i, 1)
-                            if shortcut_value_item:
-                                shortcut_value_item.setText(keyboard_shortcuts[shortcut_name])
-
-            # تحديث المعاينة
+            self._load_settings_to_ui()
             self.update_preview_only()
-
         except Exception as e:
             print(tr("error_loading_original_settings", e=e))
             import traceback
             traceback.print_exc()
+        finally:
+            self._block_signals(False)
 
     def on_language_changed(self, language_text):
         """Handle language change from the settings UI."""
@@ -1818,92 +1603,48 @@ class SettingsUI(ThemeAwareDialog):
     def load_current_settings_to_ui(self):
         """تحميل الإعدادات المؤقتة إلى الواجهة"""
         try:
-            if hasattr(self, 'theme_combo'):
-                # منع إرسال الإشارات أثناء التحميل
-                self.theme_combo.blockSignals(True)
-                self.accent_color_input.blockSignals(True)
-                self.language_combo.blockSignals(True)
+            self._block_signals(True)
+            self.theme_combo.setCurrentText(self.settings_data.get("theme", "dark"))
+            self.accent_color_input.setText(self.settings_data.get("accent_color", "#ff6f00"))
+            current_lang = self.settings_data.get("language", "ar")
+            self.language_combo.setCurrentText("العربية" if current_lang == "ar" else "English")
 
-                # تحميل من البيانات المؤقتة (settings_data) التي تحتوي على التغييرات
-                self.theme_combo.setCurrentText(self.settings_data.get("theme", "dark"))
-                self.accent_color_input.setText(self.settings_data.get("accent_color", "#ff6f00"))
-                
-                # تحميل اللغة
-                current_lang = self.settings_data.get("language", "ar")
-                self.language_combo.setCurrentText("العربية" if current_lang == "ar" else "English")
+            ui_settings = self.settings_data.get("ui_settings", {})
+            self.font_size_slider.setValue(ui_settings.get("font_size", 14))
+            
+            font_family = ui_settings.get("font_family", tr("system_default_font"))
+            index = self.font_family_combo.findText(font_family)
+            if index >= 0:
+                self.font_family_combo.setCurrentIndex(index)
 
-                # إعادة تفعيل الإشارات
-                self.theme_combo.blockSignals(False)
-                self.accent_color_input.blockSignals(False)
-                self.language_combo.blockSignals(False)
+            font_weight = ui_settings.get("font_weight", tr("font_weight_normal"))
+            index = self.font_weight_combo.findText(font_weight)
+            if index >= 0:
+                self.font_weight_combo.setCurrentIndex(index)
 
-                print(f"تم تحميل الإعدادات المؤقتة: السمة={self.settings_data.get('theme')}, اللون={self.settings_data.get('accent_color')}")
+            text_direction = ui_settings.get("text_direction", tr("text_direction_auto"))
+            index = self.text_direction_combo.findText(text_direction)
+            if index >= 0:
+                self.text_direction_combo.setCurrentIndex(index)
 
-                ui_settings = self.settings_data.get("ui_settings", {})
+            self.show_tooltips_check.setChecked(ui_settings.get("show_tooltips", True))
+            self.enable_animations_check.setChecked(ui_settings.get("enable_animations", True))
+            self.transparency_slider.setValue(ui_settings.get("transparency", 80))
 
-                # تحميل إعدادات الخطوط
-                if hasattr(self, 'font_size_slider'):
-                    self.font_size_slider.blockSignals(True)
-                    self.font_size_slider.setValue(ui_settings.get("font_size", 14))
-                    self.font_size_slider.blockSignals(False)
-                if hasattr(self, 'font_family_combo'):
-                    self.font_family_combo.blockSignals(True)
-                    font_family = ui_settings.get("font_family", tr("system_default_font"))
-                    index = self.font_family_combo.findText(font_family)
-                    if index >= 0:
-                        self.font_family_combo.setCurrentIndex(index)
-                    self.font_family_combo.blockSignals(False)
-                if hasattr(self, 'font_weight_combo'):
-                    self.font_weight_combo.blockSignals(True)
-                    font_weight = ui_settings.get("font_weight", tr("font_weight_normal"))
-                    index = self.font_weight_combo.findText(font_weight)
-                    if index >= 0:
-                        self.font_weight_combo.setCurrentIndex(index)
-                    self.font_weight_combo.blockSignals(False)
-                if hasattr(self, 'text_direction_combo'):
-                    self.text_direction_combo.blockSignals(True)
-                    text_direction = ui_settings.get("text_direction", tr("text_direction_auto"))
-                    index = self.text_direction_combo.findText(text_direction)
-                    if index >= 0:
-                        self.text_direction_combo.setCurrentIndex(index)
-                    self.text_direction_combo.blockSignals(False)
+            size = ui_settings.get("size", tr("size_medium"))
+            index = self.size_combo.findText(size)
+            if index >= 0:
+                self.size_combo.setCurrentIndex(index)
 
-                # تحميل إعدادات النصوص
-                if hasattr(self, 'show_tooltips_check'):
-                    self.show_tooltips_check.setChecked(ui_settings.get("show_tooltips", True))
-                if hasattr(self, 'enable_animations_check'):
-                    self.enable_animations_check.setChecked(ui_settings.get("enable_animations", True))
-
-                # تحميل إعدادات السمة المتقدمة
-                if hasattr(self, 'transparency_slider'):
-                    self.transparency_slider.setValue(ui_settings.get("transparency", 80))
-                if hasattr(self, 'size_combo'):
-                    size = ui_settings.get("size", tr("size_medium"))
-                    index = self.size_combo.findText(size)
-                    if index >= 0:
-                        self.size_combo.setCurrentIndex(index)
-                if hasattr(self, 'contrast_combo'):
-                    contrast = ui_settings.get("contrast", tr("contrast_normal"))
-                    index = self.contrast_combo.findText(contrast)
-                    if index >= 0:
-                        self.contrast_combo.setCurrentIndex(index)
-
-            if hasattr(self, 'compression_slider'):
-                self.compression_slider.setValue(self.settings_data.get("compression_level", 3))
-
-                merge_settings = self.settings_data.get("merge_settings", {})
-                if hasattr(self, 'add_bookmarks_check'):
-                    self.add_bookmarks_check.setChecked(merge_settings.get("add_bookmarks", True))
-                if hasattr(self, 'preserve_metadata_check'):
-                    self.preserve_metadata_check.setChecked(merge_settings.get("preserve_metadata", True))
-
-            # تحميل إعدادات الأمان
-            security_settings = self.settings_data.get("security_settings", {})
-            if hasattr(self, 'enable_password_check'):
-                self.enable_password_check.setChecked(security_settings.get("enable_password_protection", False))
+            contrast = ui_settings.get("contrast", tr("contrast_normal"))
+            index = self.contrast_combo.findText(contrast)
+            if index >= 0:
+                self.contrast_combo.setCurrentIndex(index)
 
         except Exception as e:
             print(tr("error_loading_current_settings", e=e))
+        finally:
+            self._block_signals(False)
 
     def on_theme_changed(self, theme_name):
         """تحديث المعاينة فقط عند تغيير السمة - بدون تطبيق على البرنامج"""
@@ -2056,42 +1797,10 @@ class SettingsUI(ThemeAwareDialog):
             # في حالة الخطأ، عرض إشعار
             show_error(f"{tr('error_updating_preview')}: {str(e)}", duration=4000)
 
-    def get_accent_button_style(self):
-        """تنسيق زر بلون التمييز الزجاجي"""
-        return """
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(180, 180, 180, 0.25),
-                    stop:0.5 rgba(180, 180, 180, 0.15),
-                    stop:1 rgba(255, 111, 0, 0.6));
-                border: 1px solid rgba(255, 111, 0, 0.8);
-                border-radius: 12px;
-                font-weight: bold;
-                padding: 12px 20px;
-
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(180, 180, 180, 0.35),
-                    stop:0.5 rgba(180, 180, 180, 0.25),
-                    stop:1 rgba(255, 111, 0, 0.8));
-                border: 1px solid rgba(255, 111, 0, 1.0);
-
-            }
-            QPushButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(180, 180, 180, 0.15),
-                    stop:0.5 rgba(180, 180, 180, 0.05),
-                    stop:1 rgba(255, 111, 0, 0.4));
-                border: 1px solid rgba(255, 111, 0, 0.6);
-
-            }
-        """
 
     def on_transparency_changed(self, value):
         """تغيير مستوى الشفافية"""
         self.transparency_value.setText(f"{value}%")
-        self.preview_current_theme()
         
         # إشعار بأن ميزة الشفافية ستكون متوفرة قريباً
         self.show_info_message(tr("transparency_feature_coming_soon"))
@@ -2118,130 +1827,5 @@ class SettingsUI(ThemeAwareDialog):
             # تطبيق فوري للخيارات الجديدة
             global_theme_manager.change_theme(theme_name, accent_color, options)
 
-            # تحديث المعاينة أيضاً
-            self.preview_current_theme()
-
         except Exception as e:
             print(tr("error_applying_theme_options", e=e))
-
-    def preview_current_theme(self):
-        """معاينة السمة الحالية مع الخيارات"""
-        try:
-            theme_name = self.theme_combo.currentText()
-            accent_color = self.accent_color_input.text() or "#ff6f00"
-            transparency = self.transparency_slider.value()
-            size = self.size_combo.currentText()
-            contrast = self.contrast_combo.currentText()
-
-            # تم تعطيل المعاينة لعدم وجود preview_widget
-            # preview_style = self.generate_preview_style(theme_name, accent_color, transparency, size, contrast)
-            # self.preview_widget.setStyleSheet(preview_style)
-
-        except Exception as e:
-            print(tr("error_previewing_theme", e=e))
-
-    def generate_preview_style(self, theme, accent, transparency, size, contrast):
-        """توليد نمط المعاينة"""
-        # تحويل النصوص إلى قيم
-        transparency_value = transparency / 100.0
-
-        size_values = {
-            "صغير (مدمج)": {"font": 12, "padding": "6px 10px"},
-            "متوسط (افتراضي)": {"font": 14, "padding": "8px 12px"},
-            "كبير (مريح)": {"font": 16, "padding": "10px 14px"},
-            "كبير جداً (إمكانية وصول)": {"font": 18, "padding": "12px 16px"}
-        }
-
-        contrast_values = {
-            "منخفض (ناعم)": {"bg": 0.05, "border": 0.1, "text": 0.7},
-            "عادي (متوازن)": {"bg": 0.08, "border": 0.15, "text": 0.9},
-            "عالي (واضح)": {"bg": 0.12, "border": 0.25, "text": 1.0},
-            "عالي جداً (إمكانية وصول)": {"bg": 0.2, "border": 0.4, "text": 1.0}
-        }
-
-        size_config = size_values.get(size, size_values["متوسط (افتراضي)"])
-        contrast_config = contrast_values.get(contrast, contrast_values["عادي (متوازن)"])
-
-        # ألوان السمة
-        theme_colors = {
-            "dark": {"bg": "#0a0a0a", "text": "255, 255, 255"},
-            "light": {"bg": "#f5f5f5", "text": "45, 55, 72"},
-            "blue": {"bg": "#0f1419", "text": "226, 232, 240"},
-            "green": {"bg": "#0f1419", "text": "226, 232, 240"},
-            "purple": {"bg": "#0f1419", "text": "226, 232, 240"}
-        }
-
-        colors = theme_colors.get(theme, theme_colors["dark"])
-
-        return f"""
-            QFrame {{
-                background: rgba({colors["text"]}, {contrast_config["bg"] * transparency_value});
-                border: 1px solid rgba({colors["text"]}, {contrast_config["border"] * transparency_value});
-                border-radius: 8px;
-            }}
-            QLabel {{
-                color: rgba({colors["text"]}, {contrast_config["text"]});
-                font-size: {size_config["font"]}px;
-                background: transparent;
-                border: none;
-            }}
-            QPushButton {{
-                background: rgba({colors["text"]}, {contrast_config["bg"] * transparency_value});
-                border: 1px solid rgba({colors["text"]}, {contrast_config["border"] * transparency_value});
-                border-radius: 6px;
-                color: rgba({colors["text"]}, {contrast_config["text"]});
-                font-size: {size_config["font"]}px;
-                padding: {size_config["padding"]};
-            }}
-            QLineEdit, QComboBox {{
-                background: rgba({colors["text"]}, {contrast_config["bg"] * transparency_value});
-                border: 1px solid rgba({colors["text"]}, {contrast_config["border"] * transparency_value});
-                border-radius: 6px;
-                color: rgba({colors["text"]}, {contrast_config["text"]});
-                font-size: {size_config["font"]}px;
-                padding: {size_config["padding"]};
-            }}
-        """
-
-
-
-    def get_scroll_area_style(self):
-        """تنسيق منطقة التمرير - ربط مباشر بالمدير المركزي"""
-        colors = global_theme_manager.get_current_colors()
-        accent = global_theme_manager.current_accent
-        return f"""
-            QScrollArea {{
-                background: transparent;
-                border: none;
-            }}
-            QScrollArea > QWidget > QWidget {{
-                background: transparent;
-            }}
-            QScrollBar:vertical {{
-                background: transparent;
-                width: 12px;
-                border-radius: 6px;
-                margin: 0px;
-            }}
-            QScrollBar::handle:vertical {{
-                background: {accent};
-                border-radius: 6px;
-                min-height: 20px;
-                margin: 2px;
-            }}
-            QScrollBar::handle:vertical:hover {{
-                background: {colors['text_accent']};
-            }}
-            QScrollBar::handle:vertical:pressed {{
-                background: {colors['text']};
-            }}
-            QScrollBar::add-line:vertical,
-            QScrollBar::sub-line:vertical {{
-                height: 0px;
-                background: none;
-            }}
-            QScrollBar::add-page:vertical,
-            QScrollBar::sub-page:vertical {{
-                background: none;
-            }}
-        """

@@ -8,8 +8,8 @@ import os
 from pathlib import Path
 
 # إعدادات التسجيل
-DEBUG_MODE = False  # تغيير إلى True للتطوير
-LOG_TO_FILE = False  # تغيير إلى True لحفظ السجلات في ملف
+DEBUG_MODE = True  # تغيير إلى True للتطوير
+LOG_TO_FILE = True  # تغيير إلى True لحفظ السجلات في ملف
 
 class ApexFlowLogger:
     """مدير التسجيل الموحد لـ ApexFlow"""

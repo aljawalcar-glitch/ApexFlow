@@ -3,10 +3,11 @@
 صفحة تدوير ملفات PDF
 """
 
-from PySide6.QtWidgets import (QApplication, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, QLabel, QFileDialog, QMessageBox, QGraphicsOpacityEffect, QProgressBar)
+from PySide6.QtWidgets import (QApplication, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, QLabel, QFileDialog, QMessageBox, QGraphicsOpacityEffect, QProgressBar, QGraphicsPixmapItem, QGraphicsSceneWheelEvent)
 from PySide6.QtGui import QPixmap, QImage, QTransform, QCursor, QBrush, QPainter
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer
 import fitz  # PyMuPDF
+from .interactive_stamp import InteractiveStamp
 from .svg_icon_button import create_navigation_button, create_action_button
 from .theme_aware_widget import make_theme_aware
 from PySide6.QtWidgets import QWidget
@@ -63,6 +64,28 @@ class InteractiveGraphicsView(QGraphicsView):
 
         # استدعاء المعالج الأصلي للسماح للعناصر التفاعلية بالعمل
         super().mousePressEvent(event)
+
+    def wheelEvent(self, event):
+        """معالجة التكبير والتصغير مباشرة عند الضغط على Ctrl"""
+        # التحقق من الضغط على مفتاح Ctrl
+        if event.modifiers() == Qt.ControlModifier:
+            # الحصول على العنصر الموجود تحت مؤشر الماوس
+            item = self.itemAt(event.position().toPoint())
+            
+            # التحقق مما إذا كان العنصر هو ختم تفاعلي ومحدد
+            if isinstance(item, InteractiveStamp) and item.isSelected():
+                # تحديد اتجاه التكبير
+                if event.angleDelta().y() > 0:
+                    item.zoom_in()
+                else:
+                    item.zoom_out()
+                
+                # قبول الحدث لمنع أي معالجة إضافية (مثل التمرير)
+                event.accept()
+                return
+
+        # إذا لم تتحقق الشروط، اسمح للسلوك الافتراضي
+        super().wheelEvent(event)
 
 class RotatePage(QWidget):
     def __init__(self, notification_manager, file_path=None, parent=None):
@@ -284,8 +307,8 @@ class RotatePage(QWidget):
         self.view.setInteractive(True)
 
         # إخفاء شريط التمرير إلا عند الحاجة الفعلية
-        self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         # السماح للعرض بالتمدد لملء المساحة المتاحة
         from PySide6.QtWidgets import QSizePolicy
@@ -476,50 +499,44 @@ class RotatePage(QWidget):
 
 
     def show_page_direct(self):
-        """عرض الصفحة مباشرة بدون تأثيرات"""
-        if 0 <= self.current_page < len(self.pages):
-            pixmap = self.pages[self.current_page]
+        """عرض الصفحة مباشرة بدون تأثيرات، مع الحفاظ على الأختام التفاعلية."""
+        if not (0 <= self.current_page < len(self.pages)):
+            return
 
-            # التحقق من نوع البيانات
-            if pixmap is None:
-                # إذا لم تكن الصفحة محملة، اطلب تحميلها
-                cached_pixmap = global_page_loader.get_page(self.current_page, priority=True)
-                if cached_pixmap:
-                    pixmap = cached_pixmap
-                    self.pages[self.current_page] = pixmap
-                else:
-                    # عرض placeholder أثناء التحميل
-                    self.show_loading_placeholder()
-                    return
+        base_pixmap = self.pages[self.current_page]
 
-            # التعامل مع QPixmap مباشرة (النظام الجديد)
-            if isinstance(pixmap, QPixmap):
-                qpixmap = pixmap
+        if base_pixmap is None:
+            cached_pixmap = global_page_loader.get_page(self.current_page, priority=True)
+            if cached_pixmap:
+                base_pixmap = cached_pixmap
+                self.pages[self.current_page] = base_pixmap
             else:
-                # التعامل مع fitz.Pixmap (النظام القديم - للتوافق)
-                qimage = QImage(
-                    pixmap.samples, pixmap.width, pixmap.height, pixmap.stride, QImage.Format_RGB888
-                )
-                qpixmap = QPixmap.fromImage(qimage)
+                self.show_loading_placeholder()
+                return
 
-            # تطبيق التدوير إذا كان مطلوباً
-            rotation = self.page_rotations.get(self.current_page, 0)
-            if rotation != 0:
-                transform = QTransform().rotate(rotation)
-                qpixmap = qpixmap.transformed(transform, Qt.SmoothTransformation)
+        # 1. تطبيق التدوير على الصورة الأساسية
+        rotation = self.page_rotations.get(self.current_page, 0)
+        if rotation != 0:
+            transform = QTransform().rotate(rotation)
+            rotated_pixmap = base_pixmap.transformed(transform, Qt.SmoothTransformation)
+        else:
+            rotated_pixmap = base_pixmap
 
-            # مسح المشهد وإضافة الصورة الجديدة
-            self.scene.clear()
-            self.scene.addPixmap(qpixmap)
+        # 2. مسح صورة الخلفية القديمة فقط
+        for item in self.scene.items():
+            if isinstance(item, QGraphicsPixmapItem) and not isinstance(item, InteractiveStamp):
+                self.scene.removeItem(item)
 
-            # ضبط حجم المشهد ليطابق الصورة
-            self.scene.setSceneRect(qpixmap.rect())
+        # إضافة الصورة المدورة الجديدة كخلفية
+        self.scene.addPixmap(rotated_pixmap)
+        self.scene.setSceneRect(rotated_pixmap.rect())
 
-            # عرض الصورة بحجم أكبر مع الحفاظ على النسبة
-            self.view.fitInView(self.scene.itemsBoundingRect(), Qt.AspectRatioMode.KeepAspectRatio)
+        # 3. عرض الأختام التفاعلية فوق الصورة
+        self.show_page_stamps()
 
-            # عرض أختام الصفحة الحالية بعد عرض الصفحة
-            self.show_page_stamps()
+        # 4. ضبط العرض وتحديث التسمية
+        self.view.fitInView(self.scene.itemsBoundingRect(), Qt.KeepAspectRatio)
+        self.update_page_label()
 
     def show_loading_placeholder(self):
         """عرض placeholder أثناء تحميل الصفحة"""
@@ -588,18 +605,14 @@ class RotatePage(QWidget):
             rotation = self.page_rotations.get(self.current_page, 0)
             self.page_rotations[self.current_page] = (rotation - 90) % 360
             self.has_unsaved_changes = True
-            self.show_page(use_transition=True)
-            # إعادة تطبيق الأختام بعد التدوير
-            self.show_page_stamps()
+            self.show_page(use_transition=False) # تحديث فوري بدون انتقال
 
     def rotate_right(self):
         if not self.is_transitioning:
             rotation = self.page_rotations.get(self.current_page, 0)
             self.page_rotations[self.current_page] = (rotation + 90) % 360
             self.has_unsaved_changes = True
-            self.show_page(use_transition=True)
-            # إعادة تطبيق الأختام بعد التدوير
-            self.show_page_stamps()
+            self.show_page(use_transition=False) # تحديث فوري بدون انتقال
 
     def update_page_label(self):
         rotation = self.page_rotations.get(self.current_page, 0)
@@ -675,32 +688,47 @@ class RotatePage(QWidget):
                 (i + 1, angle) for i, angle in self.page_rotations.items() if angle != 0
             ]
 
-            # فحص وجود أختام
-            has_stamps = any(len(stamps) > 0 for stamps in self.stamps.values())
-
-            if not rotations_to_apply and not has_stamps:
+            if not self.has_unsaved_changes:
                 self.notification_manager.show_notification(tr("no_changes_to_save"), "info")
                 return
 
             # طباعة معلومات التصحيح
-            print(f"حفظ الملف: {len(self.stamps)} صفحة تحتوي على أختام")
-            for page_num, stamps in self.stamps.items():
-                print(f"الصفحة {page_num + 1}: {len(stamps)} ختم")
-                for i, stamp in enumerate(stamps):
-                    stamp_data = stamp.get_stamp_data()
-                    print(f"  الختم {i+1}: الموضع={stamp_data['position']}, المقياس={stamp_data['scale']}, الشفافية={stamp_data['opacity']}")
+            print("--- DEBUG: بيانات الأختام قبل الحفظ ---")
+            if not self.stamps:
+                print("لا توجد أختام للحفظ.")
+            else:
+                for page_num, stamps_list in self.stamps.items():
+                    print(f"  الصفحة {page_num}: {len(stamps_list)} ختم")
+                    if not stamps_list:
+                        print("    قائمة الأختام فارغة.")
+                        continue
+                    for i, stamp_item in enumerate(stamps_list):
+                        try:
+                            stamp_data = stamp_item.get_stamp_data()
+                            print(f"    - الختم {i}: {stamp_data}")
+                        except Exception as e:
+                            print(f"    - خطأ في الحصول على بيانات الختم {i}: {e}")
+            print("--- نهاية DEBUG ---")
 
-            # حساب عامل تحجيم العرض
-            view_scale_factor = 1.0
-            if hasattr(self, 'view') and hasattr(self.view, 'transform'):
-                transform = self.view.transform()
-                view_scale_factor = transform.m11()  # عامل التحجيم الأفقي
+            # --- بداية التعديل لإصلاح مشكلة الختم في الصفحات العرضية ---
+            # الحصول على أبعاد العرض والمشهد لتمريرها للمعالج
+            view_rect = self.view.viewport().rect()
+            scene_rect = self.view.sceneRect()
 
-            print(f"عامل تحجيم العرض المحسوب: {view_scale_factor}")
+            print(f"أبعاد العرض (Viewport): {view_rect.width()}x{view_rect.height()}")
+            print(f"أبعاد المشهد (Scene): {scene_rect.width()}x{scene_rect.height()}")
 
-            # حفظ الملف مع التدوير والأختام
+            # حفظ الملف مع التدوير والأختام وتمرير الأبعاد الجديدة
             from modules.stamp_processor import save_pdf_with_stamps
-            success = save_pdf_with_stamps(self.file_path, save_path, self.page_rotations, self.stamps, view_scale_factor)
+            success = save_pdf_with_stamps(
+                self.file_path, 
+                save_path, 
+                self.page_rotations, 
+                self.stamps,
+                view_rect=view_rect,
+                scene_rect=scene_rect
+            )
+            # --- نهاية التعديل ---
 
             if success:
                 # إظهار ملخص العملية

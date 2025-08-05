@@ -11,12 +11,22 @@ _pdf_reader = None
 _pdf_writer = None
 
 def _get_pdf_classes():
-    """تحميل كسول لمكتبات pypdf"""
+    """تحميل كسول لمكتبات pypdf مع معالجة أفضل للأخطاء"""
     global _pdf_reader, _pdf_writer
     if _pdf_reader is None or _pdf_writer is None:
-        from pypdf import PdfReader, PdfWriter
-        _pdf_reader = PdfReader
-        _pdf_writer = PdfWriter
+        try:
+            from pypdf import PdfReader, PdfWriter
+            _pdf_reader = PdfReader
+            _pdf_writer = PdfWriter
+            print("تم تحميل مكتبة pypdf بنجاح")
+        except ImportError as e:
+            error_msg = f"مكتبة pypdf غير مثبتة. يرجى تثبيتها باستخدام الأمر: pip install pypdf==5.0.0"
+            print(error_msg)
+            raise ImportError(error_msg) from e
+        except Exception as e:
+            error_msg = f"حدث خطأ أثناء تحميل مكتبة pypdf: {str(e)}"
+            print(error_msg)
+            raise ImportError(error_msg) from e
     return _pdf_reader, _pdf_writer
 
 def merge_pdfs(input_files: List[str], output_path: str) -> bool:

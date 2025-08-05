@@ -1,0 +1,710 @@
+{
+  "system": {
+    "system_1": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ بدء دمج الملفات (2 ملف)",
+      "message": "بدء دمج الملفات (2 ملف)",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 01:24:28",
+      "read": false
+    },
+    "system_2": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ جاري تحويل 1 ملف...",
+      "message": "جاري تحويل 1 ملف...",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 01:24:55",
+      "read": false
+    },
+    "system_3": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ بدء دمج الملفات (2 ملف)",
+      "message": "بدء دمج الملفات (2 ملف)",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 01:36:55",
+      "read": false
+    },
+    "system_4": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ بدء دمج الملفات (2 ملف)",
+      "message": "بدء دمج الملفات (2 ملف)",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 01:41:25",
+      "read": false
+    },
+    "system_5": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ بدء دمج الملفات (2 ملف)",
+      "message": "بدء دمج الملفات (2 ملف)",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 01:45:35",
+      "read": false
+    },
+    "system_6": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ جاري تحويل 1 ملف...",
+      "message": "جاري تحويل 1 ملف...",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 01:46:17",
+      "read": false
+    },
+    "system_7": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ جاري تحويل 1 ملف...",
+      "message": "جاري تحويل 1 ملف...",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 01:48:01",
+      "read": false
+    },
+    "system_8": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ بدء دمج الملفات (2 ملف)",
+      "message": "بدء دمج الملفات (2 ملف)",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 01:50:40",
+      "read": false
+    },
+    "system_9": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ جاري تحويل 1 ملف...",
+      "message": "جاري تحويل 1 ملف...",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 01:50:58",
+      "read": false
+    },
+    "system_10": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 02:30:08",
+      "read": false
+    },
+    "system_11": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 02:43:30",
+      "read": false
+    },
+    "system_12": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 02:47:24",
+      "read": false
+    },
+    "system_13": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 02:49:35",
+      "read": false
+    },
+    "system_14": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 02:50:39",
+      "read": false
+    },
+    "system_15": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 02:52:13",
+      "read": false
+    },
+    "system_16": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 02:52:51",
+      "read": false
+    },
+    "system_17": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ تم تعديل الإعدادات. لا تنس حفظ التغييرات",
+      "message": "تم تعديل الإعدادات. لا تنس حفظ التغييرات",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 02:52:54",
+      "read": false
+    },
+    "system_18": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 02:55:47",
+      "read": false
+    },
+    "system_19": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ settings_welcome_message",
+      "message": "settings_welcome_message",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 04:59:38",
+      "read": false
+    },
+    "system_20": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 05:18:06",
+      "read": false
+    },
+    "system_21": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ تم تغيير اللغة. احفظ الإعدادات لتطبيق التغيير",
+      "message": "تم تغيير اللغة. احفظ الإعدادات لتطبيق التغيير",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 05:18:08",
+      "read": false
+    },
+    "system_22": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ جاري حفظ الإعدادات...",
+      "message": "جاري حفظ الإعدادات...",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 05:18:12",
+      "read": false
+    },
+    "system_23": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ New settings have been applied",
+      "message": "New settings have been applied",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 05:18:16",
+      "read": false
+    },
+    "system_24": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ Welcome to ApexFlow Settings! You can customize appearance, fonts and more",
+      "message": "Welcome to ApexFlow Settings! You can customize appearance, fonts and more",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 05:18:18",
+      "read": false
+    },
+    "system_25": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ Welcome to ApexFlow Settings! You can customize appearance, fonts and more",
+      "message": "Welcome to ApexFlow Settings! You can customize appearance, fonts and more",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 05:26:10",
+      "read": false
+    },
+    "system_26": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ Language changed. Save settings to apply the change",
+      "message": "Language changed. Save settings to apply the change",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 05:26:22",
+      "read": false
+    },
+    "system_27": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ Saving settings...",
+      "message": "Saving settings...",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 05:26:29",
+      "read": false
+    },
+    "system_28": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ تم تطبيق الإعدادات الجديدة",
+      "message": "تم تطبيق الإعدادات الجديدة",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-05 05:26:33",
+      "read": false
+    }
+  },
+  "tasks": {
+    "tasks_1": {
+      "icon": "✓",
+      "color": "#4ade80",
+      "title": "✓ تم إضافة 1 ملف بنجاح",
+      "message": "تم إضافة 1 ملف بنجاح",
+      "type": "success",
+      "category": "tasks",
+      "time": "2025-08-05 01:24:53",
+      "read": false
+    },
+    "tasks_2": {
+      "icon": "✓",
+      "color": "#4ade80",
+      "title": "✓ تم دمج الملفات بنجاح (2 ملف)",
+      "message": "تم دمج الملفات بنجاح (2 ملف)",
+      "type": "success",
+      "category": "tasks",
+      "time": "2025-08-05 01:45:41",
+      "read": false
+    },
+    "tasks_3": {
+      "icon": "✓",
+      "color": "#4ade80",
+      "title": "✓ تم إضافة 1 ملف بنجاح",
+      "message": "تم إضافة 1 ملف بنجاح",
+      "type": "success",
+      "category": "tasks",
+      "time": "2025-08-05 01:46:15",
+      "read": false
+    },
+    "tasks_4": {
+      "icon": "✓",
+      "color": "#4ade80",
+      "title": "✓ تم إضافة 1 ملف بنجاح",
+      "message": "تم إضافة 1 ملف بنجاح",
+      "type": "success",
+      "category": "tasks",
+      "time": "2025-08-05 01:47:59",
+      "read": false
+    },
+    "tasks_5": {
+      "icon": "✓",
+      "color": "#4ade80",
+      "title": "✓ تم دمج الملفات بنجاح (2 ملف)",
+      "message": "تم دمج الملفات بنجاح (2 ملف)",
+      "type": "success",
+      "category": "tasks",
+      "time": "2025-08-05 01:50:48",
+      "read": false
+    },
+    "tasks_6": {
+      "icon": "✓",
+      "color": "#4ade80",
+      "title": "✓ تم إضافة 1 ملف بنجاح",
+      "message": "تم إضافة 1 ملف بنجاح",
+      "type": "success",
+      "category": "tasks",
+      "time": "2025-08-05 01:50:55",
+      "read": false
+    },
+    "tasks_7": {
+      "icon": "✓",
+      "color": "#4ade80",
+      "title": "✓ تم تحويل 1 ملف بنجاح!",
+      "message": "تم تحويل 1 ملف بنجاح!",
+      "type": "success",
+      "category": "tasks",
+      "time": "2025-08-05 01:50:58",
+      "read": false
+    },
+    "tasks_8": {
+      "icon": "✓",
+      "color": "#4ade80",
+      "title": "✓ report_exported_successfully",
+      "message": "report_exported_successfully",
+      "type": "success",
+      "category": "tasks",
+      "time": "2025-08-05 03:23:54",
+      "read": false
+    },
+    "tasks_9": {
+      "icon": "✓",
+      "color": "#4ade80",
+      "title": "✓ Settings applied successfully",
+      "message": "Settings applied successfully",
+      "type": "success",
+      "category": "tasks",
+      "time": "2025-08-05 05:18:15",
+      "read": false
+    },
+    "tasks_10": {
+      "icon": "✓",
+      "color": "#4ade80",
+      "title": "✓ All settings saved successfully! Changes will appear immediately",
+      "message": "All settings saved successfully! Changes will appear immediately",
+      "type": "success",
+      "category": "tasks",
+      "time": "2025-08-05 05:18:15",
+      "read": false
+    },
+    "tasks_11": {
+      "icon": "✓",
+      "color": "#4ade80",
+      "title": "✓ تم تطبيق الإعدادات بنجاح",
+      "message": "تم تطبيق الإعدادات بنجاح",
+      "type": "success",
+      "category": "tasks",
+      "time": "2025-08-05 05:26:32",
+      "read": false
+    },
+    "tasks_12": {
+      "icon": "✓",
+      "color": "#4ade80",
+      "title": "✓ تم حفظ جميع الإعدادات بنجاح! ستظهر التغييرات فوراً",
+      "message": "تم حفظ جميع الإعدادات بنجاح! ستظهر التغييرات فوراً",
+      "type": "success",
+      "category": "tasks",
+      "time": "2025-08-05 05:26:32",
+      "read": false
+    }
+  },
+  "alerts": {
+    "alerts_1": {
+      "icon": "✗",
+      "color": "#f87171",
+      "title": "✗ حدث خطأ في التحويل",
+      "message": "حدث خطأ في التحويل",
+      "type": "error",
+      "category": "alerts",
+      "time": "2025-08-05 01:24:57",
+      "read": false
+    },
+    "alerts_2": {
+      "icon": "✗",
+      "color": "#f87171",
+      "title": "✗ حدث خطأ في التحويل",
+      "message": "حدث خطأ في التحويل",
+      "type": "error",
+      "category": "alerts",
+      "time": "2025-08-05 01:46:21",
+      "read": false
+    },
+    "alerts_3": {
+      "icon": "✗",
+      "color": "#f87171",
+      "title": "✗ حدث خطأ في التحويل",
+      "message": "حدث خطأ في التحويل",
+      "type": "error",
+      "category": "alerts",
+      "time": "2025-08-05 01:48:04",
+      "read": false
+    }
+  },
+  "warnings": {
+    "warnings_1": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ الرجاء اختيار ملفين على الأقل للدمج.",
+      "message": "الرجاء اختيار ملفين على الأقل للدمج.",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 01:24:20",
+      "read": false
+    },
+    "warnings_2": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 02:49:31",
+      "read": false
+    },
+    "warnings_3": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 02:50:35",
+      "read": false
+    },
+    "warnings_4": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 02:52:09",
+      "read": false
+    },
+    "warnings_5": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 02:52:47",
+      "read": false
+    },
+    "warnings_6": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 02:55:43",
+      "read": false
+    },
+    "warnings_7": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 02:57:19",
+      "read": false
+    },
+    "warnings_8": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 03:13:55",
+      "read": false
+    },
+    "warnings_9": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 03:16:05",
+      "read": false
+    },
+    "warnings_10": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 03:17:59",
+      "read": false
+    },
+    "warnings_11": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 03:23:23",
+      "read": false
+    },
+    "warnings_12": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 03:27:53",
+      "read": false
+    },
+    "warnings_13": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 03:31:24",
+      "read": false
+    },
+    "warnings_14": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 03:34:21",
+      "read": false
+    },
+    "warnings_15": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 03:45:45",
+      "read": false
+    },
+    "warnings_16": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 03:50:39",
+      "read": false
+    },
+    "warnings_17": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 03:54:53",
+      "read": false
+    },
+    "warnings_18": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 04:17:49",
+      "read": false
+    },
+    "warnings_19": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 04:27:49",
+      "read": false
+    },
+    "warnings_20": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 04:30:32",
+      "read": false
+    },
+    "warnings_21": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 04:31:14",
+      "read": false
+    },
+    "warnings_22": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 04:33:13",
+      "read": false
+    },
+    "warnings_23": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 04:34:01",
+      "read": false
+    },
+    "warnings_24": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 04:39:20",
+      "read": false
+    },
+    "warnings_25": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 04:59:13",
+      "read": false
+    },
+    "warnings_26": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 05:17:37",
+      "read": false
+    },
+    "warnings_27": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-05 05:25:28",
+      "read": false
+    }
+  }
+}
