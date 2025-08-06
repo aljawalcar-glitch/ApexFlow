@@ -33,6 +33,11 @@
 - **💾 Smart Caching:** Intelligent preview caching for better performance
 - **🔧 Settings Management:** Comprehensive settings with import/export
 - **📝 Logging:** Detailed operation logs for troubleshooting
+- **🔍 System Diagnostics:** Comprehensive system diagnostics to identify and troubleshoot issues
+- **🖼️ Interactive Stamps:** Apply watermarks and stamps with precise positioning and resizing
+- **🔄 Lazy Loading:** Efficient page loading system that loads content on-demand
+- **🎨 Theme Management:** Advanced theme system with customizable colors and styles
+- **📊 Performance Monitoring:** Real-time performance monitoring and optimization
 
 ## 📸 Screenshots
 

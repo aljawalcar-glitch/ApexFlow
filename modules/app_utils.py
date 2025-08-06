@@ -92,12 +92,30 @@ def get_output_path(parent, settings_data, default_name="output.pdf"):
         return QFileDialog.getSaveFileName(parent, "حفظ باسم", default_name, "PDF Files (*.pdf)")[0]
 
 def show_success_message(parent, message):
-    """عرض رسالة نجاح"""
-    QMessageBox.information(parent, "نجاح", message)
+    """عرض رسالة نجاح باستخدام نظام الإشعارات"""
+    try:
+        # الحصول على مدير الإشعارات من النافذة الرئيسية
+        if hasattr(parent, 'notification_manager'):
+            parent.notification_manager.show_notification(message, "success", duration=4000)
+        else:
+            # إذا لم يتم العثور على مدير الإشعارات، استخدام QMessageBox كخيار احتياطي
+            QMessageBox.information(parent, "نجاح", message)
+    except Exception as e:
+        print(f"خطأ في عرض رسالة النجاح: {e}")
+        QMessageBox.information(parent, "نجاح", message)
 
 def show_error_message(parent, message):
-    """عرض رسالة خطأ"""
-    QMessageBox.critical(parent, "خطأ", message)
+    """عرض رسالة خطأ باستخدام نظام الإشعارات"""
+    try:
+        # الحصول على مدير الإشعارات من النافذة الرئيسية
+        if hasattr(parent, 'notification_manager'):
+            parent.notification_manager.show_notification(message, "error", duration=4000)
+        else:
+            # إذا لم يتم العثور على مدير الإشعارات، استخدام QMessageBox كخيار احتياطي
+            QMessageBox.critical(parent, "خطأ", message)
+    except Exception as e:
+        print(f"خطأ في عرض رسالة الخطأ: {e}")
+        QMessageBox.critical(parent, "خطأ", message)
 
 
 class FileManager:
@@ -230,64 +248,124 @@ class MessageManager:
         self.main_window = main_window
 
     def show_success(self, message, title="نجح"):
-        """عرض رسالة نجاح"""
-        from PySide6.QtWidgets import QMessageBox
-        from PySide6.QtGui import QIcon
-
-        msg_box = QMessageBox(self.main_window)
-        msg_box.setWindowTitle(f"ApexFlow - {title}")
-        msg_box.setText(message)
-        msg_box.setIcon(QMessageBox.Information)
-
-        # تطبيق السمة
+        """عرض رسالة نجاح باستخدام نظام الإشعارات"""
         try:
-            from ui.theme_manager import apply_theme
-            apply_theme(msg_box, "dialog")
-        except:
-            pass
+            # الحصول على مدير الإشعارات من النافذة الرئيسية
+            if hasattr(self.main_window, 'notification_manager'):
+                self.main_window.notification_manager.show_notification(message, "success", duration=4000)
+                return 0  # القيمة المرجعة عند النجاح
+            else:
+                # إذا لم يتم العثور على مدير الإشعارات، استخدام QMessageBox كخيار احتياطي
+                from PySide6.QtWidgets import QMessageBox
+                from PySide6.QtGui import QIcon
 
-        return msg_box.exec()
+                msg_box = QMessageBox(self.main_window)
+                msg_box.setWindowTitle(f"ApexFlow - {title}")
+                msg_box.setText(message)
+                msg_box.setIcon(QMessageBox.Information)
+
+                # تطبيق السمة
+                try:
+                    from ui.theme_manager import apply_theme
+                    apply_theme(msg_box, "dialog")
+                except:
+                    pass
+
+                return msg_box.exec()
+        except Exception as e:
+            print(f"خطأ في عرض رسالة النجاح: {e}")
+            # استخدام QMessageBox كخيار احتياطي في حالة الخطأ
+            from PySide6.QtWidgets import QMessageBox
+            from PySide6.QtGui import QIcon
+
+            msg_box = QMessageBox(self.main_window)
+            msg_box.setWindowTitle(f"ApexFlow - {title}")
+            msg_box.setText(message)
+            msg_box.setIcon(QMessageBox.Information)
+            return msg_box.exec()
 
     def show_error(self, message, title="خطأ", details=""):
-        """عرض رسالة خطأ"""
-        from PySide6.QtWidgets import QMessageBox
-        from PySide6.QtGui import QIcon
-
-        msg_box = QMessageBox(self.main_window)
-        msg_box.setWindowTitle(f"ApexFlow - {title}")
-        msg_box.setText(message)
-        msg_box.setIcon(QMessageBox.Critical)
-
-        if details:
-            msg_box.setDetailedText(details)
-
-        # تطبيق السمة
+        """عرض رسالة خطأ باستخدام نظام الإشعارات"""
         try:
-            from ui.theme_manager import apply_theme
-            apply_theme(msg_box, "dialog")
-        except:
-            pass
+            # الحصول على مدير الإشعارات من النافذة الرئيسية
+            if hasattr(self.main_window, 'notification_manager'):
+                # إضافة التفاصيل إلى الرسالة إذا وجدت
+                full_message = f"{message}"
+                if details:
+                    full_message += f" ({details})"
+                self.main_window.notification_manager.show_notification(full_message, "error", duration=4000)
+                return 0  # القيمة المرجعة عند النجاح
+            else:
+                # إذا لم يتم العثور على مدير الإشعارات، استخدام QMessageBox كخيار احتياطي
+                from PySide6.QtWidgets import QMessageBox
+                from PySide6.QtGui import QIcon
 
-        return msg_box.exec()
+                msg_box = QMessageBox(self.main_window)
+                msg_box.setWindowTitle(f"ApexFlow - {title}")
+                msg_box.setText(message)
+                msg_box.setIcon(QMessageBox.Critical)
+
+                if details:
+                    msg_box.setDetailedText(details)
+
+                # تطبيق السمة
+                try:
+                    from ui.theme_manager import apply_theme
+                    apply_theme(msg_box, "dialog")
+                except:
+                    pass
+
+                return msg_box.exec()
+        except Exception as e:
+            print(f"خطأ في عرض رسالة الخطأ: {e}")
+            # استخدام QMessageBox كخيار احتياطي في حالة الخطأ
+            from PySide6.QtWidgets import QMessageBox
+            from PySide6.QtGui import QIcon
+
+            msg_box = QMessageBox(self.main_window)
+            msg_box.setWindowTitle(f"ApexFlow - {title}")
+            msg_box.setText(message)
+            msg_box.setIcon(QMessageBox.Critical)
+            if details:
+                msg_box.setDetailedText(details)
+            return msg_box.exec()
 
     def show_warning(self, message, title="تحذير"):
-        """عرض رسالة تحذير"""
-        from PySide6.QtWidgets import QMessageBox
-        from PySide6.QtGui import QIcon
-
-        msg_box = QMessageBox(self.main_window)
-        msg_box.setWindowTitle(f"ApexFlow - {title}")
-        msg_box.setText(message)
-        msg_box.setIcon(QMessageBox.Warning)
-
-        # تطبيق السمة
+        """عرض رسالة تحذير باستخدام نظام الإشعارات"""
         try:
-            from ui.theme_manager import apply_theme
-            apply_theme(msg_box, "dialog")
-        except:
-            pass
+            # الحصول على مدير الإشعارات من النافذة الرئيسية
+            if hasattr(self.main_window, 'notification_manager'):
+                self.main_window.notification_manager.show_notification(message, "warning", duration=4000)
+                return 0  # القيمة المرجعة عند النجاح
+            else:
+                # إذا لم يتم العثور على مدير الإشعارات، استخدام QMessageBox كخيار احتياطي
+                from PySide6.QtWidgets import QMessageBox
+                from PySide6.QtGui import QIcon
 
-        return msg_box.exec()
+                msg_box = QMessageBox(self.main_window)
+                msg_box.setWindowTitle(f"ApexFlow - {title}")
+                msg_box.setText(message)
+                msg_box.setIcon(QMessageBox.Warning)
+
+                # تطبيق السمة
+                try:
+                    from ui.theme_manager import apply_theme
+                    apply_theme(msg_box, "dialog")
+                except:
+                    pass
+
+                return msg_box.exec()
+        except Exception as e:
+            print(f"خطأ في عرض رسالة التحذير: {e}")
+            # استخدام QMessageBox كخيار احتياطي في حالة الخطأ
+            from PySide6.QtWidgets import QMessageBox
+            from PySide6.QtGui import QIcon
+
+            msg_box = QMessageBox(self.main_window)
+            msg_box.setWindowTitle(f"ApexFlow - {title}")
+            msg_box.setText(message)
+            msg_box.setIcon(QMessageBox.Warning)
+            return msg_box.exec()
 
     def ask_for_save_confirmation(self, inner_widget):
         """Asks the user to confirm saving changes and handles the response."""
@@ -350,24 +428,61 @@ class MessageManager:
             dialog.accept()
 
     def ask_question(self, message, title="سؤال"):
-        """طرح سؤال مع نعم/لا"""
-        from PySide6.QtWidgets import QMessageBox
-        from PySide6.QtGui import QIcon
-
-        msg_box = QMessageBox(self.main_window)
-        msg_box.setWindowTitle(f"ApexFlow - {title}")
-        msg_box.setText(message)
-        msg_box.setIcon(QMessageBox.Question)
-        msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-
-        # تطبيق السمة
+        """طرح سؤال مع نعم/لا باستخدام نظام الإشعارات"""
         try:
-            from ui.theme_manager import apply_theme
-            apply_theme(msg_box, "dialog")
-        except:
-            pass
+            # الحصول على مدير الإشعارات من النافذة الرئيسية
+            if hasattr(self.main_window, 'notification_manager'):
+                # استخدام نظام الإشعارات لعرض السؤال
+                # ملاحظة: نظام الإشعارات الحالي لا يدعم الأسئلة (نعم/لا) بشكل مباشر
+                # لذلك سنستخدم QMessageBox كخيار أساسي هنا
+                from PySide6.QtWidgets import QMessageBox
+                from PySide6.QtGui import QIcon
 
-        return msg_box.exec() == QMessageBox.Yes
+                msg_box = QMessageBox(self.main_window)
+                msg_box.setWindowTitle(f"ApexFlow - {title}")
+                msg_box.setText(message)
+                msg_box.setIcon(QMessageBox.Question)
+                msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+
+                # تطبيق السمة
+                try:
+                    from ui.theme_manager import apply_theme
+                    apply_theme(msg_box, "dialog")
+                except:
+                    pass
+
+                return msg_box.exec() == QMessageBox.Yes
+            else:
+                # إذا لم يتم العثور على مدير الإشعارات، استخدام QMessageBox كخيار احتياطي
+                from PySide6.QtWidgets import QMessageBox
+                from PySide6.QtGui import QIcon
+
+                msg_box = QMessageBox(self.main_window)
+                msg_box.setWindowTitle(f"ApexFlow - {title}")
+                msg_box.setText(message)
+                msg_box.setIcon(QMessageBox.Question)
+                msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+
+                # تطبيق السمة
+                try:
+                    from ui.theme_manager import apply_theme
+                    apply_theme(msg_box, "dialog")
+                except:
+                    pass
+
+                return msg_box.exec() == QMessageBox.Yes
+        except Exception as e:
+            print(f"خطأ في عرض السؤال: {e}")
+            # استخدام QMessageBox كخيار احتياطي في حالة الخطأ
+            from PySide6.QtWidgets import QMessageBox
+            from PySide6.QtGui import QIcon
+
+            msg_box = QMessageBox(self.main_window)
+            msg_box.setWindowTitle(f"ApexFlow - {title}")
+            msg_box.setText(message)
+            msg_box.setIcon(QMessageBox.Question)
+            msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            return msg_box.exec() == QMessageBox.Yes
 
     def show_warning(self, message, title="تحذير"):
         """عرض رسالة تحذير"""

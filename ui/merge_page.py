@@ -152,8 +152,8 @@ class MergePage(BasePageWidget):
                 self.notification_manager.show_notification(f"{tr('merging_completed_successfully')} ({len(files_to_merge)} ملف)", "success", duration=4000)
                 self.reset_ui()
             else:
-                # عرض رسالة خطأ أكثر تحديدًا
-                QMessageBox.critical(self, tr("error_title"), tr("merge_failed_check_files"))
+                # عرض رسالة خطأ أكثر تحديدًا باستخدام نظام الإشعارات
+                self.notification_manager.show_notification(tr("merge_failed_check_files"), "error")
 
         except Exception as e:
             self.notification_manager.show_notification(f"{tr('merging_error')}: {str(e)}", "error")

@@ -7,15 +7,16 @@ from PySide6.QtWidgets import (QWidget, QLabel, QHBoxLayout, QVBoxLayout, QPushB
                                QFrame, QStackedWidget, QListWidget, QListWidgetItem,
                                QDialog, QDialogButtonBox, QApplication, QCheckBox,
                                QTreeWidget, QTreeWidgetItem, QAbstractItemView, QScrollArea)
-from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, QRect, Signal, QSize
+from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, QRect, Signal, QSize, QByteArray
 from PySide6.QtGui import QIcon, QColor, QPainter, QPainterPath
+from PySide6.QtSvg import QSvgRenderer
 import os
 import json
 from modules.logger import debug
 from modules.translator import tr
 from .theme_manager import apply_theme, global_theme_manager
 from modules.settings import get_setting, set_setting
-from .system_diagnostics import SystemDiagnosticsDialog
+# تم إزالة استيراد SystemDiagnosticsDialog لأننا نستخدم تبويب التشخيص في نافذة المساعدة بدلاً من ذلك
 
 # --- 1. Notification Bar (The "Toast") ---
 
@@ -422,9 +423,12 @@ class NotificationCenter(QDialog):
         settings_dialog.exec()
         
     def show_diagnostics(self):
-        """Opens the system diagnostics dialog."""
-        diagnostics_dialog = SystemDiagnosticsDialog(self)
-        diagnostics_dialog.exec()
+        """Opens the help window with diagnostics tab."""
+        from .help_page import HelpPage
+        help_page = HelpPage(self.parent())
+        help_page.show()
+        # فتح تبويب التشخيص مباشرة
+        help_page.help_tabs.setCurrentIndex(help_page.help_tabs.count() - 1)  # تبويب التشخيص هو عادة التبويب الأخير
         
     def clear_history(self):
         """مسح جميع الإشعارات من التاريخ"""
@@ -518,28 +522,72 @@ class NotificationCenter(QDialog):
     def create_notification_categories(self):
         """إنشاء فئات الإشعارات في الفهرس الرئيسي"""
         theme_colors = global_theme_manager.get_current_colors()
-        
+        accent_color = global_theme_manager.current_accent
+
+        def create_themed_icon(svg_path, color):
+            """Creates a QIcon from an SVG file with a specific color."""
+            try:
+                with open(svg_path, 'r', encoding='utf-8') as f:
+                    svg_data = f.read()
+                
+                # Replace currentColor with the actual theme color
+                colored_svg_data = svg_data.replace('currentColor', color)
+                
+                # Use QByteArray for QSvgRenderer
+                byte_array = QByteArray(colored_svg_data.encode('utf-8'))
+                return QIcon(QSvgRenderer(byte_array).defaultSize(), QPainter())
+            except Exception as e:
+                debug(f"Failed to create themed icon from {svg_path}: {e}")
+                return QIcon() # Return empty icon on failure
+
+        # Define icon paths
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        icon_path = lambda name: os.path.join(project_root, 'assets', 'icons', 'default', name)
+
+        # Since new icons cannot be created, we'll reuse existing ones
+        # and assign them thematically.
+        icons = {
+            "system": create_themed_icon(icon_path("info.svg"), accent_color),
+            "tasks": create_themed_icon(icon_path("archive.svg"), accent_color),
+            "alerts": create_themed_icon(icon_path("info.svg"), theme_colors.get("error", "#f87171")),
+            "warnings": create_themed_icon(icon_path("info.svg"), theme_colors.get("warning", "#fbbf24"))
+        }
+
         # إنشاء فئات الإشعارات الرئيسية
         self.categories = {}
         
         # 1. إشعارات النظام
         system_item = QTreeWidgetItem(self.notification_tree)
-        system_item.setText(0, f"📱 {tr('system_notifications')} (0)")
+        system_item.setIcon(0, icons["system"])
+        system_item.setText(0, f"{tr('system_notifications')} (0)")
         system_item.setData(0, Qt.UserRole, "system")
-        system_category = {}
-        self.categories["system"] = {"item": system_item, "notifications": system_category}
-        theme_colors = global_theme_manager.get_current_colors()
-        accent_color = global_theme_manager.current_accent
+        self.categories["system"] = {"item": system_item, "notifications": {}}
+        
+        # 2. إشعارات المهام
+        tasks_item = QTreeWidgetItem(self.notification_tree)
+        tasks_item.setIcon(0, icons["tasks"])
+        tasks_item.setText(0, f"{tr('tasks_notifications')} (0)")
+        tasks_item.setData(0, Qt.UserRole, "tasks")
+        self.categories["tasks"] = {"item": tasks_item, "notifications": {}}
+        
+        # 3. إشعارات التنبيه
+        alerts_item = QTreeWidgetItem(self.notification_tree)
+        alerts_item.setIcon(0, icons["alerts"])
+        alerts_item.setText(0, f"{tr('alerts_notifications')} (0)")
+        alerts_item.setData(0, Qt.UserRole, "alerts")
+        self.categories["alerts"] = {"item": alerts_item, "notifications": {}}
+        
+        # 4. رسائل التحذير
+        warnings_item = QTreeWidgetItem(self.notification_tree)
+        warnings_item.setIcon(0, icons["warnings"])
+        warnings_item.setText(0, f"{tr('warning_messages')} (0)")
+        warnings_item.setData(0, Qt.UserRole, "warnings")
+        self.categories["warnings"] = {"item": warnings_item, "notifications": {}}
+
+        # Apply general styles
         self.notification_tree.setStyleSheet(f"""
             QTreeWidget::item {{
-                padding: 4px 0;
-            }}
-            QTreeWidget::item[text^='📱'] {{
-                border: 1px dotted #888;
-                border-radius: 4px;
-                padding: 6px;
-                margin-top: 2px;
-                font-size: 14px;
+                padding: 8px 4px; /* Increased padding for icon */
             }}
             QScrollBar:vertical {{
                 background: {theme_colors["surface"]};
@@ -581,27 +629,6 @@ class NotificationCenter(QDialog):
             }}
         """)
         
-        # 2. إشعارات المهام
-        tasks_item = QTreeWidgetItem(self.notification_tree)
-        tasks_item.setText(0, f"✅ {tr('tasks_notifications')} (0)")
-        tasks_item.setData(0, Qt.UserRole, "tasks")
-        tasks_category = {}
-        self.categories["tasks"] = {"item": tasks_item, "notifications": tasks_category}
-        
-        # 3. إشعارات التنبيه
-        alerts_item = QTreeWidgetItem(self.notification_tree)
-        alerts_item.setText(0, f"🔔 {tr('alerts_notifications')} (0)")
-        alerts_item.setData(0, Qt.UserRole, "alerts")
-        alerts_category = {}
-        self.categories["alerts"] = {"item": alerts_item, "notifications": alerts_category}
-        
-        # 4. رسائل التحذير
-        warnings_item = QTreeWidgetItem(self.notification_tree)
-        warnings_item.setText(0, f"⚠️ {tr('warning_messages')} (0)")
-        warnings_item.setData(0, Qt.UserRole, "warnings")
-        warnings_category = {}
-        self.categories["warnings"] = {"item": warnings_item, "notifications": warnings_category}
-        
         # طي جميع الفئات افتراضيًا
         self.notification_tree.collapseAll()
         
@@ -610,22 +637,22 @@ class NotificationCenter(QDialog):
     
     def update_category_counter(self, category):
         """تحديث عداد الإشعارات لفئة معينة"""
+        if category not in self.categories:
+            return
+            
         count = len(self.categories[category]["notifications"])
         # استخدام طريقة آمنة للحصول على اسم الفئة المترجم
         try:
-            category_name = tr(f"{category}_notifications")
-        except:
-            category_name = category
+            # The key for translation is like 'system_notifications', 'tasks_notifications', etc.
+            if category == "warnings":
+                 category_name = tr("warning_messages")
+            else:
+                category_name = tr(f"{category}_notifications")
+        except Exception:
+            category_name = category.capitalize()
         
         # تحديث نص الفئة مع العداد الجديد
-        if category == "system":
-            self.categories[category]["item"].setText(0, f"📱 {category_name} ({count})")
-        elif category == "tasks":
-            self.categories[category]["item"].setText(0, f"✅ {category_name} ({count})")
-        elif category == "alerts":
-            self.categories[category]["item"].setText(0, f"🔔 {category_name} ({count})")
-        elif category == "warnings":
-            self.categories[category]["item"].setText(0, f"⚠️ {category_name} ({count})")
+        self.categories[category]["item"].setText(0, f"{category_name} ({count})")
     
     def show_notification_details(self, item):
         """عرض تفاصيل الإشعار عند النقر المزدوج"""

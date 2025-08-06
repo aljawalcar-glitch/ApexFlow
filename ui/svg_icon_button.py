@@ -34,28 +34,9 @@ class SVGIconButton(QPushButton):
         self.load_icon()
 
         # تطبيق نمط شفاف مثل أزرار الإعدادات
-        self.setStyleSheet("""
-            QPushButton {
-                border: none;
-                background: transparent;
-                padding: 8px;
-                border-radius: 6px;
-                min-width: 32px;
-                min-height: 32px;
-            }
-            QPushButton:hover {
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid rgba(255, 255, 255, 0.3);
-            }
-            QPushButton:pressed {
-                background: rgba(255, 255, 255, 0.2);
-                border: 1px solid rgba(255, 255, 255, 0.4);
-            }
-            QPushButton:disabled {
-                opacity: 0.4;
-                background: rgba(102, 102, 102, 0.1);
-            }
-        """)
+        # سيتم تحديث النمط لاحقًا باستخدام مدير السمات
+        from .theme_manager import global_theme_manager
+        global_theme_manager.register_widget(self, "icon_button")
     
     def load_icon(self, color="#ffffff"):
         """

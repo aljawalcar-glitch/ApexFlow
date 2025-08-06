@@ -247,7 +247,14 @@ class WorkerManager:
             self.pdf_worker.stop_loading()
         if self.pdf_thread and self.pdf_thread.isRunning():
             self.pdf_thread.quit()
-            self.pdf_thread.wait(3000)  # انتظار 3 ثواني
+            if not self.pdf_thread.wait(3000):  # انتظار 3 ثواني
+                # إذا لم يتوقف الخيط، قم بإنهائه بالقوة
+                self.pdf_thread.terminate()
+                self.pdf_thread.wait(1000)  # انتظار ثانية واحدة للتأكد من الإنهاء
+            # تنظيف المراجع
+            if self.pdf_worker:
+                self.pdf_worker.deleteLater()
+                self.pdf_worker = None
     
     def start_image_loading(self, image_paths: List[str], target_size: tuple = (90, 90)):
         """بدء تحميل الصور"""
@@ -271,12 +278,32 @@ class WorkerManager:
             self.image_worker.stop_loading()
         if self.image_thread and self.image_thread.isRunning():
             self.image_thread.quit()
-            self.image_thread.wait(3000)
+            if not self.image_thread.wait(3000):  # انتظار 3 ثواني
+                # إذا لم يتوقف الخيط، قم بإنهائه بالقوة
+                self.image_thread.terminate()
+                self.image_thread.wait(1000)  # انتظار ثانية واحدة للتأكد من الإنهاء
+            # تنظيف المراجع
+            if self.image_worker:
+                self.image_worker.deleteLater()
+                self.image_worker = None
     
     def cleanup(self):
         """تنظيف جميع الخيوط"""
         self.stop_pdf_loading()
         self.stop_image_loading()
+
+        # التأكد من تنظيف أي خيوط معالجة متبقية
+        if hasattr(self, 'process_thread') and self.process_thread:
+            if self.process_thread.isRunning():
+                self.process_thread.quit()
+                if not self.process_thread.wait(3000):
+                    self.process_thread.terminate()
+                    self.process_thread.wait(1000)
+            if hasattr(self, 'process_worker') and self.process_worker:
+                self.process_worker.deleteLater()
+                self.process_worker = None
+            self.process_thread.deleteLater()
+            self.process_thread = None
 
 # المثيل العام
 global_worker_manager = WorkerManager()

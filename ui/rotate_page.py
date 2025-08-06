@@ -105,6 +105,10 @@ class RotatePage(QWidget):
         self.placing_stamp = False  # حالة وضع الختم
         self.current_stamp_path = None  # مسار الختم الحالي
 
+        # متغيرات شريط التقدم
+        self.progress_bar = None  # شريط التقدم العائم
+        self.progress_timer = None  # مؤقت تحديث التقدم
+
         # متغيرات الرسوم المتحركة
         self.is_transitioning = False
         self.opacity_effect = None
@@ -465,12 +469,12 @@ class RotatePage(QWidget):
                 self.show_page(use_transition=False)
 
             # إخفاء شريط التقدم إذا كانت الصفحة الأولى
-            if page_number == 0 and hasattr(self, 'progress_bar'):
+            if page_number == 0 and hasattr(self, 'progress_bar') and self.progress_bar is not None:
                 self.progress_bar.setVisible(False)
 
     def on_page_loading_started(self, page_number: int):
         """معالج بدء تحميل الصفحة"""
-        if page_number == self.current_page and hasattr(self, 'progress_bar'):
+        if page_number == self.current_page and hasattr(self, 'progress_bar') and self.progress_bar is not None:
             self.progress_bar.setVisible(True)
             self.progress_bar.setRange(0, 0)  # شريط تقدم غير محدد
 

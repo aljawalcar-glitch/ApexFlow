@@ -96,6 +96,7 @@ def create_title(text):
     title = QLabel(text)
     # تطبيق نمط الثيمة على العنوان
     apply_theme_style(title, "title_text", auto_register=True)
+    title.setProperty("class", "title_label")
     return title
 
 def create_section_label(text):
@@ -106,6 +107,7 @@ def create_section_label(text):
     # تطبيق نمط الثيمة على تسمية القسم
     apply_theme_style(label, "label", auto_register=True)
     label.setStyleSheet(label.styleSheet() + "font-weight: bold;")
+    label.setProperty("class", "section_label")
     return label
 
 def create_info_label(text):

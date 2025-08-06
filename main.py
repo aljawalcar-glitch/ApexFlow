@@ -86,6 +86,15 @@ class ApexFlow(QMainWindow):
         from PySide6.QtCore import QTimer
         QTimer.singleShot(100, self._initialize_delayed)
 
+    def closeEvent(self, event):
+        """معالج حدث إغلاق النافذة - لتنظيف الموارد قبل الإغلاق"""
+        # التأكد من إيقاف جميع الخيوط العاملة
+        if hasattr(self, 'worker_manager') and self.worker_manager:
+            self.worker_manager.cleanup()
+
+        # قبول حدث الإغلاق
+        event.accept()
+
     def _setup_managers(self):
         """Setup all required managers"""
         # Basic managers
@@ -362,15 +371,9 @@ class ApexFlow(QMainWindow):
         self.main_layout.removeWidget(self.sidebar_widget)
         self.main_layout.removeWidget(self.right_panel_widget)
         
-        # إضافة العناصر بالترتيب الصحيح (مع مراعاة RightToLeft)
-        if language == "ar":
-            # في RightToLeft: العنصر الأول يظهر يميناً، الثاني يساراً
-            self.main_layout.addWidget(self.sidebar_widget)
-            self.main_layout.addWidget(self.right_panel_widget, 1)
-        else:
-            # في LeftToRight: العنصر الأول يظهر يساراً، الثاني يميناً
-            self.main_layout.addWidget(self.sidebar_widget)
-            self.main_layout.addWidget(self.right_panel_widget, 1)
+        # إضافة العناصر بالترتيب الصحيح
+        self.main_layout.addWidget(self.sidebar_widget)
+        self.main_layout.addWidget(self.right_panel_widget, 1)
     
     def update_scrollbars_direction(self):
         """تحديث اتجاه شريط التمرير في جميع الصفحات"""
@@ -447,8 +450,8 @@ class ApexFlow(QMainWindow):
             try:
                 from ui.theme_manager import apply_theme
                 apply_theme(confirm_dialog, "dialog")
-            except:
-                pass
+            except Exception as e:
+                debug(f"Error applying theme to dialog: {e}")
                 
             if confirm_dialog.exec() == QMessageBox.Yes:
                 # Reset the current page's UI before navigating away
@@ -496,11 +499,6 @@ class ApexFlow(QMainWindow):
         self.load_page_on_demand(desired_row)
         self.menu_list.setCurrentRow(desired_row)
             
-    def on_menu_selection_changed(self, current_row):
-        """دالة قديمة للحفاظ على التوافق مع الإشارات القديمة"""
-        # دالة محجوبة الآن، يتم استخدام handle_menu_selection بدلاً منها
-        # تم تعطيل هذا الاستدعاء لتجنب الاستدعاء المزدوج
-        pass
 
     def load_page_on_demand(self, index):
         """تحميل الصفحات عند الطلب باستخدام المدراء"""
@@ -530,6 +528,7 @@ class ApexFlow(QMainWindow):
                 self.theme_manager.apply_theme(page, "dialog")
 
         except Exception as e:
+            error(f"Error creating page {index}: {e}")
             self._handle_page_load_error(index, e)
 
         # الانتقال إلى الصفحة
@@ -692,6 +691,10 @@ class ApexFlow(QMainWindow):
             info("تم إعادة تطبيق السمة على جميع الصفحات المحملة")
         except Exception as e:
             error(f"خطأ في إعادة تطبيق السمة على الصفحات: {e}")
+            # عرض إشعار خطأ للمستخدم
+            self.notification_manager.show_notification(
+                tr("error_refreshing_theme"), "error"
+            )
 
     def _validate_settings(self, settings_data):
         """التحقق من صحة بيانات الإعدادات"""
