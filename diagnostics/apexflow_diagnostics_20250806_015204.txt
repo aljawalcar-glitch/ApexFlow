@@ -1,0 +1,48 @@
+=== معلومات النظام ===
+نظام التشغيل: Windows 11
+الإصدار: 10.0.22621
+المعالج: Intel64 Family 6 Model 78 Stepping 3, GenuineIntel
+البنية: AMD64
+اسم الحاسوب: Dream
+المستخدم: dream
+
+=== معلومات بايثون ===
+إصدار بايثون: 3.13.5
+مسار بايثون: C:\Users\dream\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\python.exe
+مسارات البحث:
+  - c:\Users\dream\Desktop\ApexFlow-main
+  - c:\Users\dream\Desktop\ApexFlow-main
+  - c:\Users\dream\Desktop\ApexFlow-main
+  - C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.1520.0_x64__qbz5n2kfra8p0\python313.zip
+  - C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.1520.0_x64__qbz5n2kfra8p0\DLLs
+  - C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.1520.0_x64__qbz5n2kfra8p0\Lib
+  - C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.1520.0_x64__qbz5n2kfra8p0
+  - C:\Users\dream\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages
+  - C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.1520.0_x64__qbz5n2kfra8p0\Lib\site-packages
+  - c:\Users\dream\Desktop\ApexFlow-main\config
+  - c:\Users\dream\Desktop\ApexFlow-main
+
+=== معلومات التطبيق ===
+مسار التطبيق: c:\Users\dream\Desktop\ApexFlow-main\modules
+
+التحقق من الملفات المهمة:
+  - main.py: موجود
+  - ui/__init__.py: موجود
+  - modules/__init__.py: موجود
+
+التحقق من المجلدات المهمة:
+  - ui: موجود
+  - modules: موجود
+  - resources: غير موجود
+
+=== معلومات الأداء ===
+الذاكرة الإجمالية: 11.89 GB
+الذاكرة المتوفرة: 3.48 GB
+نسبة استخدام الذاكرة: 70.7%
+نسبة استخدام المعالج: 2.7%
+مساحة القرص الإجمالية: 446.33 GB
+مساحة القرص المتوفرة: 333.42 GB
+نسبة استخدام القرص: 25.3%
+
+=== تاريخ التشخيص ===
+التوقيت: 2025-08-06 01:52:04

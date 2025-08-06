@@ -140,6 +140,8 @@ class SystemDiagnosticsDialog(QDialog):
 
         # إنشاء علامات تبويب لتنظيم المعلومات
         self.tabs = QTabWidget()
+        self.tabs.setTabPosition(QTabWidget.East)  # جعل التبويبات على اليمين
+        apply_theme(self.tabs, "tab_widget")
         layout.addWidget(self.tabs)
 
         # إنشاء علامات التبويب المختلفة

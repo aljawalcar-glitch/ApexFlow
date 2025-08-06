@@ -398,11 +398,7 @@ class NotificationCenter(QDialog):
         # Buttons
         button_layout = QHBoxLayout()
         
-        # Settings button
-        settings_button = QPushButton(tr("settings"))
-        apply_theme(settings_button, "button")
-        settings_button.clicked.connect(self.show_settings_dialog)
-        button_layout.addWidget(settings_button)
+        # Settings button removed - moved to notification settings tab
 
         # Clear button
         clear_button = QPushButton(tr("clear_all"))
@@ -413,17 +409,9 @@ class NotificationCenter(QDialog):
         # Add stretch to separate button groups
         button_layout.addStretch()
 
-        # Diagnostics button
-        diagnostics_button = QPushButton(tr("diagnostics"))
-        apply_theme(diagnostics_button, "button")
-        diagnostics_button.clicked.connect(self.show_diagnostics)
-        button_layout.addWidget(diagnostics_button)
+        # Diagnostics button removed
         
-        # Close button
-        close_button = QPushButton(tr("close_button"))
-        apply_theme(close_button, "button")
-        close_button.clicked.connect(self.accept)
-        button_layout.addWidget(close_button)
+        # Close button removed
         
         # Add button layout to main layout
         layout.addLayout(button_layout)

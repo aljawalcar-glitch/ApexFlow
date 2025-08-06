@@ -13,7 +13,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'config'))
 # PySide6 imports
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QMessageBox, QVBoxLayout, QHBoxLayout,
-    QWidget, QStackedWidget, QListWidget, QLabel, QScrollArea, QPushButton,
+    QWidget, QStackedWidget, QListWidget, QListWidgetItem, QLabel, QScrollArea, QPushButton,
     QGridLayout
 )
 from PySide6.QtGui import QIcon, QKeySequence, QShortcut
@@ -240,11 +240,16 @@ class ApexFlow(QMainWindow):
 
         # Sidebar menu
         self.menu_list = QListWidget()
-        self.menu_list.addItems([
+        # Restore original menu items including Help
+        menu_items = [
             tr("menu_home"), tr("menu_merge_print"), tr("menu_split"),
             tr("menu_compress"), tr("menu_stamp_rotate"), tr("menu_convert"),
-            tr("menu_security"), tr("menu_settings")
-        ])
+            tr("menu_security"), tr("menu_settings"), tr("menu_help")
+        ]
+        
+        for item_text in menu_items:
+            self.menu_list.addItem(item_text)
+        
         self.menu_list.setFocusPolicy(Qt.NoFocus)
         self.menu_list.setSelectionMode(QListWidget.SingleSelection)
         self.menu_list.setCurrentRow(0)
@@ -255,12 +260,6 @@ class ApexFlow(QMainWindow):
         from ui.app_info_widget import AppInfoWidget
         self.app_info = AppInfoWidget()
         sidebar_layout.addWidget(self.app_info)
-
-        # Notification history button
-        self.notification_history_button = QPushButton(tr("notifications_button"))
-        apply_theme_style(self.notification_history_button, "button")
-        self.notification_history_button.clicked.connect(self.notification_manager.show_notification_center)
-        sidebar_layout.addWidget(self.notification_history_button)
 
         return sidebar_widget
 
@@ -285,7 +284,7 @@ class ApexFlow(QMainWindow):
         page_names = [
             tr("menu_merge_print"), tr("menu_split"), tr("menu_compress"),
             tr("menu_stamp_rotate"), tr("menu_convert"), tr("menu_security"),
-            tr("menu_settings")
+            tr("menu_settings"), tr("menu_help")
         ]
         self.pages_loaded = [True] + [False] * len(page_names)
         for page_name in page_names:
@@ -401,7 +400,8 @@ class ApexFlow(QMainWindow):
                 "rotate": 4,
                 "convert": 5,
                 "security": 6,
-                "settings": 7
+                "settings": 7,
+                "help": 8
             }
             index = page_mapping.get(page_identifier, 0)
 
@@ -425,7 +425,7 @@ class ApexFlow(QMainWindow):
         page_names = [
             tr("menu_home"), tr("menu_merge_print"), tr("menu_split"),
             tr("menu_compress"), tr("menu_stamp_rotate"), tr("menu_convert"),
-            tr("menu_security"), tr("menu_settings")
+            tr("menu_security"), tr("menu_settings"), tr("menu_help")
         ]
         
         current_page_name = page_names[current_index] if current_index < len(page_names) else f"Page {current_index}"
@@ -557,7 +557,8 @@ class ApexFlow(QMainWindow):
             4: lambda: self._create_rotate_page(),
             5: lambda: self._create_convert_page(),
             6: lambda: self._create_security_page(),
-            7: lambda: self._create_settings_page()
+            7: lambda: self._create_settings_page(),
+            8: lambda: self._create_help_page()
         }
 
         creator = page_creators.get(index)
@@ -603,6 +604,10 @@ class ApexFlow(QMainWindow):
         else:
             return self._create_error_widget(tr("error_loading_settings_page"))
 
+    def _create_help_page(self):
+        from ui.help_page import HelpPage
+        return HelpPage(self)
+
     def _create_error_widget(self, message):
         """إنشاء ويدجت خطأ بسيط"""
         error_widget = QWidget()
@@ -613,25 +618,25 @@ class ApexFlow(QMainWindow):
         layout.addWidget(label)
         return error_widget
 
-    def _handle_page_load_error(self, index, error):
+    def _handle_page_load_error(self, index, error_obj):
         """معالجة أخطاء تحميل الصفحات باستخدام NotificationManager"""
         page_names = [
             "", tr("menu_merge_print"), tr("menu_split"), tr("menu_compress"),
             tr("menu_stamp_rotate"), tr("menu_convert"), tr("menu_security"),
-            tr("menu_settings")
+            tr("menu_settings"), tr("menu_help")
         ]
         page_name = page_names[index] if index < len(page_names) else f"Page {index}"
 
         # عرض إشعار خطأ
         self.notification_manager.show_notification(
-            tr("error_loading_page", page_name=page_name, error=str(error)), "error"
+            tr("error_loading_page", page_name=page_name, error=str(error_obj)), "error"
         )
 
         # تسجيل الخطأ
-        error(f"Error loading page {page_name} (index {index}): {error}")
+        error(f"Error loading page {page_name} (index {index}): {error_obj}")
 
         # إنشاء صفحة خطأ
-        self._create_error_page(index, f"خطأ في تحميل {page_name}", str(error))
+        self._create_error_page(index, f"خطأ في تحميل {page_name}", str(error_obj))
 
     def _create_error_page(self, index, title, message):
         """إنشاء صفحة خطأ باستخدام المدراء"""

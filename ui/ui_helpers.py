@@ -3,7 +3,8 @@
 مساعدات لواجهة المستخدم - دوال لإنشاء عناصر واجهة مستخدم مشتركة
 """
 
-from PySide6.QtWidgets import QPushButton, QLabel, QDialog, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QComboBox
+from PySide6.QtWidgets import QPushButton, QLabel, QDialog, QVBoxLayout, QHBoxLayout, QSpacerItem, QSizePolicy, QComboBox, QWidget
+from PySide6.QtGui import QPainter, QColor, QLinearGradient
 from PySide6.QtCore import Signal
 from .theme_manager import apply_theme_style, global_theme_manager
 from modules.translator import tr

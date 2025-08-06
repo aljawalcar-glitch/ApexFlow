@@ -299,8 +299,26 @@ def get_widget_style(widget_type, colors, accent_color):
                 padding: 8px;
                 font-size: {font_settings["size"]}px;
                 font-family: {font_settings["family"]};
+                selection-background-color: {accent_color};
+                selection-color: white;
             }}
             QTextEdit:focus {{ border: 1px solid {accent_color}; }}
+        """
+
+    elif widget_type == "text_browser":
+        return f"""
+            QTextBrowser {{
+                background-color: transparent;
+                color: {colors["text_body"]};
+                border: none;
+                border-radius: 0px;
+                padding: 0px;
+                font-size: {font_settings["size"]}px;
+                font-family: {font_settings["family"]};
+                selection-background-color: {accent_color};
+                selection-color: white;
+            }}
+            QTextBrowser:focus {{ border: none; }}
         """
         
     elif widget_type == "list_widget":
@@ -513,6 +531,51 @@ def get_widget_style(widget_type, colors, accent_color):
             QCheckBox::indicator:checked {{ background: {accent_color}; border: 1px solid {darken_color(accent_color)}; }}
         """
 
+    elif widget_type == "spin_box":
+        return f"""
+            QSpinBox {{
+                background-color: {colors['surface']}; 
+                border: 1px solid {colors['border']}; 
+                border-radius: 6px; 
+                padding: 6px 8px; 
+                color: {colors['text_body']};
+                font-size: {font_settings['size']}px; 
+                font-family: {font_settings['family']};
+                min-width: 60px;
+            }}
+            QSpinBox:focus, QSpinBox:hover {{ 
+                border: 1px solid {accent_color}; 
+            }}
+            QSpinBox::up-button, QSpinBox::down-button {{
+                border: none;
+                width: 16px;
+                background: transparent;
+            }}
+            QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
+                background: rgba(255, 255, 255, 0.1);
+            }}
+            QSpinBox::up-arrow {{
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-bottom: 4px solid {colors['text_body']};
+                width: 0;
+                height: 0;
+            }}
+            QSpinBox::down-arrow {{
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 4px solid {colors['text_body']};
+                width: 0;
+                height: 0;
+            }}
+            QSpinBox::up-arrow:hover, QSpinBox::down-arrow:hover {{
+                border-bottom-color: {accent_color};
+                border-top-color: {accent_color};
+            }}
+        """
+
     elif widget_type == "combo":
         return f"""
             QComboBox {{
@@ -539,6 +602,34 @@ def get_widget_style(widget_type, colors, accent_color):
             }}
         """
 
+    elif widget_type == "tab_widget":
+        return f"""
+            QTabWidget::pane {{
+                border: 1px solid {colors["border"]};
+                background: {colors["surface"]};
+                border-radius: 6px;
+            }}
+            QTabBar::tab {{
+                background: {colors["surface"]};
+                color: {colors["text_body"]};
+                border: 1px solid {colors["border"]};
+                border-bottom: none;
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
+                padding: 8px 16px;
+                margin-right: 2px;
+            }}
+            QTabBar::tab:selected {{
+                background: {accent_color};
+                color: white;
+                border-color: {darken_color(accent_color)};
+            }}
+            QTabBar::tab:hover:!selected {{
+                background: {lighten_color(colors["surface"], 0.1)};
+                color: {colors["text_accent"]};
+            }}
+        """
+    
     elif widget_type == "tree_widget":
         return f"""
             QTreeWidget {{

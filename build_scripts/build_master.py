@@ -48,6 +48,7 @@ spec_data_files = [
     ('../data', 'data'),
     ('../modules/default_settings.json', 'modules'),
     ('../docs', 'docs'),
+    ('../config/requirements.txt', 'config'),
 ]
 
 spec_hidden_imports = [

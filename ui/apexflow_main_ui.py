@@ -288,7 +288,7 @@ class WelcomePage(QWidget):
             }}
             QFrame:hover {{
                 border-color: {accent};
-                background-color: rgba(45, 55, 72, 0.8);
+                background-color: {self.darken_color(colors["surface"], 0.1)};
             }}
         """)
 
@@ -404,7 +404,7 @@ class WelcomePage(QWidget):
             }}
             QFrame:hover {{
                 border-color: {accent};
-                background-color: rgba(45, 55, 72, 0.8);
+                background-color: {self.darken_color(colors["surface"], 0.1)};
             }}
         """)
 

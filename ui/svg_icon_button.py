@@ -112,16 +112,26 @@ class SVGIconButton(QPushButton):
             renderer = QSvgRenderer()
             renderer.load(svg_content.encode('utf-8'))
 
-            # إنشاء QPixmap
-            pixmap = QPixmap(self.icon_size, self.icon_size)
+            # إنشاء QPixmap بحجم مضاعف ثم تصغيره لتحسين الدقة
+            high_dpi_size = self.icon_size * 2
+            pixmap = QPixmap(high_dpi_size, high_dpi_size)
             pixmap.fill(Qt.transparent)
 
-            # رسم SVG على QPixmap
+            # رسم SVG على QPixmap بدقة عالية
             painter = QPainter(pixmap)
+            painter.setRenderHint(QPainter.Antialiasing, True)  # تحسين جودة الحواف
+            painter.setRenderHint(QPainter.SmoothPixmapTransform, True)  # تحسين جودة التحويل
             renderer.render(painter)
             painter.end()
+            
+            # تصغير الصورة للحجم الأصلي مع الحفاظ على الجودة
+            final_pixmap = pixmap.scaled(
+                self.icon_size, self.icon_size,
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation
+            )
 
-            return QIcon(pixmap)
+            return QIcon(final_pixmap)
 
         except Exception as e:
             print(f"خطأ في تحميل أيقونة SVG {svg_path}: {e}")
