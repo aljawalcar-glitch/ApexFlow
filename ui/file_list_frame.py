@@ -260,27 +260,24 @@ class FileListFrame(QFrame):
     
     def add_files(self, file_paths):
         """إضافة ملفات جديدة"""
-        added_files = []
+        # التأكد من أن القائمة مرئية قبل إضافة الملفات
+        if self.isHidden():
+            self.show()
+            self.animate_show()
+
         for file_path in file_paths:
+            # تجنب إضافة الملفات المكررة
             if file_path not in self.files:
                 self.files.append(file_path)
                 item = FileListItem(file_path)
                 self.file_list.addItem(item)
-                added_files.append(file_path)
 
-        if added_files:
-            self.update_display()
-            self.files_changed.emit(self.files)
-
-            # إظهار رسالة تأكيد
-            count = len(added_files)
-            if count == 1:
-                self.title_label.setText(tr("file_added_single"))
-            else:
-                self.title_label.setText(tr("file_added_plural", count=count))
-
-            # إعادة العنوان الأصلي بعد 3 ثوان
-            QTimer.singleShot(3000, lambda: self.title_label.setText(tr("selected_files_title")))
+        # تحديث العرض وإرسال الإشارة بعد إضافة جميع الملفات
+        self.update_display()
+        self.files_changed.emit(self.files)
+        
+        # فرض تحديث الواجهة الرسومية لضمان ظهور العناصر
+        QApplication.processEvents()
     
     def remove_file(self, file_path):
         """حذف ملف محدد"""

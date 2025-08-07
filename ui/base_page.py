@@ -75,6 +75,47 @@ class BasePageWidget(QWidget):
         # إعداد الاتصالات الأساسية
         self.file_list_frame.files_changed.connect(self.on_files_changed)
 
+        # تفعيل السحب والإفلات للصفحة بأكملها
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):
+        """معالجة دخول السحب إلى الصفحة"""
+        if event.mimeData().hasUrls():
+            # إظهار الطبقة الذكية بدلاً من معالجة الحدث هنا
+            main_window = self._get_main_window()
+            if main_window and hasattr(main_window, 'smart_drop_overlay'):
+                main_window.dragEnterEvent(event)
+                event.accept()
+            else:
+                event.ignore()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        """معالجة إفلات الملفات على الصفحة"""
+        # تمرير الحدث إلى النافذة الرئيسية لمعالجته عبر الطبقة الذكية
+        main_window = self._get_main_window()
+        if main_window:
+            main_window.dropEvent(event)
+            event.accept()
+        else:
+            event.ignore()
+
+    def _get_main_window(self):
+        """الحصول على النافذة الرئيسية للتطبيق"""
+        parent = self.parent()
+        while parent:
+            if parent.__class__.__name__ == 'ApexFlow':
+                return parent
+            parent = parent.parent()
+        
+        # كحل بديل إذا لم يتم العثور على النافذة الرئيسية
+        from PySide6.QtWidgets import QApplication
+        for widget in QApplication.topLevelWidgets():
+            if widget.__class__.__name__ == 'ApexFlow':
+                return widget
+        return None
+
     def add_top_button(self, text, on_click):
         """
         إضافة زر إلى شريط الأزرار العلوي (مثل زر اختيار الملفات).

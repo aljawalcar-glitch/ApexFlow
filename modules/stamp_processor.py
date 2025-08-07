@@ -6,10 +6,116 @@ Stamp Processor - Merge stamps with PDF files
 
 import fitz  # PyMuPDF
 from PySide6.QtGui import QPixmap, QPainter, QImage, QTransform
-from PySide6.QtCore import Qt, QRectF
+from PySide6.QtCore import Qt, QRectF, QObject, Signal
 import tempfile
 import os
 from .coordinate_calibrator import CoordinateCalibrator, validate_coordinates
+
+class StampWorker(QObject):
+    """
+    عامل لمعالجة وحفظ PDF في خيط منفصل لتجنب تجميد الواجهة.
+    """
+    progress = Signal(int, int)  # (current_page, total_pages)
+    finished = Signal(bool, str, dict)  # (success, output_path, summary)
+    error = Signal(str)
+
+    def __init__(self, input_path, output_path, page_rotations, page_stamps, view_rect, scene_rect):
+        super().__init__()
+        self.input_path = input_path
+        self.output_path = output_path
+        self.page_rotations = page_rotations
+        self.page_stamps = page_stamps
+        self.view_rect = view_rect
+        self.scene_rect = scene_rect
+        self.is_cancelled = False
+
+    def cancel(self):
+        """إلغاء العملية"""
+        self.is_cancelled = True
+
+    def run(self):
+        """
+        تشغيل عملية حفظ PDF مع الأختام.
+        """
+        try:
+            print(f"بدء الحفظ في خيط منفصل: {self.input_path} -> {self.output_path}")
+            
+            input_doc = fitz.open(self.input_path)
+            output_doc = fitz.open()
+            temp_files = []
+            total_pages = len(input_doc)
+
+            for page_num in range(total_pages):
+                if self.is_cancelled:
+                    print(f"تم إلغاء العملية عند الصفحة {page_num + 1}")
+                    self.finished.emit(False, "", {})
+                    return
+
+                print(f"\n--- معالجة الصفحة {page_num + 1}/{total_pages} ---")
+                self.progress.emit(page_num, total_pages)
+
+                page = input_doc[page_num]
+                rotation = self.page_rotations.get(page_num, 0)
+                stamps = self.page_stamps.get(page_num, [])
+
+                zoom_matrix = fitz.Matrix(3, 3)
+                page_pixmap_fitz = page.get_pixmap(matrix=zoom_matrix)
+                
+                image_format = QImage.Format_RGBA8888 if page_pixmap_fitz.alpha else QImage.Format_RGB888
+                qimage = QImage(page_pixmap_fitz.samples, page_pixmap_fitz.width, page_pixmap_fitz.height, page_pixmap_fitz.stride, image_format)
+                page_pixmap = QPixmap.fromImage(qimage)
+
+                if rotation != 0:
+                    transform = QTransform().rotate(rotation)
+                    page_pixmap = page_pixmap.transformed(transform, Qt.SmoothTransformation)
+
+                if stamps:
+                    final_pixmap = create_stamped_image(page_pixmap, stamps, self.scene_rect)
+                else:
+                    final_pixmap = page_pixmap
+
+                temp_image_path = os.path.join(tempfile.gettempdir(), f"stamped_page_{page_num}.png")
+                if not final_pixmap.save(temp_image_path, "PNG"):
+                    raise Exception(f"فشل حفظ الصورة المؤقتة: {temp_image_path}")
+                temp_files.append(temp_image_path)
+
+                img_doc = fitz.open(temp_image_path)
+                pdf_bytes = img_doc.convert_to_pdf()
+                img_pdf_doc = fitz.open("pdf", pdf_bytes)
+                output_doc.insert_pdf(img_pdf_doc)
+                img_doc.close()
+                img_pdf_doc.close()
+
+            if self.is_cancelled:
+                self.finished.emit(False, "", {})
+                return
+
+            self.progress.emit(total_pages, total_pages)
+
+            if len(output_doc) > 0:
+                output_doc.save(self.output_path, garbage=4, deflate=True, clean=True)
+                summary = get_stamp_summary(self.page_stamps)
+                self.finished.emit(True, self.output_path, summary)
+            else:
+                self.finished.emit(False, "", {})
+
+        except Exception as e:
+            error_msg = f"خطأ فادح في حفظ PDF: {e}"
+            print(f"❌ {error_msg}")
+            import traceback
+            print(f"تفاصيل الخطأ: {traceback.format_exc()}")
+            self.error.emit(error_msg)
+        finally:
+            if 'output_doc' in locals() and output_doc:
+                output_doc.close()
+            if 'input_doc' in locals() and input_doc:
+                input_doc.close()
+            
+            for f in temp_files:
+                try:
+                    os.remove(f)
+                except OSError:
+                    pass
 
 def save_pdf_with_stamps(input_path, output_path, page_rotations, page_stamps, view_rect=None, scene_rect=None):
     """

@@ -5,7 +5,7 @@
 
 from PySide6.QtWidgets import (QApplication, QVBoxLayout, QHBoxLayout, QGraphicsView, QGraphicsScene, QLabel, QFileDialog, QMessageBox, QGraphicsOpacityEffect, QProgressBar, QGraphicsPixmapItem, QGraphicsSceneWheelEvent)
 from PySide6.QtGui import QPixmap, QImage, QTransform, QCursor, QBrush, QPainter
-from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer
+from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer, QThread
 import fitz  # PyMuPDF
 from .interactive_stamp import InteractiveStamp
 from .svg_icon_button import create_navigation_button, create_action_button
@@ -17,6 +17,7 @@ from modules.translator import tr, register_language_change_callback
 from .lazy_loader import global_page_loader
 from .smart_cache import pdf_cache
 from .pdf_worker import global_worker_manager
+from modules.stamp_processor import StampWorker
 
 class InteractiveGraphicsView(QGraphicsView):
     """QGraphicsView مخصص للتعامل مع الختم التفاعلي"""
@@ -91,6 +92,9 @@ class RotatePage(QWidget):
     def __init__(self, notification_manager, file_path=None, parent=None):
         super().__init__(parent)
         self.theme_handler = make_theme_aware(self, "rotate_page")
+
+        # تفعيل السحب والإفلات
+        self.setAcceptDrops(True)
         
         self.notification_manager = notification_manager
         self.file_path = file_path
@@ -661,93 +665,104 @@ class RotatePage(QWidget):
             self.show_page(use_transition=False)  # لا انتقال عند إعادة التعيين
 
     def save_file(self):
-        """حفظ الملف المُدوَّر"""
+        """حفظ الملف المُدوَّر باستخدام خيط منفصل."""
         if not self.file_path or not self.pages:
             self.notification_manager.show_notification(tr("no_file_to_save"), "warning")
             return
 
-        # اختيار مكان الحفظ
+        if not self.has_unsaved_changes:
+            self.notification_manager.show_notification(tr("no_changes_to_save"), "info")
+            return
+
         import os
-        # مجلد Documents كافتراضي مع اسم الملف
         default_dir = os.path.join(os.path.expanduser("~"), "Documents")
         filename = os.path.basename(self.file_path).replace('.pdf', '_rotated.pdf')
         default_path = os.path.join(default_dir, filename)
 
         save_path, _ = QFileDialog.getSaveFileName(
-            self,
-            tr("save_file_title"),
-            default_path,
-            tr("pdf_files_filter_rotate")
+            self, tr("save_file_title"), default_path, tr("pdf_files_filter_rotate")
         )
 
         if not save_path:
             return
 
-        try:
-            # استخدام وحدة التدوير لحفظ الملف
-            from modules.rotate import rotate_specific_pages
+        # إعداد شريط التقدم
+        if not self.progress_bar:
+            self.progress_bar = QProgressBar(self)
+            self.progress_bar.setRange(0, 100)
+            self.progress_bar.setValue(0)
+            self.progress_bar.setTextVisible(True)
+            # إضافة شريط التقدم إلى التخطيط السفلي
+            self.buttons_layout.insertWidget(self.buttons_layout.count() - 1, self.progress_bar, 1)
+        
+        self.progress_bar.setVisible(True)
+        self.set_buttons_enabled(False)
 
-            # تجميع الصفحات التي تم تدويرها
+        # إنشاء وتشغيل العامل
+        self.thread = QThread()
+        self.worker = StampWorker(
+            self.file_path,
+            save_path,
+            self.page_rotations,
+            self.stamps,
+            self.view.viewport().rect(),
+            self.view.sceneRect()
+        )
+        self.worker.moveToThread(self.thread)
+
+        # ربط الإشارات
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.on_save_finished)
+        self.worker.error.connect(self.on_save_error)
+        self.worker.progress.connect(self.on_save_progress)
+        
+        # تنظيف عند الانتهاء
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+
+        self.thread.start()
+
+    def set_buttons_enabled(self, enabled):
+        """تفعيل أو تعطيل أزرار التحكم أثناء الحفظ."""
+        self.prev_btn.setEnabled(enabled)
+        self.next_btn.setEnabled(enabled)
+        self.rotate_left_btn.setEnabled(enabled)
+        self.rotate_right_btn.setEnabled(enabled)
+        self.stamp_btn.setEnabled(enabled)
+        self.reset_btn.setEnabled(enabled)
+        self.save_btn.setEnabled(enabled)
+        self.file_btn.setEnabled(enabled)
+
+    def on_save_progress(self, current_page, total_pages):
+        """تحديث شريط التقدم."""
+        if total_pages > 0:
+            progress_value = int((current_page / total_pages) * 100)
+            self.progress_bar.setValue(progress_value)
+            self.progress_bar.setFormat(f"{tr('saving_progress')} {progress_value}%")
+
+    def on_save_finished(self, success, output_path, summary):
+        """معالجة انتهاء عملية الحفظ."""
+        self.progress_bar.setVisible(False)
+        self.set_buttons_enabled(True)
+
+        if success:
             rotations_to_apply = [
                 (i + 1, angle) for i, angle in self.page_rotations.items() if angle != 0
             ]
+            message = tr("save_success_summary", path=output_path, rotated_count=len(rotations_to_apply), stamp_count=summary['total_stamps'], page_count=summary['total_pages_with_stamps'])
+            self.notification_manager.show_notification(message, "success", duration=5000)
+            self.reset_ui()
+        else:
+            # قد يكون الإلغاء هو السبب، لا نظهر رسالة خطأ
+            if not (hasattr(self.worker, 'is_cancelled') and self.worker.is_cancelled):
+                 self.notification_manager.show_notification(tr("save_failed"), "error")
 
-            if not self.has_unsaved_changes:
-                self.notification_manager.show_notification(tr("no_changes_to_save"), "info")
-                return
-
-            # طباعة معلومات التصحيح
-            print("--- DEBUG: بيانات الأختام قبل الحفظ ---")
-            if not self.stamps:
-                print("لا توجد أختام للحفظ.")
-            else:
-                for page_num, stamps_list in self.stamps.items():
-                    print(f"  الصفحة {page_num}: {len(stamps_list)} ختم")
-                    if not stamps_list:
-                        print("    قائمة الأختام فارغة.")
-                        continue
-                    for i, stamp_item in enumerate(stamps_list):
-                        try:
-                            stamp_data = stamp_item.get_stamp_data()
-                            print(f"    - الختم {i}: {stamp_data}")
-                        except Exception as e:
-                            print(f"    - خطأ في الحصول على بيانات الختم {i}: {e}")
-            print("--- نهاية DEBUG ---")
-
-            # --- بداية التعديل لإصلاح مشكلة الختم في الصفحات العرضية ---
-            # الحصول على أبعاد العرض والمشهد لتمريرها للمعالج
-            view_rect = self.view.viewport().rect()
-            scene_rect = self.view.sceneRect()
-
-            print(f"أبعاد العرض (Viewport): {view_rect.width()}x{view_rect.height()}")
-            print(f"أبعاد المشهد (Scene): {scene_rect.width()}x{scene_rect.height()}")
-
-            # حفظ الملف مع التدوير والأختام وتمرير الأبعاد الجديدة
-            from modules.stamp_processor import save_pdf_with_stamps
-            success = save_pdf_with_stamps(
-                self.file_path, 
-                save_path, 
-                self.page_rotations, 
-                self.stamps,
-                view_rect=view_rect,
-                scene_rect=scene_rect
-            )
-            # --- نهاية التعديل ---
-
-            if success:
-                # إظهار ملخص العملية
-                from modules.stamp_processor import get_stamp_summary
-                stamp_summary = get_stamp_summary(self.stamps)
-
-                message = tr("save_success_summary", path=save_path, rotated_count=len(rotations_to_apply), stamp_count=stamp_summary['total_stamps'], page_count=stamp_summary['total_pages_with_stamps'])
-                
-                self.notification_manager.show_notification(message, "success", duration=5000)
-                self.reset_ui()
-            else:
-                self.notification_manager.show_notification(tr("save_failed"), "error")
-
-        except Exception as e:
-            self.notification_manager.show_notification(tr("save_error", error=str(e)), "error")
+    def on_save_error(self, error_message):
+        """معالجة خطأ أثناء الحفظ."""
+        self.progress_bar.setVisible(False)
+        self.set_buttons_enabled(True)
+        self.notification_manager.show_notification(tr("save_error", error=error_message), "error")
 
     def open_stamp_manager(self):
         """فتح نافذة إدارة الأختام"""
@@ -971,3 +986,58 @@ class RotatePage(QWidget):
         main_window = self._get_main_window()
         if main_window:
             main_window.set_page_has_work(main_window.get_page_index(self), False)
+
+    def dragEnterEvent(self, event):
+        """عند دخول ملفات مسحوبة إلى منطقة الصفحة"""
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        """عند إفلات الملفات في منطقة الصفحة"""
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            files = [url.toLocalFile() for url in urls if url.isLocalFile()]
+            
+            if files:
+                main_window = self._get_main_window()
+                if main_window and hasattr(main_window, 'smart_drop_overlay'):
+                    # تحديث وضع الطبقة الذكية بناءً على الصفحة الحالية
+                    main_window._update_smart_drop_mode_for_page(main_window.stack.currentIndex())
+                    
+                    # تعيين الملفات والتحقق من صحتها
+                    main_window.smart_drop_overlay.files = files
+                    main_window.smart_drop_overlay.is_valid_drop = main_window.smart_drop_overlay._validate_files_for_context(files)
+                    
+                    # تعطيل النافذة الرئيسية بالكامل عند تفعيل واجهة الافلات
+                    main_window.setEnabled(False)
+                    
+                    # التقاط وتطبيق تأثير البلور على الخلفية
+                    main_window.smart_drop_overlay.capture_background_blur()
+                    main_window.smart_drop_overlay.update_styles()
+                    main_window.smart_drop_overlay.update_ui_for_context()
+                    
+                    # إظهار الطبقة مع تأثير انتقالي سلس
+                    main_window.smart_drop_overlay.animate_show()
+                    
+                    # معالجة الإفلات
+                    main_window.smart_drop_overlay.handle_drop(event)
+                    event.acceptProposedAction()
+                else:
+                    event.ignore()
+            else:
+                event.ignore()
+        else:
+            event.ignore()
+
+    def add_files(self, files):
+        """إضافة ملفات مباشرة إلى القائمة (للسحب والإفلات)"""
+        if files:
+            # صفحة التدوير تقبل ملف واحد فقط
+            self.load_pdf(files[0])
+
+    def handle_smart_drop_action(self, action_type, files):
+        """معالجة الإجراء المحدد من الطبقة الذكية"""
+        if action_type == "add_to_list":
+            self.add_files(files)

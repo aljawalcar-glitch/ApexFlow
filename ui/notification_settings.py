@@ -23,89 +23,94 @@ class NotificationSettingsWidget(QWidget):
 
     def setup_ui(self):
         """Set up the user interface for notification settings."""
+        from PySide6.QtWidgets import QFrame
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(20)
-
-        # Notification Visibility Settings
-        visibility_title = QLabel(tr("notification_visibility_settings"))
-        apply_theme_style(visibility_title, "title_text")
-        layout.addWidget(visibility_title)
-
-        visibility_layout = QVBoxLayout()
-        visibility_layout.setSpacing(10)
-        visibility_layout.setContentsMargins(20, 10, 20, 10)
+        layout.setSpacing(15)
 
         self.notification_checkboxes = {}
-        notification_types = ["success", "warning", "error", "info"]
-        for notif_type in notification_types:
-            checkbox = QCheckBox(tr(f"show_{notif_type}_notifications"))
-            apply_theme_style(checkbox, "checkbox")
-            visibility_layout.addWidget(checkbox)
-            self.notification_checkboxes[notif_type] = checkbox
 
-        layout.addLayout(visibility_layout)
-
-        # Notification Storage Settings
-        memory_title = QLabel(tr("notification_storage_settings"))
-        apply_theme_style(memory_title, "title_text")
-        layout.addWidget(memory_title)
-
-        memory_layout = QVBoxLayout()
-        memory_layout.setSpacing(10)
-        memory_layout.setContentsMargins(20, 10, 20, 10)
-
-        memory_checkbox = QCheckBox(tr("do_not_save_notifications"))
-        apply_theme_style(memory_checkbox, "checkbox")
-        memory_layout.addWidget(memory_checkbox)
-        self.notification_checkboxes["do_not_save"] = memory_checkbox
-
-        layout.addLayout(memory_layout)
-
-        # General Notification Settings
+        # --- General Settings ---
         general_title = QLabel(tr("notification_general_settings"))
         apply_theme_style(general_title, "title_text")
         layout.addWidget(general_title)
 
-        general_layout = QFormLayout()
+        general_frame = QFrame()
+        general_layout = QHBoxLayout(general_frame)
+        general_layout.setContentsMargins(10, 5, 10, 5)
         general_layout.setSpacing(15)
-        general_layout.setLabelAlignment(Qt.AlignRight)
-        general_layout.setContentsMargins(20, 10, 20, 10)
+        apply_theme_style(general_frame, "hlayout")
 
         self.enable_notifications = QCheckBox(tr("enable_notifications"))
+        self.enable_notifications.setLayoutDirection(Qt.RightToLeft)
         apply_theme_style(self.enable_notifications, "checkbox")
-        general_layout.addRow(self.enable_notifications)
+        general_layout.addWidget(self.enable_notifications)
+        
+        general_layout.addStretch()
 
-        # Notification Sound
-        notification_sound_layout = QHBoxLayout()
         notification_sound_label = QLabel(tr("notification_sound"))
         apply_theme_style(notification_sound_label, "label")
         self.notification_sound = QComboBox()
         self.notification_sound.addItems([tr("notification_sound_default"), tr("notification_sound_none")])
         apply_theme_style(self.notification_sound, "combo")
-        notification_sound_layout.addWidget(notification_sound_label)
-        notification_sound_layout.addWidget(self.notification_sound)
-        notification_sound_layout.addStretch()
-        general_layout.addRow(notification_sound_layout)
+        general_layout.addWidget(notification_sound_label)
+        general_layout.addWidget(self.notification_sound)
 
-        # Notification Duration
-        notification_duration_layout = QHBoxLayout()
         notification_duration_label = QLabel(tr("notification_duration"))
         apply_theme_style(notification_duration_label, "label")
         self.notification_duration = QSpinBox()
         self.notification_duration.setRange(1, 10)
-        self.notification_duration.setSuffix(tr("seconds_suffix"))
+        self.notification_duration.setSuffix(f" {tr('seconds_suffix')}")
         apply_theme_style(self.notification_duration, "spin_box")
-        notification_duration_layout.addWidget(notification_duration_label)
-        notification_duration_layout.addWidget(self.notification_duration)
-        notification_duration_layout.addStretch()
-        general_layout.addRow(notification_duration_layout)
+        general_layout.addWidget(notification_duration_label)
+        general_layout.addWidget(self.notification_duration)
+        
+        layout.addWidget(general_frame)
 
-        layout.addLayout(general_layout)
+        # --- Visibility Settings ---
+        visibility_title = QLabel(tr("notification_visibility_settings"))
+        apply_theme_style(visibility_title, "title_text")
+        layout.addWidget(visibility_title)
+
+        visibility_frame = QFrame()
+        visibility_layout = QHBoxLayout(visibility_frame)
+        visibility_layout.setContentsMargins(10, 5, 10, 5)
+        visibility_layout.setSpacing(15)
+        apply_theme_style(visibility_frame, "hlayout")
+
+        notification_types = ["success", "warning", "error", "info"]
+        for notif_type in notification_types:
+            checkbox = QCheckBox(tr(f"show_{notif_type}_notifications"))
+            checkbox.setLayoutDirection(Qt.RightToLeft)
+            apply_theme_style(checkbox, "checkbox")
+            visibility_layout.addWidget(checkbox)
+            self.notification_checkboxes[notif_type] = checkbox
+        visibility_layout.addStretch()
+        layout.addWidget(visibility_frame)
+
+        # --- Storage Settings ---
+        memory_title = QLabel(tr("notification_storage_settings"))
+        apply_theme_style(memory_title, "title_text")
+        layout.addWidget(memory_title)
+
+        memory_frame = QFrame()
+        memory_layout = QHBoxLayout(memory_frame)
+        memory_layout.setContentsMargins(10, 5, 10, 5)
+        apply_theme_style(memory_frame, "hlayout")
+        
+        memory_checkbox = QCheckBox(tr("do_not_save_notifications"))
+        memory_checkbox.setLayoutDirection(Qt.RightToLeft)
+        apply_theme_style(memory_checkbox, "checkbox")
+        memory_layout.addWidget(memory_checkbox)
+        self.notification_checkboxes["do_not_save"] = memory_checkbox
+        memory_layout.addStretch()
+        layout.addWidget(memory_frame)
 
         # Save and Cancel Buttons
-        buttons_layout = QHBoxLayout()
+        buttons_frame = QFrame()
+        buttons_layout = QHBoxLayout(buttons_frame)
         buttons_layout.setSpacing(15)
+        apply_theme_style(buttons_frame, "hlayout")
         save_button = QPushButton(tr("save_all_changes_button"))
         apply_theme_style(save_button, "button")
         save_button.clicked.connect(self.save_settings)
@@ -149,10 +154,10 @@ class NotificationSettingsWidget(QWidget):
 
             global_notification_manager.update_notification_settings(new_settings)
             global_notification_manager.show_notification(
-                self.parent(), tr("notification_settings_saved"), "success"
+                tr("notification_settings_saved"), "success"
             )
         except Exception as e:
             from ui.notification_system import global_notification_manager
             global_notification_manager.show_notification(
-                self.parent(), tr("error_saving_notification_settings", error=str(e)), "error"
+                tr("error_saving_notification_settings", error=str(e)), "error"
             )

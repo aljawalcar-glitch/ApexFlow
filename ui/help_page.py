@@ -11,11 +11,13 @@ sys.path.insert(0, project_root)
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTextBrowser, QPushButton,
-    QTabWidget, QStackedWidget, QScrollArea, QFrame, QMessageBox, QComboBox, QTextEdit
+    QTabWidget, QStackedWidget, QScrollArea, QFrame, QMessageBox, QComboBox, QTextEdit,
+    QFormLayout, QCheckBox, QSpinBox
 )
 from PySide6.QtCore import Qt, Signal, QTimer, QThread
 from PySide6.QtGui import QTextCursor
 
+from .svg_icon_button import create_action_button
 from .theme_manager import apply_theme_style
 from .notification_system import show_success, show_info, show_error
 from modules.translator import tr
@@ -469,17 +471,27 @@ class HelpPage(QWidget):
         tab_layout.addWidget(scroll_area)
 
         # محتوى المساعدة - تحميل متأخر لتحسين الأداء
-        help_content = QTextBrowser()
-        layout.addWidget(help_content)
+        self.help_content_browser = QTextBrowser()
+        layout.addWidget(self.help_content_browser)
 
         # تطبيق السمة وتحميل المحتوى بشكل متأخر لتسريع العرض الأولي
         QTimer.singleShot(150, lambda: [
-            apply_theme_style(help_content, "text_browser"),
-            self.typewriter_effect(help_content, tr("help_content"))
+            apply_theme_style(self.help_content_browser, "text_browser"),
+            self.typewriter_effect(self.help_content_browser, tr("help_content"))
         ])
 
     def typewriter_effect(self, text_browser, html_content, speed=20):
         """تأثير الكتابة الآلية للنص مع الحفاظ على التنسيق"""
+        # الحصول على إعدادات حركة النص
+        enable_animation = get_setting("enable_text_animation", True)
+        animation_speed = get_setting("text_animation_speed", 20)
+        
+        # إذا كانت حركة النص معطلة، عرض النص كاملاً مباشرة
+        if not enable_animation:
+            text_browser.setHtml(html_content)
+            text_browser.setVisible(True)
+            return
+            
         # إخفاء النص أولاً
         text_browser.setHtml("")
         text_browser.setVisible(True)
@@ -488,12 +500,12 @@ class HelpPage(QWidget):
         self.typewriter_index = 0
         self.typewriter_html = html_content
         self.typewriter_browser = text_browser
-        self.typewriter_speed = speed
+        self.typewriter_speed = animation_speed
 
         # بدء المؤقت لتأثير الكتابة
         self.typewriter_timer = QTimer()
         self.typewriter_timer.timeout.connect(self.typewriter_next_char)
-        self.typewriter_timer.start(speed)
+        self.typewriter_timer.start(animation_speed)
 
     def typewriter_next_char(self):
         """عرض الحرف التالي في تأثير الكتابة مع الحفاظ على التنسيق"""
@@ -604,6 +616,70 @@ class HelpPage(QWidget):
             error_widget.setStyleSheet("color: #ff6b6b; padding: 20px;")
             apply_theme_style(error_widget, "error_label")
             layout.addWidget(error_widget)
+
+        # إعدادات حركة النص
+        text_animation_title = QLabel(tr("text_animation_settings"))
+        apply_theme_style(text_animation_title, "title_text")
+        layout.addWidget(text_animation_title)
+
+        # حاوية أفقية لعناصر التحكم
+        controls_frame = QFrame()
+        controls_layout = QHBoxLayout(controls_frame)
+        controls_layout.setContentsMargins(10, 5, 10, 5)
+        controls_layout.setSpacing(15)
+
+        # خيار تفعيل/تعطيل حركة النص مع النص المدمج
+        self.enable_text_animation = QCheckBox(tr("enable_text_animation"))
+        self.enable_text_animation.setChecked(get_setting("enable_text_animation", True))
+        self.enable_text_animation.stateChanged.connect(self.save_text_animation_settings)
+        
+        # تطبيق السمة أولاً
+        apply_theme_style(self.enable_text_animation, "checkbox")
+        
+        # فرض اتجاه التخطيط واللون الصحيحين
+        from .theme_manager import global_theme_manager
+        current_colors = global_theme_manager.get_current_colors()
+        text_color = current_colors.get("text_body", "white")
+        
+        self.enable_text_animation.setLayoutDirection(Qt.RightToLeft)
+        self.enable_text_animation.setStyleSheet(
+            self.enable_text_animation.styleSheet() + f"color: {text_color}; background: transparent;"
+        )
+        
+        controls_layout.addWidget(self.enable_text_animation)
+
+        # فاصل بصري
+        separator = QFrame()
+        separator.setFrameShape(QFrame.VLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        apply_theme_style(separator, "separator")
+        controls_layout.addWidget(separator)
+
+        # خيار سرعة حركة النص
+        speed_label = QLabel(tr("text_animation_speed"))
+        apply_theme_style(speed_label, "label")
+        controls_layout.addWidget(speed_label)
+
+        self.text_animation_speed = QSpinBox()
+        self.text_animation_speed.setRange(1, 100)
+        self.text_animation_speed.setValue(get_setting("text_animation_speed", 20))
+        apply_theme_style(self.text_animation_speed, "spin_box")
+        self.text_animation_speed.valueChanged.connect(self.save_text_animation_settings)
+        controls_layout.addWidget(self.text_animation_speed)
+
+        ms_label = QLabel(tr("milliseconds"))
+        apply_theme_style(ms_label, "label")
+        controls_layout.addWidget(ms_label)
+
+        # مساحة مرنة لدفع زر المعاينة إلى اليمين
+        controls_layout.addStretch()
+
+        # زر معاينة تأثير حركة النص باستخدام أيقونة SVG
+        self.preview_button = create_action_button("play", tooltip=tr("preview_text_animation"))
+        self.preview_button.clicked.connect(self.preview_text_animation)
+        controls_layout.addWidget(self.preview_button)
+
+        layout.addWidget(controls_frame)
 
     def setup_diagnostics_tab(self):
         """إعداد تبويب التشخيص عن طريق تضمين واجهة التشخيص الكاملة"""
@@ -1261,6 +1337,63 @@ class HelpPage(QWidget):
         from .notification_system import show_info
         show_info(tr("log_retention_setting_saved"))
 
+    def save_text_animation_settings(self):
+        """حفظ إعدادات حركة النص"""
+        enabled = self.enable_text_animation.isChecked()
+        speed = self.text_animation_speed.value()
+        
+        set_setting("enable_text_animation", enabled)
+        set_setting("text_animation_speed", speed)
+        
+        # تطبيق الإعدادات على تأثير الكتابة الحالي إذا كان نشطاً
+        if hasattr(self, "typewriter_timer") and self.typewriter_timer.isActive():
+            self.typewriter_timer.stop()
+            if enabled:
+                self.typewriter_timer.start(speed)
+                
+        from .notification_system import show_success
+        show_success(tr("text_animation_settings_saved"))
+        
+    def cancel_text_animation_settings(self):
+        """إلغاء التغييرات في إعدادات حركة النص واستعادة القيم الأصلية"""
+        # استعادة القيم الأصلية من الإعدادات
+        original_enabled = get_setting("enable_text_animation", True)
+        original_speed = get_setting("text_animation_speed", 20)
+        
+        # تحديث واجهة المستخدم بالقيم الأصلية
+        self.enable_text_animation.setChecked(original_enabled)
+        self.text_animation_speed.setValue(original_speed)
+        
+        from .notification_system import show_info
+        show_info(tr("changes_canceled"))
+        
+    def preview_text_animation(self):
+        """معاينة تأثير حركة النص بالانتقال إلى تبويب المساعدة وتشغيل التأثير"""
+        # حفظ الإعدادات الحالية أولاً
+        self.save_text_animation_settings()
+        
+        # الانتقال إلى تبويب المساعدة وتحديث المؤشر
+        if hasattr(self, "tabs_container") and hasattr(self, "step_indicator"):
+            self.step_indicator.set_current_step(0)
+            self.tabs_container.setCurrentIndex(0)
+        
+        # التأكد من تحميل تبويب المساعدة
+        if not self.help_tab_loaded:
+            self.setup_help_tab()
+            self.help_tab_loaded = True
+        
+        # العثور على عنصر عرض النص في تبويب المساعدة وتشغيل التأثير
+        if hasattr(self, "help_content_browser") and self.help_content_browser:
+            # إعادة تعيين التأثير الحالي إذا كان نشطاً
+            if hasattr(self, "typewriter_timer") and self.typewriter_timer.isActive():
+                self.typewriter_timer.stop()
+            
+            # تطبيق تأثير الكتابة الجديد
+            self.typewriter_effect(self.help_content_browser, tr("help_content"))
+        
+        from .notification_system import show_info
+        show_info(tr("previewing_text_animation"))
+        
     def cleanup_workers(self):
         """تنظيف جميع العمال الخيطيين عند إغلاق التبويب"""
         # إيقاف عامل التشخيص

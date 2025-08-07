@@ -29,6 +29,9 @@ class SplitPage(BasePageWidget):
             notification_manager=notification_manager,
             parent=parent
         )
+        
+        # تفعيل السحب والإفلات
+        self.setAcceptDrops(True)
 
         self.file_manager = file_manager
         self.operations_manager = operations_manager
@@ -106,7 +109,7 @@ class SplitPage(BasePageWidget):
         self.save_and_split_layout.addWidget(self.split_button_frame, 0)  # مساحة صغيرة
 
         # إضافة الـ widget للتخطيط الرئيسي
-        self.main_layout.addWidget(self.save_and_split_widget)
+        self.main_layout.insertWidget(2, self.save_and_split_widget)
 
     def select_file_for_splitting(self):
         """
@@ -281,3 +284,68 @@ class SplitPage(BasePageWidget):
         main_window = self._get_main_window()
         if main_window:
             main_window.set_page_has_work(main_window.get_page_index(self), False)
+
+    def dragEnterEvent(self, event):
+        """عند دخول ملفات مسحوبة إلى منطقة الصفحة"""
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        """عند إفلات الملفات في منطقة الصفحة"""
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            files = [url.toLocalFile() for url in urls if url.isLocalFile()]
+            
+            if files:
+                main_window = self._get_main_window()
+                if main_window and hasattr(main_window, 'smart_drop_overlay'):
+                    # تحديث وضع الطبقة الذكية بناءً على الصفحة الحالية
+                    main_window._update_smart_drop_mode_for_page(main_window.stack.currentIndex())
+                    
+                    # تعيين الملفات والتحقق من صحتها
+                    main_window.smart_drop_overlay.files = files
+                    main_window.smart_drop_overlay.is_valid_drop = main_window.smart_drop_overlay._validate_files_for_context(files)
+                    
+                    # تعطيل النافذة الرئيسية بالكامل عند تفعيل واجهة الافلات
+                    main_window.setEnabled(False)
+                    
+                    # التقاط وتطبيق تأثير البلور على الخلفية
+                    main_window.smart_drop_overlay.capture_background_blur()
+                    main_window.smart_drop_overlay.update_styles()
+                    main_window.smart_drop_overlay.update_ui_for_context()
+                    
+                    # إظهار الطبقة مع تأثير انتقالي سلس
+                    main_window.smart_drop_overlay.animate_show()
+                    
+                    # معالجة الإفلات
+                    main_window.smart_drop_overlay.handle_drop(event)
+                    event.acceptProposedAction()
+                else:
+                    event.ignore()
+            else:
+                event.ignore()
+        else:
+            event.ignore()
+            
+    def add_files(self, files):
+        """إضافة ملفات مباشرة إلى القائمة (للسحب والإفلات)"""
+        if files:
+            # صفحة التقسيم تقبل ملف واحد فقط
+            file = files[0]
+            if os.path.exists(file):
+                self.current_file_path = file
+                self.file_list_frame.add_files([file])
+                self.has_unsaved_changes = True
+                self.create_auto_save_path(file)
+                self.save_and_split_widget.setVisible(True)
+                file_name = os.path.basename(file)
+                self.notification_manager.show_notification(f"{tr('file_selected_for_splitting')}: {file_name}", "info", duration=3000)
+            else:
+                self.notification_manager.show_notification(f"{tr('file_not_found')}: {file}", "error")
+
+    def handle_smart_drop_action(self, action_type, files):
+        """معالجة الإجراء المحدد من الطبقة الذكية"""
+        if action_type == "add_to_list":
+            self.add_files(files)

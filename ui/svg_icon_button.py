@@ -196,6 +196,72 @@ def create_rotation_button(direction, size=24, tooltip=""):
     # السمة تطبق تلقائياً في constructor
     return button
 
+def load_svg_icon(icon_name, size=24, color="#ffffff", theme="default"):
+    """
+    تحميل أيقونة SVG وإرجاعها كـ QPixmap
+    Load SVG icon and return it as QPixmap
+    """
+    import sys
+    import os
+    from PySide6.QtGui import QPixmap, QPainter
+    from PySide6.QtCore import Qt
+    from PySide6.QtSvg import QSvgRenderer
+    
+    # الحصول على مسار الأيقونة
+    if getattr(sys, 'frozen', False):
+        # المسار داخل الملف التنفيذي
+        base_path = os.path.join(sys._MEIPASS, "assets", "icons")
+    else:
+        # المسار في بيئة التطوير
+        base_path = "assets/icons"
+    
+    icon_path = os.path.join(base_path, theme, f"{icon_name}.svg")
+    
+    # fallback إلى السمة الافتراضية
+    if not os.path.exists(icon_path):
+        icon_path = os.path.join(base_path, "default", f"{icon_name}.svg")
+    
+    if not os.path.exists(icon_path):
+        return None
+    
+    try:
+        # قراءة محتوى SVG
+        with open(icon_path, 'r', encoding='utf-8') as file:
+            svg_content = file.read()
+        
+        # استبدال currentColor باللون المطلوب
+        svg_content = svg_content.replace('currentColor', color)
+        
+        # إنشاء QSvgRenderer
+        renderer = QSvgRenderer()
+        renderer.load(svg_content.encode('utf-8'))
+        
+        # إنشاء QPixmap بحجم مضاعف ثم تصغيره لتحسين الدقة
+        high_dpi_size = size * 2
+        pixmap = QPixmap(high_dpi_size, high_dpi_size)
+        pixmap.fill(Qt.transparent)
+        
+        # رسم SVG على QPixmap بدقة عالية
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.Antialiasing, True)  # تحسين جودة الحواف
+        painter.setRenderHint(QPainter.SmoothPixmapTransform, True)  # تحسين جودة التحويل
+        renderer.render(painter)
+        painter.end()
+        
+        # تصغير الصورة للحجم الأصلي مع الحفاظ على الجودة
+        final_pixmap = pixmap.scaled(
+            size, size,
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation
+        )
+        
+        return final_pixmap
+    
+    except Exception as e:
+        print(f"خطأ في تحميل أيقونة SVG {icon_path}: {e}")
+        return None
+
+
 def create_action_button(action, size=24, tooltip=""):
     """إنشاء زر إجراء (حفظ، حذف، إلخ) مع لون السمة"""
     action_icons = {

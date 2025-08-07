@@ -22,6 +22,9 @@ class ConvertPage(BasePageWidget):
             parent=parent
         )
         
+        # تفعيل السحب والإفلات
+        self.setAcceptDrops(True)
+        
         self.file_manager = file_manager
         self.operations_manager = operations_manager
         self.active_operation = None
@@ -45,6 +48,44 @@ class ConvertPage(BasePageWidget):
 
         # تسجيل callback لتغيير اللغة
         register_language_change_callback(self.update_button_order_for_language)
+
+    def dragEnterEvent(self, event):
+        """عند دخول ملفات مسحوبة إلى منطقة الصفحة"""
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        """عند إفلات الملفات في منطقة الصفحة"""
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            files = [url.toLocalFile() for url in urls if url.isLocalFile()]
+            
+            if files:
+                main_window = self._get_main_window()
+                if main_window and hasattr(main_window, 'smart_drop_overlay'):
+                    # تمرير الملفات إلى الطبقة الذكية في النافذة الرئيسية
+                    main_window.smart_drop_overlay.dropEvent(event)
+                    event.acceptProposedAction()
+                else:
+                    event.ignore()
+            else:
+                event.ignore()
+        else:
+            event.ignore()
+
+    def add_files(self, files):
+        """إضافة ملفات مباشرة إلى القائمة (للسحب والإفلات)"""
+        if not self.active_operation:
+            self.notification_manager.show_notification(tr("select_conversion_operation_first"), "warning", 3000)
+            return
+        self.on_files_added(files)
+
+    def handle_smart_drop_action(self, action_type, files):
+        """معالجة الإجراء المحدد من الطبقة الذكية"""
+        if action_type == "add_to_list":
+            self.add_files(files)
 
     def _get_main_window(self):
         """الحصول على النافذة الرئيسية للتطبيق"""

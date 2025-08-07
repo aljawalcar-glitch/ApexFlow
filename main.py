@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QGridLayout
 )
 from PySide6.QtGui import QIcon, QKeySequence, QShortcut
-from PySide6.QtCore import Qt, QSharedMemory, QSystemSemaphore
+from PySide6.QtCore import Qt, QSharedMemory, QSystemSemaphore, QTimer
 
 # Local module imports
 from modules.settings import load_settings, set_setting  # Direct import to avoid loading PDF modules
@@ -26,6 +26,8 @@ from modules.logger import debug, info, warning, error
 from ui import WelcomePage, apply_theme_style
 from ui.notification_system import NotificationBar
 from ui.first_run_dialog import FirstRunDialog
+from ui.smart_drop_overlay import SmartDropOverlay
+from modules.page_settings import page_settings
 from modules.translator import tr
 
 # ===============================
@@ -78,6 +80,7 @@ class ApexFlow(QMainWindow):
         # Apply unified window properties
         self.window_manager.set_window_properties(self, tr("main_window_title"))
         self.setGeometry(200, 100, 1000, 600)
+        self.setAcceptDrops(True)
 
         # Create interface first
         self.initUI()
@@ -94,6 +97,55 @@ class ApexFlow(QMainWindow):
 
         # قبول حدث الإغلاق
         event.accept()
+
+    def resizeEvent(self, event):
+        """تحديث حجم الطبقة الذكية عند تغيير حجم النافذة"""
+        super().resizeEvent(event)
+        if hasattr(self, 'smart_drop_overlay') and self.smart_drop_overlay:
+            self.smart_drop_overlay.resize(self.size())
+
+    def dragEnterEvent(self, event):
+        """Handle drag enter events for the main window."""
+        print("===== بدء حدث السحب في النافذة الرئيسية =====")
+        current_index = self.stack.currentIndex()
+        print(f"الصفحة الحالية: {current_index}")
+        # تعطيل السحب في الصفحات غير المخصصة للملفات
+        if current_index in [7, 8]: # الإعدادات، المساعدة
+            event.ignore()
+            return
+
+        if self.smart_drop_overlay and event.mimeData().hasUrls():
+            # تحديث السياق أولاً
+            self._update_smart_drop_mode_for_page(current_index)
+            # الآن استدعاء handle_drag_enter بعد تحديث الإعدادات
+            self.smart_drop_overlay.handle_drag_enter(event)
+            # قبول الحدث
+            print("قبول حدث السحب في النافذة الرئيسية")
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragLeaveEvent(self, event):
+        """Handle drag leave events for the main window."""
+        print("===== حدث مغادرة السحب في النافذة الرئيسية =====")
+        # تمرير الحدث إلى الطبقة الذكية لمعالجته
+        if self.smart_drop_overlay and self.smart_drop_overlay.isVisible():
+            self.smart_drop_overlay.handle_drag_leave(event)
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        """Handle drop events for the main window."""
+        print("===== حدث الإفلات في النافذة الرئيسية =====")
+        overlay_visible = self.smart_drop_overlay and self.smart_drop_overlay.isVisible()
+        print(f"واجهة الإسقاط مرئية: {overlay_visible}")
+        if overlay_visible:
+            self.smart_drop_overlay.handle_drop(event)
+            # قبول الحدث
+            print("قبول حدث الإفلات في النافذة الرئيسية")
+            event.accept()
+        else:
+            event.ignore()
 
     def _setup_managers(self):
         """Setup all required managers"""
@@ -115,6 +167,9 @@ class ApexFlow(QMainWindow):
         self.theme_manager = global_theme_manager
         self.notification_manager = global_notification_manager
         self.worker_manager = WorkerManager()
+        
+        # The SmartDropOverlay will be created in _create_main_content
+        self.smart_drop_overlay = None
 
         # Setup page manager (use existing variables)
         self.pages_loaded = [True, False, False, False, False, False, False, False]
@@ -313,6 +368,14 @@ class ApexFlow(QMainWindow):
         right_panel_layout.setSpacing(0)
         right_panel_layout.addWidget(self.stack, 0, 0)
 
+        # Create smart drop overlay as a child of the stack
+        self.smart_drop_overlay = SmartDropOverlay(self, self.stack)
+        self.smart_drop_overlay.action_selected.connect(self.handle_smart_drop_action)
+        self.smart_drop_overlay.cancelled.connect(self.handle_smart_drop_cancel)
+        
+        # تعيين الوضع الافتراضي للطبقة الذكية
+        self.smart_drop_overlay.reset_mode()
+
         # Notification System
         self.notification_bar = NotificationBar(right_panel_widget)
         right_panel_layout.addWidget(self.notification_bar, 0, 0, alignment=Qt.AlignBottom)
@@ -498,6 +561,8 @@ class ApexFlow(QMainWindow):
         # Proceed with navigation
         self.load_page_on_demand(desired_row)
         self.menu_list.setCurrentRow(desired_row)
+        # تحديث وضع الطبقة الذكية بناءً على الصفحة الجديدة
+        self._update_smart_drop_mode_for_page(desired_row)
             
 
     def load_page_on_demand(self, index):
@@ -562,6 +627,41 @@ class ApexFlow(QMainWindow):
 
         creator = page_creators.get(index)
         return creator() if creator else None
+        
+    def _update_smart_drop_mode_for_page(self, page_index):
+        """تحديث وضع الطبقة الذكية بناءً على الصفحة الحالية"""
+        print(f"تحديث وضع الطبقة الذكية للصفحة: {page_index}")
+        page_titles = [
+            tr("menu_home"), tr("menu_merge_print"), tr("menu_split"),
+            tr("menu_compress"), tr("menu_stamp_rotate"), tr("menu_convert"),
+            tr("menu_security"), tr("menu_settings"), tr("menu_help")
+        ]
+        page_contexts = [
+            'welcome', 'merge', 'split', 'compress', 'rotate', 'convert', 'security', 'settings', 'help'
+        ]
+        
+        context = page_contexts[page_index] if 0 <= page_index < len(page_contexts) else 'welcome'
+        title = page_titles[page_index] if 0 <= page_index < len(page_titles) else tr("menu_home")
+
+        if self.smart_drop_overlay:
+            self.smart_drop_overlay.update_context(context, title)
+            
+            # تحديث إعدادات الصفحة في واجهة الإسقاط
+            page_key_map = {
+                'welcome': None,
+                'merge': 'merge_print',
+                'split': 'split',
+                'compress': 'compress',
+                'rotate': 'stamp_rotate',
+                'convert': 'convert',
+                'security': 'protect_properties',
+                'settings': None,
+                'help': None
+            }
+            
+            page_key = page_key_map.get(context)
+            if page_key and page_key in page_settings:
+                self.smart_drop_overlay.update_page_settings(page_settings[page_key])
 
     def _create_merge_page(self):
         from ui.merge_page import MergePage
@@ -736,6 +836,162 @@ class ApexFlow(QMainWindow):
 
         debug("تم التحقق من صحة الإعدادات بنجاح")
         return True
+        
+    def handle_smart_drop_action(self, action_type, files):
+        """معالجة الإجراء المحدد من الطبقة الذكية"""
+        # إعادة تمكين النافذة الرئيسية وتنشيطها
+        self.setEnabled(True)
+        self.activateWindow()
+        self.raise_()
+
+        # إذا كان الإجراء هو "إضافة إلى القائمة"، قم بإضافة الملفات مباشرة
+        if action_type == "add_to_list":
+            self.add_files_to_current_page(files)
+            # تعيين حالة العمل غير المكتمل للصفحة الحالية
+            current_page_index = self.stack.currentIndex()
+            self.set_page_has_work(current_page_index, True)
+            return
+
+        # إذا كان الإجراء يتطلب التنفيذ الفوري
+        if action_type.endswith("_now"):
+            action = action_type[:-4]
+            self.execute_action_now(action, files)
+            return
+
+        # إذا كان الإجراء يتطلب الانتقال إلى صفحة أخرى
+        page_mapping = {
+            "merge": 1, "split": 2, "compress": 3,
+            "rotate": 4, "convert": 5, "security": 6
+        }
+        target_page_index = page_mapping.get(action_type)
+        
+        if target_page_index is not None:
+            # انتقل إلى الصفحة ثم أضف الملفات
+            self.navigate_to_page(target_page_index)
+            # استخدم QTimer لضمان تحميل الصفحة قبل إضافة الملفات
+            QTimer.singleShot(150, lambda: self.add_files_to_current_page(files))
+            # تعيين حالة العمل غير المكتمل للصفحة المستهدفة
+            QTimer.singleShot(300, lambda: self.set_page_has_work(target_page_index, True))
+        else:
+            # معالجة الإجراءات المخصصة للصفحات التي قد لا تكون في الخريطة
+            current_page = self.stack.currentWidget()
+            if hasattr(current_page, 'widget'): # Handle QScrollArea
+                current_page = current_page.widget()
+            
+            if hasattr(current_page, 'handle_smart_drop_action'):
+                current_page.handle_smart_drop_action(action_type, files)
+                # تعيين حالة العمل غير المكتمل للصفحة الحالية
+                current_page_index = self.stack.currentIndex()
+                self.set_page_has_work(current_page_index, True)
+            
+    def handle_smart_drop_cancel(self):
+        """معالجة إلغاء السحب والإفلات"""
+        self.setEnabled(True)
+        self.activateWindow()
+        self.raise_()
+
+    def update_work_status_after_file_removal(self):
+        """تحديث حالة العمل بعد إزالة الملفات"""
+        current_page_index = self.stack.currentIndex()
+
+        # التحقق من وجود عمل غير مكتمل في الصفحة الحالية
+        if current_page_index > 0 and self.pages_loaded[current_page_index]:
+            # الحصول على الصفحة الحالية
+            current_page = self.stack.widget(current_page_index)
+
+            # إذا كانت الصفحة داخل QScrollArea، احصل على الودجت الداخلي
+            if hasattr(current_page, 'widget'):
+                current_page = current_page.widget()
+
+            # التحقق من وجود دالة للتحقق من وجود ملفات في الصفحة
+            has_files = False
+            if hasattr(current_page, 'has_files'):
+                has_files = current_page.has_files()
+            elif hasattr(current_page, 'file_list_frame') and hasattr(current_page.file_list_frame, 'has_files'):
+                has_files = current_page.file_list_frame.has_files()
+
+            # تحديث حالة العمل غير المكتمل للصفحة الحالية
+            self.set_page_has_work(current_page_index, has_files)
+        
+    def add_files_to_current_page(self, files):
+        """إضافة الملفات إلى الصفحة الحالية"""
+        current_page_index = self.stack.currentIndex()
+        
+        if current_page_index > 0 and self.pages_loaded[current_page_index]:
+            # الحصول على الصفحة الحالية
+            current_page = self.stack.widget(current_page_index)
+            
+            # إذا كانت الصفحة داخل QScrollArea، احصل على الودجت الداخلي
+            if hasattr(current_page, 'widget'):
+                current_page = current_page.widget()
+            
+            # التحقق من وجود دالة إضافة الملفات في الصفحة
+            if hasattr(current_page, 'add_files'):
+                current_page.add_files(files)
+            elif hasattr(current_page, 'file_list_frame') and hasattr(current_page.file_list_frame, 'add_files'):
+                current_page.file_list_frame.add_files(files)
+
+            # تعيين حالة العمل غير المكتمل للصفحة الحالية
+            self.set_page_has_work(current_page_index, True)
+                
+    def execute_action_now(self, action, files):
+        """تنفيذ الإجراء فورًا على الملفات"""
+        current_page_index = self.stack.currentIndex()
+        
+        # الانتقال إلى الصفحة المناسبة إذا لم نكن فيها بالفعل
+        page_mapping = {
+            "merge": 1,
+            "split": 2,
+            "compress": 3,
+            "rotate": 4,
+            "convert": 5,
+            "security": 6
+        }
+        
+        target_page = page_mapping.get(action)
+        if target_page is not None and current_page_index != target_page:
+            self.navigate_to_page(target_page)
+            
+        # انتظر حتى يتم تحميل الصفحة ثم قم بتنفيذ الإجراء
+        QTimer.singleShot(500, lambda: self._execute_action_on_loaded_page(action, files))
+        
+    def _execute_action_on_loaded_page(self, action, files):
+        """تنفيذ الإجراء على الصفحة بعد تحميلها"""
+        current_page_index = self.stack.currentIndex()
+        
+        if current_page_index > 0 and self.pages_loaded[current_page_index]:
+            # الحصول على الصفحة الحالية
+            current_page = self.stack.widget(current_page_index)
+            
+            # إذا كانت الصفحة داخل QScrollArea، احصل على الودجت الداخلي
+            if hasattr(current_page, 'widget'):
+                current_page = current_page.widget()
+            
+            # إضافة الملفات أولاً
+            if hasattr(current_page, 'add_files'):
+                current_page.add_files(files)
+            elif hasattr(current_page, 'file_list_frame') and hasattr(current_page.file_list_frame, 'add_files'):
+                current_page.file_list_frame.add_files(files)
+            
+            # تعيين حالة العمل غير المكتمل للصفحة الحالية
+            self.set_page_has_work(current_page_index, True)
+
+            # تنفيذ الإجراء المناسب
+            if action == "merge" and hasattr(current_page, 'execute_merge'):
+                current_page.execute_merge()
+            elif action == "split" and hasattr(current_page, 'execute_split'):
+                current_page.execute_split()
+            elif action == "compress" and hasattr(current_page, 'execute_compress'):
+                current_page.execute_compress()
+            elif action == "rotate" and hasattr(current_page, 'execute_rotate'):
+                current_page.execute_rotate()
+            elif action == "convert" and hasattr(current_page, 'execute_convert'):
+                current_page.execute_convert()
+            elif action == "security" and hasattr(current_page, 'execute_security'):
+                current_page.execute_security()
+
+            # إعادة تفعيل النافذة الرئيسية بعد تنفيذ الإجراء
+            self.setEnabled(True)
 
     def _get_default_settings(self):
         """الحصول على الإعدادات الافتراضية"""

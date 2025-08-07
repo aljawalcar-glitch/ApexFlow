@@ -107,6 +107,20 @@ def get_widget_style(widget_type, colors, accent_color):
                 color: {colors["text_body"]}; padding: 10px; font-family: 'Consolas', 'Monaco', monospace;
                 font-size: {int(font_settings["size"] * 0.8)}px;
             }}
+            QTextEdit QScrollBar:vertical {{
+                background: {colors["surface"]}; width: 8px; border-radius: 4px;
+                margin: 0; border: 1px solid {colors["border"]};
+            }}
+            QTextEdit QScrollBar::handle:vertical {{ background: {accent_color}; border-radius: 4px; min-height: 20px; }}
+            QTextEdit QScrollBar::handle:vertical:hover {{ background: {lighten_color(accent_color)}; }}
+            QTextEdit QScrollBar::add-line:vertical, QTextEdit QScrollBar::sub-line:vertical {{ height: 0; background: none; }}
+            QTextEdit QScrollBar:horizontal {{
+                background: {colors["surface"]}; height: 8px; border-radius: 4px;
+                margin: 0; border: 1px solid {colors["border"]};
+            }}
+            QTextEdit QScrollBar::handle:horizontal {{ background: {accent_color}; border-radius: 4px; min-width: 20px; }}
+            QTextEdit QScrollBar::handle:horizontal:hover {{ background: {lighten_color(accent_color)}; }}
+            QTextEdit QScrollBar::add-line:horizontal, QTextEdit QScrollBar::sub-line:horizontal {{ width: 0; background: none; }}
             QPushButton#about_close_button {{
                 background: {accent_color}; color: white; border: none; border-radius: 6px;
                 padding: 8px 16px; font-weight: bold;
@@ -299,6 +313,36 @@ def get_widget_style(widget_type, colors, accent_color):
             QScrollBar::handle:horizontal {{ background: {accent_color}; border-radius: 4px; min-width: 20px; }}
             QScrollBar::handle:horizontal:hover {{ background: {lighten_color(accent_color)}; }}
             QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ width: 0; background: none; }}
+        """
+
+    elif widget_type == "hlayout":
+        return f"""
+            QWidget {{
+                background: transparent;
+                color: {colors["text_body"]};
+                font-size: {font_settings["size"]}px;
+                font-family: {font_settings["family"]};
+                font-weight: {font_settings["weight"]};
+            }}
+            QLabel {{
+                background: transparent;
+                color: {colors["text_body"]};
+                font-size: {font_settings["size"]}px;
+                font-family: {font_settings["family"]};
+                font-weight: {font_settings["weight"]};
+            }}
+            QPushButton {{
+                background-color: {accent_color};
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-size: {font_settings["size"]}px;
+                font-family: {font_settings["family"]};
+                font-weight: bold;
+            }}
+            QPushButton:hover {{ background-color: {lighten_color(accent_color, 0.2)}; }}
+            QPushButton:pressed {{ background-color: {darken_color(accent_color, 0.1)}; }}
         """
 
     elif widget_type == "group_box":

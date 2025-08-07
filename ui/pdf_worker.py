@@ -4,7 +4,7 @@
 PDF Worker Threads System for Non-blocking UI
 """
 
-from PySide6.QtCore import QThread, QObject, Signal, QMutex, QWaitCondition
+from PySide6.QtCore import QThread, QObject, Signal, QMutex, QWaitCondition, Qt
 from PySide6.QtGui import QPixmap, QImage
 import fitz
 import os
@@ -142,6 +142,57 @@ class ImageLoadWorker(QObject):
         self.should_stop = True
         self.mutex.unlock()
 
+class ThumbnailWorker(QObject):
+    """Worker لتوليد الصور المصغرة من ملفات PDF"""
+    thumbnail_ready = Signal(str, QPixmap)  # file_path, thumbnail_pixmap
+    finished = Signal()
+
+    def __init__(self, target_size=(80, 100)):
+        super().__init__()
+        self._files = []
+        self._target_size = target_size
+        self._is_running = True
+        self.mutex = QMutex()
+
+    def run(self):
+        """بدء عملية توليد الصور المصغرة"""
+        for file_path in self._files:
+            self.mutex.lock()
+            if not self._is_running:
+                self.mutex.unlock()
+                break
+            self.mutex.unlock()
+
+            try:
+                doc = fitz.open(file_path)
+                if len(doc) > 0:
+                    page = doc.load_page(0)  # الصفحة الأولى فقط
+                    # استخدام دقة منخفضة لتسريع العملية
+                    pix = page.get_pixmap(dpi=50)
+                    img = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format_RGB888)
+                    pixmap = QPixmap.fromImage(img)
+                    
+                    # تغيير الحجم مع الحفاظ على النسبة
+                    scaled_pixmap = pixmap.scaled(self._target_size[0], self._target_size[1],
+                                                  Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                    
+                    self.thumbnail_ready.emit(file_path, scaled_pixmap)
+                doc.close()
+            except Exception as e:
+                print(f"Error generating thumbnail for {file_path}: {e}")
+            
+            QThread.msleep(20) # إعطاء فرصة للواجهة للتحديث
+
+        self.finished.emit()
+
+    def set_files(self, files):
+        self._files = files
+
+    def stop(self):
+        self.mutex.lock()
+        self._is_running = False
+        self.mutex.unlock()
+
 class PDFProcessWorker(QObject):
     """Worker لمعالجة PDF (ضغط، تدوير، إلخ) في خيط منفصل"""
     
@@ -224,6 +275,8 @@ class WorkerManager:
         self.image_worker = None
         self.process_thread = None
         self.process_worker = None
+        self.thumbnail_thread = None
+        self.thumbnail_worker = None
     
     def start_pdf_loading(self, file_path: str, max_pages: int = 50):
         """بدء تحميل PDF"""
@@ -286,11 +339,45 @@ class WorkerManager:
             if self.image_worker:
                 self.image_worker.deleteLater()
                 self.image_worker = None
-    
+
+    def start_thumbnail_generation(self, files: List[str]):
+        """بدء توليد الصور المصغرة"""
+        self.stop_thumbnail_generation()
+
+        self.thumbnail_thread = QThread()
+        self.thumbnail_worker = ThumbnailWorker()
+        self.thumbnail_worker.set_files(files)
+        self.thumbnail_worker.moveToThread(self.thumbnail_thread)
+
+        def _cleanup_references():
+            # This function is called when the thread has finished.
+            # It's safe to schedule deletion and nullify references here.
+            if self.thumbnail_worker:
+                self.thumbnail_worker.deleteLater()
+                self.thumbnail_worker = None
+            if self.thumbnail_thread:
+                self.thumbnail_thread.deleteLater()
+                self.thumbnail_thread = None
+
+        self.thumbnail_thread.started.connect(self.thumbnail_worker.run)
+        self.thumbnail_worker.finished.connect(self.thumbnail_thread.quit)
+        # Connect the thread's finished signal to our cleanup function.
+        self.thumbnail_thread.finished.connect(_cleanup_references)
+
+        self.thumbnail_thread.start()
+        return self.thumbnail_worker
+
+    def stop_thumbnail_generation(self):
+        """إيقاف توليد الصور المصغرة"""
+        # Just tell the worker to stop. The cleanup is handled by signals/slots.
+        if self.thumbnail_worker:
+            self.thumbnail_worker.stop()
+
     def cleanup(self):
         """تنظيف جميع الخيوط"""
         self.stop_pdf_loading()
         self.stop_image_loading()
+        self.stop_thumbnail_generation()
 
         # التأكد من تنظيف أي خيوط معالجة متبقية
         if hasattr(self, 'process_thread') and self.process_thread:

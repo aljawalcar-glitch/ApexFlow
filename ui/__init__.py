@@ -16,7 +16,7 @@ def __getattr__(name):
     """
     # عناصر الواجهة الرئيسية
     if name == 'WelcomePage':
-        from .apexflow_main_ui import WelcomePage
+        from .WelcomePage import WelcomePage
         globals()['WelcomePage'] = WelcomePage
         return WelcomePage
 

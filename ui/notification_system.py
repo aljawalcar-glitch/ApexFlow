@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (QWidget, QLabel, QHBoxLayout, QVBoxLayout, QPushB
                                QDialog, QDialogButtonBox, QApplication, QCheckBox,
                                QTreeWidget, QTreeWidgetItem, QAbstractItemView, QScrollArea)
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, QRect, Signal, QSize, QByteArray
-from PySide6.QtGui import QIcon, QColor, QPainter, QPainterPath
+from PySide6.QtGui import QIcon, QColor, QPainter, QPainterPath, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 import os
 import json
@@ -121,17 +121,18 @@ class NotificationBar(QFrame):
         self.icon_label.setText(icon_text)
         self.icon_label.setStyleSheet(f"color: {border_color}; font-size: 18px; font-weight: bold; background-color: transparent; border: none;")
 
-        # تحديد الحد الأقصى لعدد الأحرف في رسالة الإشعار
-        max_chars = 100  # يمكن تعديل هذا الرقم حسب الحاجة
-        if len(message) > max_chars:
-            # اقتطاع النص وإضافة "..." للإشارة إلى وجود نص مخفي
-            truncated_message = message[:max_chars-3] + "..."
-            self.message_label.setText(truncated_message)
-            # حفظ النص الأصلي في تلميح الأداة
-            self.message_label.setToolTip(message)
-        else:
-            self.message_label.setText(message)
-            self.message_label.setToolTip("")
+        # إنشاء نسخة من سطر واحد ومختصرة للرسالة لتناسب شريط الإشعارات
+        single_line_message = message.replace('\n', ' ').replace('  ', ' ').strip()
+        
+        # اختصار النص ليتناسب مع العرض المتاح
+        # هذا الحساب تقريبي
+        available_width = self.parent_widget.width() - 150 if self.parent_widget else 500
+        fm = self.message_label.fontMetrics()
+        elided_message = fm.elidedText(single_line_message, Qt.ElideRight, available_width)
+        
+        self.message_label.setText(elided_message)
+        # إظهار الرسالة الأصلية الكاملة في التلميح
+        self.message_label.setToolTip(message)
 
         # Show animation
         if self.animation:
@@ -185,17 +186,9 @@ class NotificationBar(QFrame):
         self.icon_label.setText(icon_text)
         self.icon_label.setStyleSheet(f"color: {border_color}; font-size: 18px; font-weight: bold; background-color: transparent; border: none;")
 
-        # تحديد الحد الأقصى لعدد الأحرف في رسالة الإشعار
-        max_chars = 100  # يمكن تعديل هذا الرقم حسب الحاجة
-        if len(message) > max_chars:
-            # اقتطاع النص وإضافة "..." للإشارة إلى وجود نص مخفي
-            truncated_message = message[:max_chars-3] + "..."
-            self.message_label.setText(truncated_message)
-            # حفظ النص الأصلي في تلميح الأداة
-            self.message_label.setToolTip(message)
-        else:
-            self.message_label.setText(message)
-            self.message_label.setToolTip("")
+        # The message processing is now handled in the show_message method,
+        # which is called by this method. No need to repeat the logic here.
+        pass
 
         # Show animation
         if self.animation:
@@ -535,7 +528,18 @@ class NotificationCenter(QDialog):
                 
                 # Use QByteArray for QSvgRenderer
                 byte_array = QByteArray(colored_svg_data.encode('utf-8'))
-                return QIcon(QSvgRenderer(byte_array).defaultSize(), QPainter())
+                renderer = QSvgRenderer(byte_array)
+
+                # Create a pixmap to render on
+                pixmap = QPixmap(renderer.defaultSize())
+                pixmap.fill(Qt.transparent)
+                
+                # Create a painter to draw the SVG
+                painter = QPainter(pixmap)
+                renderer.render(painter)
+                painter.end()
+                
+                return QIcon(pixmap)
             except Exception as e:
                 debug(f"Failed to create themed icon from {svg_path}: {e}")
                 return QIcon() # Return empty icon on failure
@@ -705,7 +709,10 @@ class NotificationCenter(QDialog):
             
         # إنشاء عنصر الإشعار تحت الفئة المناسبة
         notification_item = QTreeWidgetItem(self.categories[category]["item"])
-        notification_item.setText(0, display_text)
+        
+        # استخدام الويدجت المخصص لعرض الإشعار
+        item_widget = NotificationItemWidget(message, notification_type)
+        self.notification_tree.setItemWidget(notification_item, 0, item_widget)
         
         # حفظ بيانات الإشعار
         import datetime

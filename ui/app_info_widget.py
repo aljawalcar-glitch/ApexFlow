@@ -86,6 +86,16 @@ CHANGELOG = {
     ]
 }
 
+def format_changelog():
+    """تنسيق سجل التغييرات بالكامل"""
+    changelog_text = []
+    for version, changes in CHANGELOG.items():
+        changelog_text.append(f"### {version}\n")
+        for change in changes:
+            changelog_text.append(f"{change}\n")
+        changelog_text.append("\n")
+    return "".join(changelog_text)
+
 def get_about_text():
     """إرجاع نص حول التطبيق"""
     try:
@@ -95,53 +105,65 @@ def get_about_text():
     except:
         language = "ar"
 
-    # الحصول على الميزات الجديدة للإصدار الحالي مع التعامل مع حالة عدم وجود الإصدار
-    try:
-        features_text = chr(10).join('• ' + feature for feature in CHANGELOG[VERSION])
-    except KeyError:
-        features_text = "• لا توجد ميزات مسجلة لهذا الإصدار"
+    build_info_ar = f"""
+**معلومات البناء:**
+- **تاريخ البناء:** {BUILD_DATE}
+- **نوع البناء:** {BUILD_TYPE}
+- **المكونات المضمنة:**
+""" + "\n".join([f"  - {item}" for item in BUILD_INCLUDES])
+
+    build_info_en = f"""
+**Build Information:**
+- **Build Date:** {BUILD_DATE}
+- **Build Type:** {BUILD_TYPE}
+- **Included Components:**
+""" + "\n".join([f"  - {item}" for item in BUILD_INCLUDES])
+
+    tech_stack_ar = """
+**تم تطوير هذا التطبيق باستخدام:**
+- Python 3.13
+- PySide6 للواجهة الرسومية
+- PyPDF2 & PyMuPDF لمعالجة ملفات PDF
+- Pillow لمعالجة الصور
+- psutil لمراقبة النظام
+"""
+
+    tech_stack_en = """
+**This application was developed using:**
+- Python 3.13
+- PySide6 for the graphical interface
+- PyPDF2 & PyMuPDF for PDF processing
+- Pillow for image processing
+- psutil for system monitoring
+"""
+
+    full_changelog = format_changelog()
 
     if language == "ar":
-        # النص باللغة العربية
         return f"""
 {APP_NAME} {VERSION}
-
 {APP_DESCRIPTION_AR}
-
 {APP_COPYRIGHT_AR}
-تاريخ البناء: {BUILD_DATE}
-نوع البناء: {BUILD_TYPE}
-
-تم تطوير هذا التطبيق باستخدام:
-• Python 3.13
-• PySide6 للواجهة الرسومية
-• PyPDF2 & PyMuPDF لمعالجة ملفات PDF
-• Pillow لمعالجة الصور
-• psutil لمراقبة النظام
-
-الميزات الجديدة في هذا الإصدار:
-{features_text}
+---
+{tech_stack_ar}
+---
+{build_info_ar}
+---
+**سجل التغييرات الكامل:**
+{full_changelog}
 """
     else:
-        # النص باللغة الإنجليزية
         return f"""
 {APP_NAME} {VERSION}
-
 {APP_DESCRIPTION_EN}
-
 {APP_COPYRIGHT_EN}
-Build Date: {BUILD_DATE}
-Build Type: {BUILD_TYPE}
-
-This application was developed using:
-• Python 3.13
-• PySide6 for the graphical interface
-• PyPDF2 & PyMuPDF for PDF processing
-• Pillow for image processing
-• psutil for system monitoring
-
-New features in this version:
-{features_text}
+---
+{tech_stack_en}
+---
+{build_info_en}
+---
+**Full Changelog:**
+{full_changelog}
 """
 
 class AboutDialog(ThemeAwareDialog):
@@ -150,7 +172,7 @@ class AboutDialog(ThemeAwareDialog):
     def __init__(self, parent=None):
         super().__init__(parent, widget_type="dialog_about")
         self.setWindowTitle(tr("about_dialog_title", app_name=APP_NAME))
-        self.setFixedSize(500, 400)
+        self.setFixedSize(600, 550)
         self.setModal(True)
         
         self.setup_ui()
@@ -244,7 +266,7 @@ class AboutDialog(ThemeAwareDialog):
         # منطقة النص التفصيلي
         about_text = QTextEdit()
         about_text.setReadOnly(True)
-        about_text.setPlainText(get_about_text())
+        about_text.setMarkdown(get_about_text())
         layout.addWidget(about_text)
         
         # زر الإغلاق

@@ -27,7 +27,73 @@ class SecurityPage(BasePage):
         self.operations_manager = operations_manager
         self.source_file = None
         self.has_unsaved_changes = False
+
+        # تفعيل السحب والإفلات
+        self.setAcceptDrops(True)
+
         self.init_ui()
+
+    def dragEnterEvent(self, event):
+        """عند دخول ملفات مسحوبة إلى منطقة الصفحة"""
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        """عند إفلات الملفات في منطقة الصفحة"""
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            files = [url.toLocalFile() for url in urls if url.isLocalFile()]
+            
+            if files:
+                main_window = self._get_main_window()
+                if main_window and hasattr(main_window, 'smart_drop_overlay'):
+                    # تحديث وضع الطبقة الذكية بناءً على الصفحة الحالية
+                    main_window._update_smart_drop_mode_for_page(main_window.stack.currentIndex())
+                    
+                    # تعيين الملفات والتحقق من صحتها
+                    main_window.smart_drop_overlay.files = files
+                    main_window.smart_drop_overlay.is_valid_drop = main_window.smart_drop_overlay._validate_files_for_context(files)
+                    
+                    # تعطيل النافذة الرئيسية بالكامل عند تفعيل واجهة الافلات
+                    main_window.setEnabled(False)
+                    
+                    # التقاط وتطبيق تأثير البلور على الخلفية
+                    main_window.smart_drop_overlay.capture_background_blur()
+                    main_window.smart_drop_overlay.update_styles()
+                    main_window.smart_drop_overlay.update_ui_for_context()
+                    
+                    # إظهار الطبقة مع تأثير انتقالي سلس
+                    main_window.smart_drop_overlay.animate_show()
+                    
+                    # معالجة الإفلات
+                    main_window.smart_drop_overlay.handle_drop(event)
+                    event.acceptProposedAction()
+                else:
+                    event.ignore()
+            else:
+                event.ignore()
+        else:
+            event.ignore()
+
+    def add_files(self, files):
+        """إضافة ملفات مباشرة إلى القائمة (للسحب والإفلات)"""
+        if files:
+            # صفحة الأمان تقبل ملف واحد فقط
+            file_path = files[0]
+            if os.path.exists(file_path):
+                self.source_file = file_path
+                file_name = os.path.basename(file_path)
+                self.file_label.setText(f"الملف المحدد: {file_name}")
+                self.load_pdf_properties(self.source_file)
+                self.update_ui_state()
+                self.notification_manager.show_notification(f"{tr('file_selected_successfully')}: {file_name}", "info", duration=3000)
+
+    def handle_smart_drop_action(self, action_type, files):
+        """معالجة الإجراء المحدد من الطبقة الذكية"""
+        if action_type == "add_to_list":
+            self.add_files(files)
 
     def _get_main_window(self):
         """الحصول على النافذة الرئيسية للتطبيق"""
