@@ -450,9 +450,8 @@ class NotificationCenter(QDialog):
             with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(notifications_data, f, ensure_ascii=False, indent=2)
                 
-            debug(f"Notifications saved to {file_path}")
         except Exception as e:
-            debug(f"Error saving notifications: {str(e)}")
+            pass
 
     def _darken_color(self, color, factor=0.2):
         """تغميق اللون"""
@@ -492,7 +491,6 @@ class NotificationCenter(QDialog):
             with open(file_path, "r", encoding="utf-8") as f:
                 notifications_data = json.load(f)
                 
-            debug(f"Notifications loaded from {file_path}")
             
             # استعادة الإشعارات في الفئات
             for category, notifications in notifications_data.items():
@@ -510,7 +508,7 @@ class NotificationCenter(QDialog):
                         self.update_category_counter(category)
                     
         except Exception as e:
-            debug(f"Error loading notifications: {str(e)}")
+            pass
     
     def create_notification_categories(self):
         """إنشاء فئات الإشعارات في الفهرس الرئيسي"""
@@ -541,7 +539,6 @@ class NotificationCenter(QDialog):
                 
                 return QIcon(pixmap)
             except Exception as e:
-                debug(f"Failed to create themed icon from {svg_path}: {e}")
                 return QIcon() # Return empty icon on failure
 
         # Define icon paths
@@ -862,7 +859,6 @@ class NotificationManager:
             "do_not_save": False
         }
         self.notification_settings = get_setting("notification_settings", default_settings)
-        debug(f"Notification settings loaded: {self.notification_settings}")
 
     def register_widgets(self, main_window, notification_bar):
         """Registers the main UI components with the manager."""
@@ -881,7 +877,6 @@ class NotificationManager:
         """Updates and saves the notification settings."""
         self.notification_settings.update(new_settings)
         set_setting("notification_settings", self.notification_settings)
-        debug(f"Notification settings updated and saved: {self.notification_settings}")
 
     def show_notification_center(self):
         """Shows the notification history dialog."""
@@ -899,18 +894,15 @@ class NotificationManager:
         
         # Check if this type of notification is enabled
         if not self.notification_settings.get(notification_type, True):
-            debug(f"Notification hidden by settings: [{notification_type}] {message}")
             return
 
         # Ensure widgets are registered for showing the bar
         if not self.notification_bar:
-            debug("Notification bar not registered. Aborting display.")
             return
 
         # Show on the bar
         self.notification_bar.show_message(message, notification_type, duration)
         
-        debug(f"Notification shown: [{notification_type}] {message}")
         
     def show_notification_with_action(self, notification_data):
         """
@@ -935,18 +927,15 @@ class NotificationManager:
 
         # Check if this type of notification is enabled
         if not self.notification_settings.get(notification_type, True):
-            debug(f"Notification hidden by settings: [{notification_type}] {message}")
             return
 
         # Ensure widgets are registered for showing the bar
         if not self.notification_bar:
-            debug("Notification bar not registered. Aborting display.")
             return
 
         # Show on the bar with action button
         self.notification_bar.show_message_with_action(message, notification_type, duration, action_button)
 
-        debug(f"Notification with action shown: [{notification_type}] {message}")
 
 # --- Global Instance and Helper Functions ---
 

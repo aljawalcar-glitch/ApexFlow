@@ -8,7 +8,8 @@ merge_print_settings = {
     "page_name": "دمج وطباعة",
     "accepted_file_types": [".pdf"],
     "max_files": None,  # لا يوجد حد أقصى لعدد الملفات
-    "allow_folders": False,  # يمنع إسقاط مجلدات
+    "allow_folders": True,  # يسمح إسقاط مجلدات
+    "allow_sequential_drops": True,  # السماح بإضافة ملفات واحدًا تلو الآخر
     "description": "واجهة دمج وطباعة ملفات PDF"
 }
 
@@ -18,6 +19,7 @@ split_settings = {
     "accepted_file_types": [".pdf"],
     "max_files": 1,  # ملف واحد فقط في كل مرة
     "allow_folders": False,  # لا يسمح بإسقاط مجلدات
+    "allow_sequential_drops": True,  # السماح بإضافة ملفات واحدًا تلو الآخر
     "description": "واجهة تقسيم ملفات PDF"
 }
 
@@ -28,6 +30,7 @@ compress_settings = {
     "max_files": None,  # يمكن تحديده لاحقًا
     "allow_folders": "dynamic",  # يعتمد على حالة checkbox
     "description": "واجهة ضغط ملفات PDF",
+    "allow_sequential_drops": True,  # السماح بإضافة ملفات واحدًا تلو الآخر
     "folder_option": "checkbox"  # تحديد أن خيار المجلد يعتمد على checkbox
 }
 
@@ -37,6 +40,7 @@ stamp_rotate_settings = {
     "accepted_file_types": [".pdf"],
     "max_files": 1,  # ملف واحد فقط في كل مرة
     "allow_folders": False,  # لا يسمح بإسقاط مجلدات
+    "allow_sequential_drops": True,  # السماح بإضافة ملفات واحدًا تلو الآخر
     "description": "واجهة ختم وتدوير ملفات PDF"
 }
 
@@ -46,6 +50,7 @@ protect_properties_settings = {
     "accepted_file_types": [".pdf"],
     "max_files": 1,  # ملف واحد فقط في كل مرة
     "allow_folders": False,  # لا يسمح بإسقاط مجلدات
+    "allow_sequential_drops": True,  # السماح بإضافة ملفات واحدًا تلو الآخر
     "description": "واجهة حماية وخصائص ملفات PDF"
 }
 
@@ -57,6 +62,7 @@ convert_settings = {
     "allow_folders": False,  # لا يسمح بإسقاط مجلدات
     "description": "واجهة تحويل الملفات",
     "dynamic_file_types": True,  # تحديد أن أنواع الملفات تعتمد على التبويب النشط
+    "allow_sequential_drops": True,  # السماح بإضافة ملفات واحدًا تلو الآخر
     "tab_dependent": True  # تحديد أن قبول الملفات يعتمد على التبويب المحدد
 }
 

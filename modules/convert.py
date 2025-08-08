@@ -12,6 +12,7 @@ from typing import List, Optional, Dict, Any
 import tempfile
 import arabic_reshaper
 from bidi.algorithm import get_display
+from modules.logger import info, warning, error
 
 def pdf_to_images(input_file: str, output_folder: str, 
                  image_format: str = "PNG", dpi: int = 150) -> bool:
@@ -44,8 +45,8 @@ def pdf_to_images(input_file: str, output_folder: str,
         pdf_document = fitz.open(input_file)
         total_pages = len(pdf_document)
         
-        print(f"تحويل {total_pages} صفحة إلى صور {image_format}")
-        print(f"الدقة: {dpi} DPI")
+        info(f"تحويل {total_pages} صفحة إلى صور {image_format}")
+        info(f"الدقة: {dpi} DPI")
         
         # تحويل كل صفحة
         for page_num in range(total_pages):
@@ -73,14 +74,14 @@ def pdf_to_images(input_file: str, output_folder: str,
                 img.save(output_path, image_format.upper())
             
             if (page_num + 1) % 10 == 0:
-                print(f"تم تحويل {page_num + 1}/{total_pages} صفحة")
+                info(f"تم تحويل {page_num + 1}/{total_pages} صفحة")
         
         pdf_document.close()
-        print(f"تم تحويل جميع الصفحات بنجاح إلى: {output_folder}")
+        info(f"تم تحويل جميع الصفحات بنجاح إلى: {output_folder}")
         return True
         
     except Exception as e:
-        print(f"خطأ في تحويل PDF إلى صور: {str(e)}")
+        error(f"خطأ في تحويل PDF إلى صور: {str(e)}")
         return False
 
 def images_to_pdf(image_files: List[str], output_file: str) -> bool:
@@ -109,7 +110,7 @@ def images_to_pdf(image_files: List[str], output_file: str) -> bool:
         
         pdf_document = fitz.open()
         
-        print(f"تحويل {len(valid_images)} صورة إلى PDF بالجودة الكاملة")
+        info(f"تحويل {len(valid_images)} صورة إلى PDF بالجودة الكاملة")
         
         for i, img_file in enumerate(valid_images):
             try:
@@ -125,20 +126,20 @@ def images_to_pdf(image_files: List[str], output_file: str) -> bool:
                 img.close()
                 
                 if (i + 1) % 5 == 0:
-                    print(f"تم معالجة {i + 1}/{len(valid_images)} صورة")
+                    info(f"تم معالجة {i + 1}/{len(valid_images)} صورة")
                     
             except Exception as e:
-                print(f"خطأ في معالجة الصورة {img_file}: {str(e)}")
+                warning(f"خطأ في معالجة الصورة {img_file}: {str(e)}")
                 continue
         
         pdf_document.save(output_file)
         pdf_document.close()
         
-        print(f"تم تحويل الصور بنجاح إلى: {output_file}")
+        info(f"تم تحويل الصور بنجاح إلى: {output_file}")
         return True
         
     except Exception as e:
-        print(f"خطأ في تحويل الصور إلى PDF: {str(e)}")
+        error(f"خطأ في تحويل الصور إلى PDF: {str(e)}")
         return False
 
 def pdf_to_text(input_file: str, output_file: str, 
@@ -162,7 +163,7 @@ def pdf_to_text(input_file: str, output_file: str,
         pdf_document = fitz.open(input_file)
         total_pages = len(pdf_document)
         
-        print(f"استخراج النص من {total_pages} صفحة")
+        info(f"استخراج النص من {total_pages} صفحة")
         
         full_text = ""
         for page_num in range(total_pages):
@@ -174,7 +175,7 @@ def pdf_to_text(input_file: str, output_file: str,
                 full_text += page_text + "\n\n"
             
             if (page_num + 1) % 10 == 0:
-                print(f"تم معالجة {page_num + 1}/{total_pages} صفحة")
+                info(f"تم معالجة {page_num + 1}/{total_pages} صفحة")
         
         pdf_document.close()
         
@@ -185,11 +186,11 @@ def pdf_to_text(input_file: str, output_file: str,
         with open(output_file, 'w', encoding=encoding) as text_file:
             text_file.write(full_text)
         
-        print(f"تم استخراج النص بنجاح إلى: {output_file}")
+        info(f"تم استخراج النص بنجاح إلى: {output_file}")
         return True
         
     except Exception as e:
-        print(f"خطأ في استخراج النص: {str(e)}")
+        error(f"خطأ في استخراج النص: {str(e)}")
         return False
 
 def find_system_font(name: str) -> Optional[str]:
@@ -237,7 +238,7 @@ def text_to_pdf(input_file: str, output_file: str,
         # Find a suitable Arabic font
         font_path = find_system_font("arial.ttf")
         if not font_path:
-            print("تحذير: لم يتم العثور على خط Arial. قد لا يتم عرض النص العربي بشكل صحيح.")
+            warning("تحذير: لم يتم العثور على خط Arial. قد لا يتم عرض النص العربي بشكل صحيح.")
             font_name = "helv" # Fallback
         else:
             # Embed the font
@@ -245,7 +246,7 @@ def text_to_pdf(input_file: str, output_file: str,
                 font_name = "Arial"
                 pdf_document.insert_font(fontname=font_name, fontfile=font_path)
             except Exception as e:
-                print(f"خطأ في تضمين الخط: {e}. استخدام الخط الافتراضي.")
+                warning(f"خطأ في تضمين الخط: {e}. استخدام الخط الافتراضي.")
                 font_name = "helv"
 
         page_width, page_height = 595, 842  # A4
@@ -253,7 +254,7 @@ def text_to_pdf(input_file: str, output_file: str,
         line_height = font_size + 6
         
         lines = text_content.split('\n')
-        print(f"تحويل النص إلى PDF ({len(lines)} سطر)")
+        info(f"تحويل النص إلى PDF ({len(lines)} سطر)")
         
         y_position = margin
         page = pdf_document.new_page(width=page_width, height=page_height)
@@ -281,11 +282,11 @@ def text_to_pdf(input_file: str, output_file: str,
         pdf_document.save(output_file)
         pdf_document.close()
         
-        print(f"تم تحويل النص بنجاح إلى: {output_file}")
+        info(f"تم تحويل النص بنجاح إلى: {output_file}")
         return True
         
     except Exception as e:
-        print(f"خطأ في تحويل النص إلى PDF: {str(e)}")
+        error(f"خطأ في تحويل النص إلى PDF: {str(e)}")
         return False
 
 def get_conversion_info(input_file: str) -> Dict[str, Any]:
@@ -353,4 +354,4 @@ def get_conversion_info(input_file: str) -> Dict[str, Any]:
         return {"error": f"خطأ في قراءة الملف: {str(e)}"}
 
 if __name__ == "__main__":
-    print("وحدة التحويل تم تحميلها بنجاح")
+    info("وحدة التحويل تم تحميلها بنجاح")

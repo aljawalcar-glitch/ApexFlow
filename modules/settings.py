@@ -144,7 +144,8 @@ DEFAULT_SETTINGS = {
         "warning": True,
         "error": True,
         "info": True
-    }
+    },
+    "allow_sequential_drops": True  # السماح بإضافة ملفات بدلاً من استبدالها
 }
 
 def migrate_old_settings():

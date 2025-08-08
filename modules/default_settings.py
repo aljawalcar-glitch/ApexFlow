@@ -7,6 +7,7 @@ import os
 import json
 from datetime import datetime
 from typing import Dict, Any
+from modules.logger import info, error
 
 # ===============================
 # الإعدادات الافتراضية للتثبيت
@@ -127,7 +128,7 @@ def save_current_as_default():
             
         return True
     except Exception as e:
-        print(f"خطأ في حفظ الإعدادات الافتراضية: {e}")
+        error(f"خطأ في حفظ الإعدادات الافتراضية: {e}")
         return False
 
 def load_default_settings():
@@ -144,7 +145,7 @@ def load_default_settings():
                 INSTALLATION_DEFAULTS = loaded_defaults
                 return loaded_defaults
     except Exception as e:
-        print(f"خطأ في تحميل الإعدادات الافتراضية: {e}")
+        error(f"خطأ في تحميل الإعدادات الافتراضية: {e}")
     
     return get_default_settings()
 
@@ -156,7 +157,7 @@ def reset_to_defaults():
         settings.save_settings(default_settings)
         return True
     except Exception as e:
-        print(f"خطأ في إرجاع الإعدادات الافتراضية: {e}")
+        error(f"خطأ في إرجاع الإعدادات الافتراضية: {e}")
         return False
 
 # ===============================
@@ -184,14 +185,14 @@ def setup_default_paths():
         os.makedirs(output_folder, exist_ok=True)
         os.makedirs(backup_folder, exist_ok=True)
 
-        print(f"✅ تم إنشاء المجلدات الافتراضية:")
-        print(f"   📁 الإخراج: {output_folder}")
-        print(f"   📁 النسخ الاحتياطية: {backup_folder}")
+        info(f"✅ تم إنشاء المجلدات الافتراضية:")
+        info(f"   📁 الإخراج: {output_folder}")
+        info(f"   📁 النسخ الاحتياطية: {backup_folder}")
 
         return output_folder, backup_folder
 
     except Exception as e:
-        print(f"❌ خطأ في إعداد المسارات الافتراضية: {e}")
+        error(f"❌ خطأ في إعداد المسارات الافتراضية: {e}")
         return "", ""
 
 def apply_installation_defaults():
@@ -215,17 +216,17 @@ def apply_installation_defaults():
         success = settings.save_settings(installation_settings)
 
         if success:
-            print("✅ تم تطبيق الإعدادات الافتراضية للتثبيت بنجاح")
-            print(f"   🎨 السمة: {installation_settings['theme']}")
-            print(f"   🌈 لون التمييز: {installation_settings['accent_color']}")
-            print(f"   💾 مسار الحفظ: {installation_settings['save_path']}")
+            info("✅ تم تطبيق الإعدادات الافتراضية للتثبيت بنجاح")
+            info(f"   🎨 السمة: {installation_settings['theme']}")
+            info(f"   🌈 لون التمييز: {installation_settings['accent_color']}")
+            info(f"   💾 مسار الحفظ: {installation_settings['save_path']}")
             return True
         else:
-            print("❌ فشل في حفظ الإعدادات الافتراضية")
+            error("❌ فشل في حفظ الإعدادات الافتراضية")
             return False
 
     except Exception as e:
-        print(f"❌ خطأ في تطبيق الإعدادات الافتراضية: {e}")
+        error(f"❌ خطأ في تطبيق الإعدادات الافتراضية: {e}")
         return False
 
 def is_first_run():
@@ -241,20 +242,20 @@ def setup_first_run():
     """إعداد أول تشغيل للتطبيق"""
     try:
         if is_first_run():
-            print("🚀 أول تشغيل للتطبيق - إعداد الإعدادات الافتراضية...")
+            info("🚀 أول تشغيل للتطبيق - إعداد الإعدادات الافتراضية...")
             success = apply_installation_defaults()
 
             if success:
-                print("🎉 تم إعداد التطبيق بنجاح! مرحباً بك في ApexFlow")
+                info("🎉 تم إعداد التطبيق بنجاح! مرحباً بك في ApexFlow")
                 return True
             else:
-                print("❌ فشل في إعداد التطبيق")
+                error("❌ فشل في إعداد التطبيق")
                 return False
         else:
             return True
 
     except Exception as e:
-        print(f"❌ خطأ في إعداد أول تشغيل: {e}")
+        error(f"❌ خطأ في إعداد أول تشغيل: {e}")
         return False
 
 def create_settings_backup(settings_data):
@@ -274,11 +275,11 @@ def create_settings_backup(settings_data):
         with open(backup_file, 'w', encoding='utf-8') as f:
             json.dump(settings_data, f, ensure_ascii=False, indent=2)
 
-        print(f"✅ تم إنشاء نسخة احتياطية: {backup_file}")
+        info(f"✅ تم إنشاء نسخة احتياطية: {backup_file}")
         return True
 
     except Exception as e:
-        print(f"❌ خطأ في إنشاء النسخة الاحتياطية: {e}")
+        error(f"❌ خطأ في إنشاء النسخة الاحتياطية: {e}")
         return False
 
 # ===============================
@@ -292,22 +293,22 @@ def print_current_settings():
         from . import settings
         current = settings.load_settings()
 
-        print("📋 الإعدادات الحالية:")
-        print(f"   🎨 السمة: {current.get('theme', 'غير محدد')}")
-        print(f"   🌈 لون التمييز: {current.get('accent_color', 'غير محدد')}")
-        print(f"   🌍 اللغة: {current.get('language', 'غير محدد')}")
-        print(f"   📐 حجم النافذة: {current.get('window_geometry', {}).get('width', 'غير محدد')}x{current.get('window_geometry', {}).get('height', 'غير محدد')}")
-        print(f"   💾 مسار الحفظ: {current.get('save_path', 'غير محدد')}")
+        info("📋 الإعدادات الحالية:")
+        info(f"   🎨 السمة: {current.get('theme', 'غير محدد')}")
+        info(f"   🌈 لون التمييز: {current.get('accent_color', 'غير محدد')}")
+        info(f"   🌍 اللغة: {current.get('language', 'غير محدد')}")
+        info(f"   📐 حجم النافذة: {current.get('window_geometry', {}).get('width', 'غير محدد')}x{current.get('window_geometry', {}).get('height', 'غير محدد')}")
+        info(f"   💾 مسار الحفظ: {current.get('save_path', 'غير محدد')}")
 
         return current
 
     except Exception as e:
-        print(f"❌ خطأ في قراءة الإعدادات: {e}")
+        error(f"❌ خطأ في قراءة الإعدادات: {e}")
         return None
 
 if __name__ == "__main__":
     # اختبار الدوال
-    print("🧪 اختبار إدارة الإعدادات الافتراضية...")
+    info("🧪 اختبار إدارة الإعدادات الافتراضية...")
 
     # اختبار إعداد أول تشغيل
     setup_first_run()
@@ -315,4 +316,4 @@ if __name__ == "__main__":
     # طباعة الإعدادات الحالية
     print_current_settings()
 
-    print("✅ انتهى الاختبار")
+    info("✅ انتهى الاختبار")

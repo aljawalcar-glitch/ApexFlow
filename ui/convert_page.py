@@ -49,6 +49,12 @@ class ConvertPage(BasePageWidget):
         # تسجيل callback لتغيير اللغة
         register_language_change_callback(self.update_button_order_for_language)
 
+        # Set a default tab on initialization to set initial drop settings
+        if self.top_buttons:
+            # Click the first button to set the default state
+            first_button_key = list(self.top_buttons.keys())[0]
+            self.top_buttons[first_button_key].click()
+
     def dragEnterEvent(self, event):
         """عند دخول ملفات مسحوبة إلى منطقة الصفحة"""
         if event.mimeData().hasUrls():
@@ -63,13 +69,20 @@ class ConvertPage(BasePageWidget):
             files = [url.toLocalFile() for url in urls if url.isLocalFile()]
             
             if files:
-                main_window = self._get_main_window()
-                if main_window and hasattr(main_window, 'smart_drop_overlay'):
-                    # تمرير الملفات إلى الطبقة الذكية في النافذة الرئيسية
-                    main_window.smart_drop_overlay.dropEvent(event)
-                    event.acceptProposedAction()
-                else:
-                    event.ignore()
+                # التحقق من أنواع الملفات وتحديد التبويب الأنسب
+                best_tab = self._determine_best_conversion_type(files)
+                
+                # إذا لم يكن هناك تبويب محدد مسبقًا، حدد التبويب الأنسب
+                if not self.active_operation or best_tab != self.active_operation:
+                    self.active_operation = best_tab
+                    # تحديث واجهة المستخدم لتبديل التبويب
+                    if best_tab in self.top_buttons:
+                        self.top_buttons[best_tab].setChecked(True)
+                        self.on_tab_selected()
+                
+                # أضف الملفات إلى التبويب المناسب
+                self.add_files(files)
+                event.acceptProposedAction()
             else:
                 event.ignore()
         else:
@@ -78,9 +91,25 @@ class ConvertPage(BasePageWidget):
     def add_files(self, files):
         """إضافة ملفات مباشرة إلى القائمة (للسحب والإفلات)"""
         if not self.active_operation:
-            self.notification_manager.show_notification(tr("select_conversion_operation_first"), "warning", 3000)
+            # إذا لم يكن هناك تبويب محدد، حدد التبويب الأنسب للملفات
+            best_tab = self._determine_best_conversion_type(files)
+            if best_tab:
+                self.active_operation = best_tab
+                # تحديث واجهة المستخدم لتبديل التبويب
+                if best_tab in self.top_buttons:
+                    self.top_buttons[best_tab].setChecked(True)
+                    self.on_tab_selected()
+            else:
+                self.notification_manager.show_notification(tr("select_conversion_operation_first"), "warning", 3000)
+                return
+        
+        # تصفية الملفات لقبول الأنواع المناسبة فقط
+        filtered_files = self._filter_files_for_active_operation(files)
+        if not filtered_files:
+            self.notification_manager.show_notification(tr("no_compatible_files_for_operation"), "warning", 3000)
             return
-        self.on_files_added(files)
+            
+        self.on_files_added(filtered_files)
 
     def handle_smart_drop_action(self, action_type, files):
         """معالجة الإجراء المحدد من الطبقة الذكية"""
@@ -98,6 +127,79 @@ class ConvertPage(BasePageWidget):
             if widget.__class__.__name__ == 'ApexFlow':
                 return widget
         return None
+        
+    def _determine_best_conversion_type(self, files):
+        """تحديد نوع التحويل الأمثل بناءً على أنواع الملفات المسحوبة"""
+        import os
+        
+        if not files:
+            return None
+            
+        # تحليل أنواع الملفات
+        pdf_count = 0
+        image_count = 0
+        text_count = 0
+        other_count = 0
+        
+        for file_path in files:
+            _, ext = os.path.splitext(file_path.lower())
+            
+            if ext == '.pdf':
+                pdf_count += 1
+            elif ext in ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff', '.webp']:
+                image_count += 1
+            elif ext in ['.txt', '.md', '.csv']:
+                text_count += 1
+            else:
+                other_count += 1
+        
+        # تحديد نوع التحويل بناءً على تحليل الملفات
+        if pdf_count > 0 and image_count == 0 and text_count == 0 and other_count == 0:
+            # ملفات PDF فقط
+            return "pdf_to_images"  # الخيار الافتراضي لملفات PDF
+        elif image_count > 0 and pdf_count == 0 and text_count == 0 and other_count == 0:
+            # صور فقط
+            return "images_to_pdf"
+        elif text_count > 0 and pdf_count == 0 and image_count == 0 and other_count == 0:
+            # ملفات نصية فقط
+            return "text_to_pdf"
+        elif pdf_count > 0 and text_count == 0 and image_count == 0 and other_count == 0:
+            # ملفات PDF فقط (يمكن تحويلها إلى نصوص أيضًا)
+            return "pdf_to_text"
+        else:
+            # خليط من الملفات، اختر التبويب الحالي إذا كان محددًا
+            if self.active_operation:
+                return self.active_operation
+            # أو اختر التبويب حسب النوع الأكثر شيوعًا
+            if pdf_count >= image_count and pdf_count >= text_count:
+                return "pdf_to_images"
+            elif image_count >= text_count:
+                return "images_to_pdf"
+            else:
+                return "text_to_pdf"
+                
+    def _filter_files_for_active_operation(self, files):
+        """تصفية الملفات لقبول الأنواع المناسبة للعملية الحالية فقط"""
+        import os
+        
+        if not files or not self.active_operation:
+            return []
+            
+        filtered_files = []
+        
+        for file_path in files:
+            _, ext = os.path.splitext(file_path.lower())
+            
+            if self.active_operation == "pdf_to_images" and ext == '.pdf':
+                filtered_files.append(file_path)
+            elif self.active_operation == "images_to_pdf" and ext in ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff', '.webp']:
+                filtered_files.append(file_path)
+            elif self.active_operation == "pdf_to_text" and ext == '.pdf':
+                filtered_files.append(file_path)
+            elif self.active_operation == "text_to_pdf" and ext in ['.txt', '.md', '.csv']:
+                filtered_files.append(file_path)
+                
+        return filtered_files
 
     def create_header_layout(self):
         """إنشاء التخطيط العلوي الذي يحتوي على العنوان وتبويبات العمليات."""
@@ -380,6 +482,29 @@ class ConvertPage(BasePageWidget):
 
         self.update_slider_position()
 
+        # Update drop settings for the current tab
+        main_window = self._get_main_window()
+        if main_window and hasattr(main_window, 'smart_drop_overlay'):
+            from modules.page_settings import page_settings
+            convert_settings = page_settings.get('convert', {})
+
+            # Define accepted file types for each tab
+            file_type_map = {
+                "pdf_to_images": [".pdf"],
+                "images_to_pdf": [".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".webp"],
+                "pdf_to_text": [".pdf"],
+                "text_to_pdf": [".txt", ".md", ".csv"]
+            }
+            
+            # Set the accepted types based on the active operation
+            accepted_types = file_type_map.get(self.active_operation, [])
+            convert_settings['accepted_file_types'] = accepted_types
+            
+            # Folders are not allowed in the convert page
+            convert_settings['allow_folders'] = False
+
+            main_window.smart_drop_overlay.update_page_settings(convert_settings)
+
     def select_files(self):
         if not self.active_operation: 
             self.notification_manager.show_notification(tr("select_conversion_operation_first"), "warning", 3000)
@@ -403,11 +528,16 @@ class ConvertPage(BasePageWidget):
     def on_files_added(self, files):
         self.file_list_frame.add_files(files)
         self.has_unsaved_changes = True
-        # إشعار نجاح إضافة الملفات
-        self.notification_manager.show_notification(tr("files_added_successfully", count=len(files)), "success", 2500)
-        # تحديث المسار عند إضافة ملفات
-        if files:
-            self.update_save_path(files[0])
+        
+        # إذا تمت تصفية الملفات، أظهر إشعارًا بذلك
+        if len(files) > 0:
+            # إشعار نجاح إضافة الملفات
+            self.notification_manager.show_notification(tr("files_added_successfully", count=len(files)), "success", 2500)
+            # تحديث المسار عند إضافة ملفات
+            if files:
+                self.update_save_path(files[0])
+        else:
+            self.notification_manager.show_notification(tr("no_compatible_files_for_operation"), "warning", 3000)
 
     def update_save_path(self, file_path):
         """تحديث مسار الحفظ بناءً على الملف المحدد"""

@@ -25,11 +25,9 @@ class ThemeAwareWidget(QObject):
         # طبق السمة الحالية
         self.apply_current_theme()
         
-        debug(f"عضو جديد في الفريق: {widget_type}")
 
     def on_theme_changed(self, theme_name, accent_color, options):
         """ماذا أفعل عند تغيير السمة؟"""
-        debug(f"{self.widget_type}: استلمت إشارة تغيير السمة إلى {theme_name}")
         self.apply_theme(theme_name, accent_color, options)
     
     def apply_theme(self, theme_name, accent_color, options):
@@ -39,7 +37,6 @@ class ThemeAwareWidget(QObject):
             apply_theme_style(
                 self.widget, self.widget_type, auto_register=False
             )
-            debug(f"{self.widget_type}: تم تطبيق السمة {theme_name}")
         except Exception as e:
             error(f"{self.widget_type}: خطأ في تطبيق السمة: {e}")
     

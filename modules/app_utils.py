@@ -101,7 +101,7 @@ def show_success_message(parent, message):
             # إذا لم يتم العثور على مدير الإشعارات، استخدام QMessageBox كخيار احتياطي
             QMessageBox.information(parent, "نجاح", message)
     except Exception as e:
-        print(f"خطأ في عرض رسالة النجاح: {e}")
+        # Fallback to QMessageBox if notification system fails
         QMessageBox.information(parent, "نجاح", message)
 
 def show_error_message(parent, message):
@@ -114,7 +114,7 @@ def show_error_message(parent, message):
             # إذا لم يتم العثور على مدير الإشعارات، استخدام QMessageBox كخيار احتياطي
             QMessageBox.critical(parent, "خطأ", message)
     except Exception as e:
-        print(f"خطأ في عرض رسالة الخطأ: {e}")
+        # Fallback to QMessageBox if notification system fails
         QMessageBox.critical(parent, "خطأ", message)
 
 
@@ -273,8 +273,7 @@ class MessageManager:
 
                 return msg_box.exec()
         except Exception as e:
-            print(f"خطأ في عرض رسالة النجاح: {e}")
-            # استخدام QMessageBox كخيار احتياطي في حالة الخطأ
+            # Fallback to QMessageBox if notification system fails
             from PySide6.QtWidgets import QMessageBox
             from PySide6.QtGui import QIcon
 
@@ -317,8 +316,7 @@ class MessageManager:
 
                 return msg_box.exec()
         except Exception as e:
-            print(f"خطأ في عرض رسالة الخطأ: {e}")
-            # استخدام QMessageBox كخيار احتياطي في حالة الخطأ
+            # Fallback to QMessageBox if notification system fails
             from PySide6.QtWidgets import QMessageBox
             from PySide6.QtGui import QIcon
 
@@ -356,8 +354,7 @@ class MessageManager:
 
                 return msg_box.exec()
         except Exception as e:
-            print(f"خطأ في عرض رسالة التحذير: {e}")
-            # استخدام QMessageBox كخيار احتياطي في حالة الخطأ
+            # Fallback to QMessageBox if notification system fails
             from PySide6.QtWidgets import QMessageBox
             from PySide6.QtGui import QIcon
 
@@ -472,8 +469,7 @@ class MessageManager:
 
                 return msg_box.exec() == QMessageBox.Yes
         except Exception as e:
-            print(f"خطأ في عرض السؤال: {e}")
-            # استخدام QMessageBox كخيار احتياطي في حالة الخطأ
+            # Fallback to QMessageBox if notification system fails
             from PySide6.QtWidgets import QMessageBox
             from PySide6.QtGui import QIcon
 

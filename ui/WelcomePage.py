@@ -388,30 +388,7 @@ class WelcomePage(QWidget):
 
         except Exception as e:
             print(tr("error_loading_feature_icons", e=e))
-            
-    # دعم السحب والإفلات
-    def dragEnterEvent(self, event):
-        """عند دخول ملفات مسحوبة"""
-        if event.mimeData().hasUrls():
-            urls = event.mimeData().urls()
-            pdf_files = [url.toLocalFile() for url in urls if url.isLocalFile() and url.toLocalFile().lower().endswith('.pdf')]
-            
-            if pdf_files:
-                event.acceptProposedAction()
-                # إظهار النافذة الذكية
-                self.show_smart_drop_overlay(pdf_files)
-            else:
-                event.ignore()
-        else:
-            event.ignore()
-            
-    def show_smart_drop_overlay(self, files):
-        """إظهار النافذة الذكية للسحب والإفلات"""
-        # الحصول على النافذة الرئيسية
-        main_window = self.get_main_window()
-        if main_window and hasattr(main_window, 'smart_drop_overlay'):
-            main_window.smart_drop_overlay.show_overlay('welcome', files)
-            
+
     def get_main_window(self):
         """الحصول على النافذة الرئيسية للتطبيق"""
         # البحث عن النافذة الرئيسية

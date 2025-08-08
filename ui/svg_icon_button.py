@@ -207,19 +207,23 @@ def load_svg_icon(icon_name, size=24, color="#ffffff", theme="default"):
     from PySide6.QtCore import Qt
     from PySide6.QtSvg import QSvgRenderer
     
-    # الحصول على مسار الأيقونة
-    if getattr(sys, 'frozen', False):
-        # المسار داخل الملف التنفيذي
-        base_path = os.path.join(sys._MEIPASS, "assets", "icons")
+    # التحقق أولاً مما إذا كان icon_name مسارًا كاملاً وموجودًا
+    if os.path.exists(icon_name):
+        icon_path = icon_name
     else:
-        # المسار في بيئة التطوير
-        base_path = "assets/icons"
-    
-    icon_path = os.path.join(base_path, theme, f"{icon_name}.svg")
-    
-    # fallback إلى السمة الافتراضية
-    if not os.path.exists(icon_path):
-        icon_path = os.path.join(base_path, "default", f"{icon_name}.svg")
+        # الحصول على مسار الأيقونة
+        if getattr(sys, 'frozen', False):
+            # المسار داخل الملف التنفيذي
+            base_path = os.path.join(sys._MEIPASS, "assets", "icons")
+        else:
+            # المسار في بيئة التطوير
+            base_path = "assets/icons"
+        
+        icon_path = os.path.join(base_path, theme, f"{icon_name}.svg")
+        
+        # fallback إلى السمة الافتراضية
+        if not os.path.exists(icon_path):
+            icon_path = os.path.join(base_path, "default", f"{icon_name}.svg")
     
     if not os.path.exists(icon_path):
         return None

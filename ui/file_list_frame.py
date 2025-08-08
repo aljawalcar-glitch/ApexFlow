@@ -16,9 +16,8 @@ from .theme_manager import make_theme_aware
 from .notification_system import show_success, show_warning, show_error, show_info
 from modules.translator import tr
 
-class FileListItem(QListWidgetItem):
-    """عنصر ملف مخصص مع معلومات إضافية"""
-    
+class AnimatedFileItemWidget(QWidget):
+    """A widget for displaying a file with hover animations."""
     def __init__(self, file_path, parent=None):
         super().__init__(parent)
         self.file_path = file_path
@@ -26,16 +25,43 @@ class FileListItem(QListWidgetItem):
         self.error_message = ""
         self.file_size = 0
         
-        # تحديث معلومات الملف
         self.update_file_info()
+        
+        self.setMinimumHeight(40)
+        self.layout = QHBoxLayout(self)
+        self.layout.setContentsMargins(10, 5, 10, 5)
+        
+        self.icon_label = QLabel()
+        self.file_name_label = QLabel()
+        self.size_label = QLabel()
+        
+        self.layout.addWidget(self.icon_label)
+        self.layout.addWidget(self.file_name_label, 1)
+        self.layout.addWidget(self.size_label)
+        
         self.update_display()
-    
+        
+        self.animation = QPropertyAnimation(self, b"geometry")
+        self.animation.setDuration(150)
+        self.animation.setEasingCurve(QEasingCurve.InOutQuad)
+
+    def enterEvent(self, event):
+        self.animation.setStartValue(self.geometry())
+        self.animation.setEndValue(self.geometry().adjusted(-5, -5, 5, 5))
+        self.animation.start()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self.animation.setStartValue(self.geometry())
+        self.animation.setEndValue(self.geometry().adjusted(5, 5, -5, -5))
+        self.animation.start()
+        super().leaveEvent(event)
+
     def update_file_info(self):
-        """تحديث معلومات الملف"""
+        """Update file information."""
         try:
             if os.path.exists(self.file_path):
                 self.file_size = os.path.getsize(self.file_path)
-                # التحقق من صحة ملف PDF
                 if self.file_path.lower().endswith('.pdf'):
                     self.is_valid = self.validate_pdf()
                 else:
@@ -46,9 +72,9 @@ class FileListItem(QListWidgetItem):
         except Exception as e:
             self.is_valid = False
             self.error_message = tr("error_reading_file", e=str(e))
-    
+
     def validate_pdf(self):
-        """التحقق من صحة ملف PDF"""
+        """Validate a PDF file."""
         try:
             with open(self.file_path, 'rb') as file:
                 header = file.read(8)
@@ -59,30 +85,25 @@ class FileListItem(QListWidgetItem):
         except Exception as e:
             self.error_message = tr("error_checking_pdf", e=str(e))
             return False
-    
+
     def update_display(self):
-        """تحديث عرض العنصر"""
+        """Update the display of the widget."""
         file_name = os.path.basename(self.file_path)
         size_text = self.format_file_size(self.file_size)
         
         if self.is_valid:
-            # الحجم على اليسار واسم الملف على اليمين
-            display_text = f"{tr('size_label')} {size_text}                                                    {file_name}"
-            # استخدام إعدادات التلميحات
-            from modules.settings import should_show_tooltips
-            if should_show_tooltips():
-                self.setToolTip(self.file_path)
+            self.file_name_label.setText(file_name)
+            self.size_label.setText(size_text)
+            self.icon_label.setPixmap(QIcon.fromTheme("application-pdf").pixmap(22, 22))
+            self.setToolTip(self.file_path)
         else:
-            display_text = f"{self.error_message}                                                    {tr('error_label')} {file_name}"
-            # استخدام إعدادات التلميحات
-            from modules.settings import should_show_tooltips
-            if should_show_tooltips():
-                self.setToolTip(f"{tr('error_label')} {self.error_message}")
-        
-        self.setText(display_text)
-    
+            self.file_name_label.setText(f"{tr('error_label')} {file_name}")
+            self.size_label.setText(self.error_message)
+            self.icon_label.setPixmap(QIcon.fromTheme("dialog-error").pixmap(22, 22))
+            self.setToolTip(f"{tr('error_label')} {self.error_message}")
+
     def format_file_size(self, size_bytes):
-        """تنسيق حجم الملف"""
+        """Format file size."""
         if size_bytes == 0:
             return "0 B"
         
@@ -93,6 +114,12 @@ class FileListItem(QListWidgetItem):
             i += 1
         
         return f"{size_bytes:.1f} {size_names[i]}"
+
+class FileListItem(QListWidgetItem):
+    """Custom list widget item to hold a reference to the file path."""
+    def __init__(self, file_path, parent=None):
+        super().__init__(parent)
+        self.file_path = file_path
 
 class DraggableListWidget(QListWidget):
     """قائمة قابلة للسحب والإفلات"""
@@ -122,33 +149,25 @@ class DraggableListWidget(QListWidget):
         # بدء عملية السحب
         item = self.itemAt(self.drag_start_position)
         if item:
-            self.start_drag(item)
+            widget = self.itemWidget(item)
+            if widget:
+                self.start_drag(item, widget)
     
-    def start_drag(self, item):
-        """بدء عملية السحب مع التأثيرات البصرية"""
+    def start_drag(self, item, widget):
+        """Start the drag operation with visual effects."""
         drag = QDrag(self)
         mime_data = QMimeData()
-        mime_data.setText(item.text())
+        # Use the file path for the mime data to ensure uniqueness
+        mime_data.setText(widget.file_path)
         drag.setMimeData(mime_data)
 
-        # إنشاء صورة شفافة للسحب
-        rect = self.visualItemRect(item)
-        pixmap = QPixmap(rect.size())
-        pixmap.fill(Qt.transparent)
-
-        painter = QPainter(pixmap)
-        painter.setOpacity(0.7)
-
-        # رسم خلفية العنصر
-        painter.fillRect(pixmap.rect(), Qt.darkGray)
-        painter.setPen(Qt.white)
-        painter.drawText(pixmap.rect(), Qt.AlignCenter, os.path.basename(item.file_path) if hasattr(item, 'file_path') else item.text())
-        painter.end()
-
+        # Create a pixmap of the widget for the drag cursor
+        pixmap = QPixmap(widget.size())
+        widget.render(pixmap)
         drag.setPixmap(pixmap)
         drag.setHotSpot(QPoint(pixmap.width() // 2, pixmap.height() // 2))
 
-        # تنفيذ السحب
+        # Execute the drag
         drop_action = drag.exec_(Qt.MoveAction)
 
     def dragEnterEvent(self, event):
@@ -264,13 +283,20 @@ class FileListFrame(QFrame):
         if self.isHidden():
             self.show()
             self.animate_show()
+        else:
+            # إذا كانت القائمة مرئية بالفعل، تأكد من تحديثها
+            self.raise_()
+            self.repaint()
 
         for file_path in file_paths:
             # تجنب إضافة الملفات المكررة
             if file_path not in self.files:
                 self.files.append(file_path)
                 item = FileListItem(file_path)
+                widget = AnimatedFileItemWidget(file_path)
+                item.setSizeHint(widget.sizeHint())
                 self.file_list.addItem(item)
+                self.file_list.setItemWidget(item, widget)
 
         # تحديث العرض وإرسال الإشارة بعد إضافة جميع الملفات
         self.update_display()
@@ -278,6 +304,13 @@ class FileListFrame(QFrame):
         
         # فرض تحديث الواجهة الرسومية لضمان ظهور العناصر
         QApplication.processEvents()
+        
+        # التأكد من أن النافذة الأصل مرئية ومحدثة
+        parent = self.parent()
+        while parent:
+            parent.raise_()
+            parent.repaint()
+            parent = parent.parent()
     
     def remove_file(self, file_path):
         """حذف ملف محدد"""
@@ -287,7 +320,7 @@ class FileListFrame(QFrame):
             # حذف العنصر من القائمة
             for i in range(self.file_list.count()):
                 item = self.file_list.item(i)
-                if isinstance(item, FileListItem) and item.file_path == file_path:
+                if item and self.file_list.itemWidget(item).file_path == file_path:
                     self.file_list.takeItem(i)
                     break
             
@@ -368,14 +401,16 @@ class FileListFrame(QFrame):
         valid_files = []
         for i in range(self.file_list.count()):
             item = self.file_list.item(i)
-            if isinstance(item, FileListItem) and item.is_valid:
-                valid_files.append(item.file_path)
+            widget = self.file_list.itemWidget(item)
+            if widget and widget.is_valid:
+                valid_files.append(widget.file_path)
         return valid_files
 
     def on_item_double_clicked(self, item):
         """معالجة النقر المزدوج على عنصر - حذف الملف"""
-        if isinstance(item, FileListItem):
-            self.remove_file(item.file_path)
+        widget = self.file_list.itemWidget(item)
+        if widget:
+            self.remove_file(widget.file_path)
 
     def contextMenuEvent(self, event):
         """قائمة السياق للنقر بالزر الأيمن"""
@@ -397,13 +432,17 @@ class FileListFrame(QFrame):
 
     def show_file_info(self, item):
         """عرض معلومات الملف"""
-        info_text = f"{tr('file_info_name')} {os.path.basename(item.file_path)}\n"
-        info_text += f"{tr('file_info_path')} {item.file_path}\n"
-        info_text += f"{tr('file_info_size')} {item.format_file_size(item.file_size)}\n"
-        info_text += f"{tr('file_info_status')} {tr('file_info_status_valid') if item.is_valid else tr('file_info_status_invalid')}"
+        widget = self.file_list.itemWidget(item)
+        if not widget:
+            return
 
-        if not item.is_valid:
-            info_text += f"\n{tr('file_info_error')} {item.error_message}"
+        info_text = f"{tr('file_info_name')} {os.path.basename(widget.file_path)}\n"
+        info_text += f"{tr('file_info_path')} {widget.file_path}\n"
+        info_text += f"{tr('file_info_size')} {widget.format_file_size(widget.file_size)}\n"
+        info_text += f"{tr('file_info_status')} {tr('file_info_status_valid') if widget.is_valid else tr('file_info_status_invalid')}"
+
+        if not widget.is_valid:
+            info_text += f"\n{tr('file_info_error')} {widget.error_message}"
             show_warning(info_text, duration=6000)
         else:
             show_info(info_text, duration=5000)
@@ -412,7 +451,8 @@ class FileListFrame(QFrame):
         """تحديث معلومات جميع الملفات"""
         for i in range(self.file_list.count()):
             item = self.file_list.item(i)
-            if isinstance(item, FileListItem):
-                item.update_file_info()
-                item.update_display()
+            widget = self.file_list.itemWidget(item)
+            if widget:
+                widget.update_file_info()
+                widget.update_display()
         self.update_display()

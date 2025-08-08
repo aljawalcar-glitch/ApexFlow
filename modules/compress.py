@@ -5,6 +5,7 @@
 
 import os
 from typing import Dict, Any
+from modules.logger import info, warning, error
 
 # تحميل كسول لمكتبة PyMuPDF الثقيلة
 _fitz = None
@@ -111,10 +112,10 @@ def compress_pdf(input_file: str, output_file: str, compression_level: int = 3) 
         # الحصول على إعدادات الضغط
         compression_settings = get_compression_settings(compression_level)
 
-        print(f"بدء ضغط الملف: {os.path.basename(input_file)}")
-        print(f"الحجم الأصلي: {format_file_size(original_size)}")
-        print(f"مستوى الضغط: {compression_level}/5 - {compression_settings['description']}")
-        print(f"عدد الصفحات: {len(doc)}")
+        info(f"بدء ضغط الملف: {os.path.basename(input_file)}")
+        info(f"الحجم الأصلي: {format_file_size(original_size)}")
+        info(f"مستوى الضغط: {compression_level}/5 - {compression_settings['description']}")
+        info(f"عدد الصفحات: {len(doc)}")
 
         # تحليل محتوى PDF للحصول على إحصائيات
         total_images = 0
@@ -124,13 +125,13 @@ def compress_pdf(input_file: str, output_file: str, compression_level: int = 3) 
             total_images += len(image_list)
 
         if total_images > 0:
-            print(f"تم العثور على {total_images} صورة في المستند")
+            info(f"تم العثور على {total_images} صورة في المستند")
         else:
-            print("لا توجد صور في المستند")
+            info("لا توجد صور في المستند")
 
         # إزالة البيانات الوصفية إذا كان مطلوباً
         if compression_settings["remove_metadata"]:
-            print("إزالة البيانات الوصفية...")
+            info("إزالة البيانات الوصفية...")
             doc.set_metadata({})
 
         # إعدادات الحفظ المحسنة والآمنة
@@ -163,8 +164,8 @@ def compress_pdf(input_file: str, output_file: str, compression_level: int = 3) 
             save_options["clean"] = True
             # عدم استخدام ascii=True لتجنب الأخطاء
 
-        print(f"إعدادات الضغط المطبقة: {list(save_options.keys())}")
-        print(f"قيم الإعدادات: {save_options}")
+        info(f"إعدادات الضغط المطبقة: {list(save_options.keys())}")
+        info(f"قيم الإعدادات: {save_options}")
 
         # إنشاء مجلد الحفظ إذا لم يكن موجوداً
         output_dir = os.path.dirname(output_file)
@@ -174,14 +175,14 @@ def compress_pdf(input_file: str, output_file: str, compression_level: int = 3) 
         # حفظ الملف المضغوط مع تشخيص مفصل
         save_successful = False
         try:
-            print("محاولة الحفظ بالإعدادات المتقدمة...")
+            info("محاولة الحفظ بالإعدادات المتقدمة...")
             doc.save(output_file, **save_options)
             doc.close()
             save_successful = True
-            print("تم الحفظ بالإعدادات المتقدمة بنجاح")
+            info("تم الحفظ بالإعدادات المتقدمة بنجاح")
         except Exception as save_error:
-            print(f"خطأ في الحفظ بالإعدادات المتقدمة: {save_error}")
-            print("محاولة الحفظ بإعدادات أساسية...")
+            warning(f"خطأ في الحفظ بالإعدادات المتقدمة: {save_error}")
+            info("محاولة الحفظ بإعدادات أساسية...")
             doc.close()
 
             # إعادة فتح الملف ومحاولة حفظ بإعدادات أساسية
@@ -195,9 +196,9 @@ def compress_pdf(input_file: str, output_file: str, compression_level: int = 3) 
                 doc.save(output_file, **basic_options)
                 doc.close()
                 save_successful = True
-                print("تم الحفظ بإعدادات أساسية بنجاح")
+                info("تم الحفظ بإعدادات أساسية بنجاح")
             except Exception as basic_error:
-                print(f"فشل الحفظ بالإعدادات الأساسية: {basic_error}")
+                warning(f"فشل الحفظ بالإعدادات الأساسية: {basic_error}")
                 try:
                     doc.close()
                 except:
@@ -206,14 +207,14 @@ def compress_pdf(input_file: str, output_file: str, compression_level: int = 3) 
                 import shutil
                 shutil.copy(input_file, output_file)
                 save_successful = False
-                print("تم نسخ الملف الأصلي (لم يحدث ضغط)")
+                warning("تم نسخ الملف الأصلي (لم يحدث ضغط)")
 
         # حساب نسبة الضغط مع تشخيص دقيق
         if os.path.exists(output_file):
             compressed_size = os.path.getsize(output_file)
-            print(f"حجم الملف الناتج: {format_file_size(compressed_size)}")
+            info(f"حجم الملف الناتج: {format_file_size(compressed_size)}")
         else:
-            print("خطأ: الملف الناتج غير موجود!")
+            error("خطأ: الملف الناتج غير موجود!")
             return False
 
         # مقارنة الأحجام
@@ -222,40 +223,40 @@ def compress_pdf(input_file: str, output_file: str, compression_level: int = 3) 
         if save_successful and size_difference > 0:
             # ضغط ناجح
             compression_ratio = (size_difference / original_size) * 100
-            print(f"✅ تم الضغط بنجاح!")
-            print(f"الحجم الأصلي: {format_file_size(original_size)}")
-            print(f"الحجم الجديد: {format_file_size(compressed_size)}")
-            print(f"نسبة التوفير: {compression_ratio:.1f}%")
-            print(f"توفير في المساحة: {format_file_size(size_difference)}")
+            info(f"✅ تم الضغط بنجاح!")
+            info(f"الحجم الأصلي: {format_file_size(original_size)}")
+            info(f"الحجم الجديد: {format_file_size(compressed_size)}")
+            info(f"نسبة التوفير: {compression_ratio:.1f}%")
+            info(f"توفير في المساحة: {format_file_size(size_difference)}")
         elif save_successful and size_difference == 0:
             # نفس الحجم
-            print(f"⚠️ تم الحفظ لكن لم يتغير الحجم")
-            print(f"الحجم: {format_file_size(compressed_size)} (لم يتغير)")
-            print("السبب المحتمل: الملف مضغوط مسبقاً أو لا يحتوي على عناصر قابلة للضغط")
+            warning(f"⚠️ تم الحفظ لكن لم يتغير الحجم")
+            info(f"الحجم: {format_file_size(compressed_size)} (لم يتغير)")
+            info("السبب المحتمل: الملف مضغوط مسبقاً أو لا يحتوي على عناصر قابلة للضغط")
         elif save_successful and size_difference < 0:
             # الملف أصبح أكبر
-            print(f"⚠️ الملف أصبح أكبر بعد المعالجة")
-            print(f"الحجم الأصلي: {format_file_size(original_size)}")
-            print(f"الحجم الجديد: {format_file_size(compressed_size)}")
-            print("سيتم استبداله بالملف الأصلي...")
+            warning(f"⚠️ الملف أصبح أكبر بعد المعالجة")
+            info(f"الحجم الأصلي: {format_file_size(original_size)}")
+            info(f"الحجم الجديد: {format_file_size(compressed_size)}")
+            info("سيتم استبداله بالملف الأصلي...")
             import shutil
             shutil.copy(input_file, output_file)
             compressed_size = original_size
         else:
             # لم يحدث ضغط (تم النسخ فقط)
-            print(f"❌ لم يحدث ضغط - تم نسخ الملف الأصلي")
-            print(f"الحجم: {format_file_size(compressed_size)} (نفس الأصلي)")
+            warning(f"❌ لم يحدث ضغط - تم نسخ الملف الأصلي")
+            info(f"الحجم: {format_file_size(compressed_size)} (نفس الأصلي)")
 
         return True
 
     except Exception as e:
-        print(f"خطأ في ضغط PDF: {str(e)}")
+        error(f"خطأ في ضغط PDF: {str(e)}")
         # في حالة الخطأ، حاول نسخ الملف الأصلي لضمان وجود ناتج
         try:
             import shutil
             shutil.copy(input_file, output_file)
         except Exception as copy_e:
-            print(f"فشل نسخ الملف الأصلي بعد الخطأ: {copy_e}")
+            error(f"فشل نسخ الملف الأصلي بعد الخطأ: {copy_e}")
         return False
 
 def batch_compress(input_folder: str, output_folder: str, 
@@ -289,7 +290,7 @@ def batch_compress(input_folder: str, output_folder: str,
         
         pdf_files = [f for f in os.listdir(input_folder) if f.lower().endswith('.pdf')]
         
-        print(f"تم العثور على {len(pdf_files)} ملف PDF")
+        info(f"تم العثور على {len(pdf_files)} ملف PDF")
         
         for filename in pdf_files:
             input_path = os.path.join(input_folder, filename)
@@ -299,7 +300,7 @@ def batch_compress(input_folder: str, output_folder: str,
             original_size = os.path.getsize(input_path)
             results['total_original_size'] += original_size
             
-            print(f"معالجة: {filename}")
+            info(f"معالجة: {filename}")
             
             if compress_pdf(input_path, output_path, compression_level):
                 compressed_size = os.path.getsize(output_path)
@@ -319,16 +320,16 @@ def batch_compress(input_folder: str, output_folder: str,
         if results['total_original_size'] > 0:
             total_ratio = ((results['total_original_size'] - results['total_compressed_size']) 
                           / results['total_original_size']) * 100
-            print(f"\nالنتائج الإجمالية:")
-            print(f"الملفات المعالجة: {results['successful']}/{results['processed']}")
-            print(f"الحجم الأصلي الإجمالي: {format_file_size(results['total_original_size'])}")
-            print(f"الحجم المضغوط الإجمالي: {format_file_size(results['total_compressed_size'])}")
-            print(f"نسبة التوفير الإجمالية: {total_ratio:.1f}%")
+            info(f"\nالنتائج الإجمالية:")
+            info(f"الملفات المعالجة: {results['successful']}/{results['processed']}")
+            info(f"الحجم الأصلي الإجمالي: {format_file_size(results['total_original_size'])}")
+            info(f"الحجم المضغوط الإجمالي: {format_file_size(results['total_compressed_size'])}")
+            info(f"نسبة التوفير الإجمالية: {total_ratio:.1f}%")
         
         return results
         
     except Exception as e:
-        print(f"خطأ في الضغط المجمع: {str(e)}")
+        error(f"خطأ في الضغط المجمع: {str(e)}")
         return results
 
 def test_compression_levels(input_file: str, output_folder: str) -> Dict[str, Any]:
@@ -357,14 +358,14 @@ def test_compression_levels(input_file: str, output_folder: str) -> Dict[str, An
         "levels": {}
     }
 
-    print(f"اختبار مستويات الضغط لملف: {os.path.basename(input_file)}")
-    print(f"الحجم الأصلي: {format_file_size(original_size)}")
-    print("-" * 60)
+    info(f"اختبار مستويات الضغط لملف: {os.path.basename(input_file)}")
+    info(f"الحجم الأصلي: {format_file_size(original_size)}")
+    info("-" * 60)
 
     for level in range(1, 6):
         output_file = os.path.join(output_folder, f"{base_name}_level_{level}.pdf")
 
-        print(f"\nاختبار المستوى {level}...")
+        info(f"\nاختبار المستوى {level}...")
         success = compress_pdf(input_file, output_file, level)
 
         if success:
@@ -380,27 +381,27 @@ def test_compression_levels(input_file: str, output_folder: str) -> Dict[str, An
                 "success": True
             }
 
-            print(f"المستوى {level}: {format_file_size(compressed_size)} ({compression_ratio:.1f}% توفير)")
+            info(f"المستوى {level}: {format_file_size(compressed_size)} ({compression_ratio:.1f}% توفير)")
         else:
             results["levels"][level] = {"success": False}
-            print(f"المستوى {level}: فشل")
+            warning(f"المستوى {level}: فشل")
 
-    print("\n" + "=" * 60)
-    print("ملخص النتائج:")
-    print("=" * 60)
+    info("\n" + "=" * 60)
+    info("ملخص النتائج:")
+    info("=" * 60)
 
     for level in range(1, 6):
         if results["levels"][level]["success"]:
             data = results["levels"][level]
-            print(f"المستوى {level}: {format_file_size(data['compressed_size'])} "
+            info(f"المستوى {level}: {format_file_size(data['compressed_size'])} "
                   f"({data['compression_ratio']:.1f}% توفير)")
 
     return results
 
 if __name__ == "__main__":
-    print("وحدة الضغط المحسنة (PyMuPDF) تم تحميلها بنجاح")
-    print("الميزات الجديدة:")
-    print("- ضغط الصور المتقدم")
-    print("- إزالة البيانات الوصفية")
-    print("- 5 مستويات ضغط محسنة")
-    print("- إحصائيات مفصلة")
+    info("وحدة الضغط المحسنة (PyMuPDF) تم تحميلها بنجاح")
+    info("الميزات الجديدة:")
+    info("- ضغط الصور المتقدم")
+    info("- إزالة البيانات الوصفية")
+    info("- 5 مستويات ضغط محسنة")
+    info("- إحصائيات مفصلة")

@@ -65,6 +65,9 @@ class CompressPage(BasePageWidget):
 
         self.hide_all_frames()
 
+        # Set initial state
+        self.on_mode_changed()
+
     def create_save_location_frame(self):
         self.save_and_compress_widget = QWidget()
         self.save_and_compress_layout = QHBoxLayout(self.save_and_compress_widget)
@@ -238,6 +241,15 @@ class CompressPage(BasePageWidget):
         self.reset_ui()
         button_text = tr("select_pdfs_for_batch_compression") if self.batch_mode_checkbox.isChecked() else tr("select_pdf_to_compress")
         self.top_buttons_layout.itemAt(0).widget().setText(button_text)
+
+        # Update drop settings based on the checkbox
+        main_window = self._get_main_window()
+        if main_window and hasattr(main_window, 'smart_drop_overlay'):
+            from modules.page_settings import page_settings
+            compress_settings = page_settings.get('compress', {})
+            # Allow folders only if batch mode is checked
+            compress_settings['allow_folders'] = self.batch_mode_checkbox.isChecked()
+            main_window.smart_drop_overlay.update_page_settings(compress_settings)
 
     def select_files_for_compression(self):
         is_batch = self.batch_mode_checkbox.isChecked()

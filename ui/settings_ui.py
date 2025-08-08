@@ -287,6 +287,7 @@ class SettingsUI(ThemeAwareDialog):
         self.changes_report = QLabel()
 
         # --- إنشاء عناصر الإعدادات العامة ---
+        self.sequential_drops_checkbox = QCheckBox(tr("allow_sequential_drops_option"))
         self.disable_welcome_checkbox = QCheckBox(tr("disable_welcome_message_option"))
         self.remember_state_checkbox = QCheckBox(tr("remember_settings_on_exit_option"))
         self.reset_to_defaults_checkbox = QCheckBox(tr("reset_to_defaults_next_time_option"))
@@ -325,6 +326,7 @@ class SettingsUI(ThemeAwareDialog):
         self.contrast_combo.currentTextChanged.connect(self._on_advanced_changed)
 
         # --- ربط إشارات الإعدادات العامة ---
+        self.sequential_drops_checkbox.stateChanged.connect(self.mark_as_changed)
         self.disable_welcome_checkbox.stateChanged.connect(self.mark_as_changed)
         self.remember_state_checkbox.stateChanged.connect(self.mark_as_changed)
         self.reset_to_defaults_checkbox.stateChanged.connect(self.mark_as_changed)
@@ -840,6 +842,10 @@ class SettingsUI(ThemeAwareDialog):
         startup_layout.setSpacing(10)
 
         # إضافة العناصر التي تم إنشاؤها مسبقاً
+        apply_theme_style(self.sequential_drops_checkbox, "checkbox", auto_register=True)
+        self.sequential_drops_checkbox.setChecked(self.settings_data.get("allow_sequential_drops", True))
+        startup_layout.addWidget(self.sequential_drops_checkbox)
+
         apply_theme_style(self.disable_welcome_checkbox, "checkbox", auto_register=True)
         self.disable_welcome_checkbox.setChecked(self.settings_data.get("disable_welcome_message", False))
         startup_layout.addWidget(self.disable_welcome_checkbox)
@@ -1203,7 +1209,8 @@ class SettingsUI(ThemeAwareDialog):
             self._compare_and_append_change(original_ui_settings.get("contrast", tr("contrast_normal")), self.contrast_combo.currentText(), changes, lambda **kwargs: tr("change_report_contrast", **kwargs))
 
             # --- General Settings ---
-            self._compare_and_append_change(self.original_settings.get("disable_welcome_message", False), self.disable_welcome_checkbox.isChecked(), changes, lambda **kwargs: tr("change_report_welcome_message", status=tr("status_disabled") if kwargs['current'] else tr("status_enabled")))
+            self._compare_and_append_change(self.original_settings.get("allow_sequential_drops", True), self.sequential_drops_checkbox.isChecked(), changes, lambda **kwargs: tr("change_report_sequential_drops", status=tr("status_enabled") if kwargs['current'] else tr("status_disabled")))
+            self._compare_and_append_change(self.original_settings.get("disable_welcome_message", False), self.disable_welcome_checkbox.isChecked(), changes, lambda **kwargs: tr("change_report_welcome_message", status=tr("status_enabled") if kwargs['current'] else tr("status_disabled")))
             self._compare_and_append_change(self.original_settings.get("remember_settings_on_exit", False), self.remember_state_checkbox.isChecked(), changes, lambda **kwargs: tr("change_report_remember_settings", status=tr("status_enabled") if kwargs['current'] else tr("status_disabled")))
             self._compare_and_append_change(self.original_settings.get("reset_to_defaults_next_time", False), self.reset_to_defaults_checkbox.isChecked(), changes, lambda **kwargs: tr("change_report_reset_defaults", status=tr("status_enabled") if kwargs['current'] else tr("status_disabled")))
 
@@ -1259,6 +1266,9 @@ class SettingsUI(ThemeAwareDialog):
             }
             current["ui_settings"] = ui_settings
 
+            # إعدادات الإسقاط المتتابع
+            current["allow_sequential_drops"] = self.sequential_drops_checkbox.isChecked()
+            
             # إعدادات رسائل الترحيب
             current["disable_welcome_message"] = self.disable_welcome_checkbox.isChecked()
 
@@ -1379,6 +1389,7 @@ class SettingsUI(ThemeAwareDialog):
             self._block_signals(True)
 
             # تحميل إعدادات المظهر الأساسية
+            self.sequential_drops_checkbox.setChecked(self.settings_data.get("allow_sequential_drops", True))
             self.theme_combo.setCurrentText(self.settings_data.get("theme", "blue"))
             self.accent_color_input.setText(self.settings_data.get("accent_color", "#056a51"))
 
@@ -1439,6 +1450,7 @@ class SettingsUI(ThemeAwareDialog):
     def _block_signals(self, block):
         """منع أو تفعيل إشارات العناصر"""
         widgets = [
+            self.sequential_drops_checkbox,
             self.theme_combo, self.accent_color_input, self.language_combo,
             self.font_size_slider, self.title_font_size_slider, self.menu_font_size_slider,
             self.font_family_combo, self.font_weight_combo,

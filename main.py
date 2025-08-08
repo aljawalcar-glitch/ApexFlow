@@ -13,7 +13,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'config'))
 # PySide6 imports
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QMessageBox, QVBoxLayout, QHBoxLayout,
-    QWidget, QStackedWidget, QListWidget, QListWidgetItem, QLabel, QScrollArea, QPushButton,
+    QWidget, QListWidget, QListWidgetItem, QLabel, QScrollArea, QPushButton,
     QGridLayout
 )
 from PySide6.QtGui import QIcon, QKeySequence, QShortcut
@@ -27,12 +27,15 @@ from ui import WelcomePage, apply_theme_style
 from ui.notification_system import NotificationBar
 from ui.first_run_dialog import FirstRunDialog
 from ui.smart_drop_overlay import SmartDropOverlay
+from ui.overlay_manager import OverlayManager
 from modules.page_settings import page_settings
 from modules.translator import tr
+from ui.animated_stacked_widget import AnimatedStackedWidget
 
 # ===============================
 # Main application classes
 # ===============================
+
 
 class SingleApplication(QApplication):
     """Single window application only"""
@@ -84,18 +87,47 @@ class ApexFlow(QMainWindow):
 
         # Create interface first
         self.initUI()
+        
+        # Create overlay manager after UI is created
+        if not hasattr(self, 'overlay_manager'):
+            self.overlay_manager = OverlayManager(self)
 
         # Apply theme and settings in a deferred manner
         from PySide6.QtCore import QTimer
         QTimer.singleShot(100, self._initialize_delayed)
 
     def closeEvent(self, event):
-        """معالج حدث إغلاق النافذة - لتنظيف الموارد قبل الإغلاق"""
-        # التأكد من إيقاف جميع الخيوط العاملة
+        """Handle the window close event for resource cleanup."""
+        # Check for unfinished work before closing
+        if self.has_any_unfinished_work():
+            pages_with_work = self.get_pages_with_work()
+            
+            # Format the message with the names of pages that have unsaved work
+            message = tr("exit_with_work_warning", pages=", ".join(pages_with_work))
+            
+            # Create a confirmation dialog
+            confirm_dialog = QMessageBox(self)
+            confirm_dialog.setWindowTitle(tr("confirm_exit"))
+            confirm_dialog.setText(message)
+            confirm_dialog.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            confirm_dialog.setDefaultButton(QMessageBox.No)
+            
+            # Apply theme to the dialog
+            try:
+                from ui.theme_manager import apply_theme
+                apply_theme(confirm_dialog, "dialog")
+            except Exception as e:
+                pass
+            # If the user chooses not to exit, ignore the close event
+            if confirm_dialog.exec() == QMessageBox.No:
+                event.ignore()
+                return
+
+        # Stop all worker threads before closing
         if hasattr(self, 'worker_manager') and self.worker_manager:
             self.worker_manager.cleanup()
 
-        # قبول حدث الإغلاق
+        # Accept the close event and close the application
         event.accept()
 
     def resizeEvent(self, event):
@@ -106,11 +138,11 @@ class ApexFlow(QMainWindow):
 
     def dragEnterEvent(self, event):
         """Handle drag enter events for the main window."""
-        print("===== بدء حدث السحب في النافذة الرئيسية =====")
+        # بدء حدث السحب في النافذة الرئيسية
         current_index = self.stack.currentIndex()
-        print(f"الصفحة الحالية: {current_index}")
+        # الصفحة الحالية
         # تعطيل السحب في الصفحات غير المخصصة للملفات
-        if current_index in [7, 8]: # الإعدادات، المساعدة
+        if current_index in [0, 7, 8]: # الترحيب، الإعدادات، المساعدة
             event.ignore()
             return
 
@@ -119,15 +151,18 @@ class ApexFlow(QMainWindow):
             self._update_smart_drop_mode_for_page(current_index)
             # الآن استدعاء handle_drag_enter بعد تحديث الإعدادات
             self.smart_drop_overlay.handle_drag_enter(event)
+            # تسجيل التراكب في مدير التراكبات
+            if hasattr(self, 'overlay_manager'):
+                self.overlay_manager.active_overlay = self.smart_drop_overlay
             # قبول الحدث
-            print("قبول حدث السحب في النافذة الرئيسية")
+            # قبول حدث السحب في النافذة الرئيسية
             event.accept()
         else:
             event.ignore()
 
     def dragLeaveEvent(self, event):
         """Handle drag leave events for the main window."""
-        print("===== حدث مغادرة السحب في النافذة الرئيسية =====")
+        # حدث مغادرة السحب في النافذة الرئيسية
         # تمرير الحدث إلى الطبقة الذكية لمعالجته
         if self.smart_drop_overlay and self.smart_drop_overlay.isVisible():
             self.smart_drop_overlay.handle_drag_leave(event)
@@ -136,13 +171,13 @@ class ApexFlow(QMainWindow):
 
     def dropEvent(self, event):
         """Handle drop events for the main window."""
-        print("===== حدث الإفلات في النافذة الرئيسية =====")
+        # حدث الإفلات في النافذة الرئيسية
         overlay_visible = self.smart_drop_overlay and self.smart_drop_overlay.isVisible()
-        print(f"واجهة الإسقاط مرئية: {overlay_visible}")
+        # واجهة الإسقاط مرئية
         if overlay_visible:
             self.smart_drop_overlay.handle_drop(event)
             # قبول الحدث
-            print("قبول حدث الإفلات في النافذة الرئيسية")
+            # قبول حدث الإفلات في النافذة الرئيسية
             event.accept()
         else:
             event.ignore()
@@ -181,7 +216,6 @@ class ApexFlow(QMainWindow):
             try:
                 from modules.app_utils import OperationsManager
                 self.operations_manager = OperationsManager(self, self.file_manager, self.message_manager)
-                debug("OperationsManager created successfully (lazy)")
             except Exception as e:
                 error(f"Error creating OperationsManager: {e}")
                 # Create dummy operations manager
@@ -203,7 +237,6 @@ class ApexFlow(QMainWindow):
         """تعيين حالة العمل لصفحة معينة"""
         if 0 <= page_index < len(self._has_unfinished_work):
             self._has_unfinished_work[page_index] = has_work
-            debug(f"Page {page_index} work status set to: {has_work}")
     
     def get_page_has_work(self, page_index):
         """الحصول على حالة العمل لصفحة معينة"""
@@ -262,7 +295,6 @@ class ApexFlow(QMainWindow):
             # Specifically refresh pages that might have been loaded
             self.refresh_all_loaded_pages()
 
-            debug("Theme re-applied to the main window via ThemeManager.")
 
         except Exception as e:
             error(f"Error refreshing main window theme: {e}")
@@ -282,7 +314,6 @@ class ApexFlow(QMainWindow):
             from modules.settings import print_settings_info
             print_settings_info()
 
-            debug("Settings validated in deferred manner")
         except Exception as e:
             error(f"Error in deferred settings validation: {e}")
 
@@ -330,7 +361,7 @@ class ApexFlow(QMainWindow):
     def _create_main_content(self):
         """Creates the main content area with the stacked widget and notification bar."""
         # Create the stacked widget for pages
-        self.stack = QStackedWidget()
+        self.stack = AnimatedStackedWidget()
         self.stack.setStyleSheet("background: transparent;")
 
         # Welcome page
@@ -472,8 +503,14 @@ class ApexFlow(QMainWindow):
             index = page_mapping.get(page_identifier, 0)
 
         if index > 0:
+            # إغلاق التراكب النشط قبل تغيير الصفحة
+            if hasattr(self, 'smart_drop_overlay') and self.smart_drop_overlay and self.smart_drop_overlay.isVisible():
+                self.smart_drop_overlay.close()
+                
             self.menu_list.setCurrentRow(index)
             self.load_page_on_demand(index)
+        else:
+            self.stack.fade_to_index(index)
 
     def handle_menu_selection(self, item):
         """
@@ -514,7 +551,7 @@ class ApexFlow(QMainWindow):
                 from ui.theme_manager import apply_theme
                 apply_theme(confirm_dialog, "dialog")
             except Exception as e:
-                debug(f"Error applying theme to dialog: {e}")
+                pass
                 
             if confirm_dialog.exec() == QMessageBox.Yes:
                 # Reset the current page's UI before navigating away
@@ -532,12 +569,10 @@ class ApexFlow(QMainWindow):
                         # Check if it has cancel_changes method
                         if hasattr(settings_widget, 'cancel_changes'):
                             settings_widget.cancel_changes()
-                            debug("Called cancel_changes method for settings page")
                         else:
                             # Fallback to reset_ui if cancel_changes doesn't exist
                             if hasattr(settings_widget, 'reset_ui'):
                                 settings_widget.reset_ui()
-                                debug("Used reset_ui fallback for settings page")
                     except Exception as e:
                         error(f"Error calling cancel_changes: {e}")
                         # Fallback to original behavior
@@ -559,6 +594,10 @@ class ApexFlow(QMainWindow):
                 return
 
         # Proceed with navigation
+        # إغلاق التراكب النشط قبل تغيير الصفحة
+        if hasattr(self, 'smart_drop_overlay') and self.smart_drop_overlay and self.smart_drop_overlay.isVisible():
+            self.smart_drop_overlay.close()
+            
         self.load_page_on_demand(desired_row)
         self.menu_list.setCurrentRow(desired_row)
         # تحديث وضع الطبقة الذكية بناءً على الصفحة الجديدة
@@ -574,12 +613,12 @@ class ApexFlow(QMainWindow):
         # هذا يمنع تحميل الصفحات غير الضرورية عند الفتح
         if index == 0:
             # الصفحة 0 (صفحة الترحيب) محملة بالفعل، فقط انتقل إليها
-            self.stack.setCurrentIndex(0)
+            self.stack.fade_to_index(0)
             return
 
         # إذا كانت الصفحة محملة بالفعل، انتقل إليها مباشرة
         if self.pages_loaded[index]:
-            self.stack.setCurrentIndex(index)
+            self.stack.fade_to_index(index)
             return
 
         # تحميل الصفحة باستخدام WorkerManager للصفحات الثقيلة
@@ -597,7 +636,7 @@ class ApexFlow(QMainWindow):
             self._handle_page_load_error(index, e)
 
         # الانتقال إلى الصفحة
-        self.stack.setCurrentIndex(index)
+        self.stack.fade_to_index(index)
 
     def _reset_all_loaded_pages(self):
         """Resets all loaded pages."""
@@ -610,7 +649,7 @@ class ApexFlow(QMainWindow):
                     if hasattr(inner_widget, 'reset_ui'):
                         inner_widget.reset_ui()
         except Exception as e:
-            debug(f"Error resetting pages: {e}")
+            pass
 
     def _create_page(self, index):
         """إنشاء الصفحة المطلوبة"""
@@ -630,7 +669,7 @@ class ApexFlow(QMainWindow):
         
     def _update_smart_drop_mode_for_page(self, page_index):
         """تحديث وضع الطبقة الذكية بناءً على الصفحة الحالية"""
-        print(f"تحديث وضع الطبقة الذكية للصفحة: {page_index}")
+        # تحديث وضع الطبقة الذكية للصفحة
         page_titles = [
             tr("menu_home"), tr("menu_merge_print"), tr("menu_split"),
             tr("menu_compress"), tr("menu_stamp_rotate"), tr("menu_convert"),
@@ -834,7 +873,6 @@ class ApexFlow(QMainWindow):
             warning(f"لون تمييز غير صالح: {accent_color}")
             return False
 
-        debug("تم التحقق من صحة الإعدادات بنجاح")
         return True
         
     def handle_smart_drop_action(self, action_type, files):
@@ -846,10 +884,11 @@ class ApexFlow(QMainWindow):
 
         # إذا كان الإجراء هو "إضافة إلى القائمة"، قم بإضافة الملفات مباشرة
         if action_type == "add_to_list":
-            self.add_files_to_current_page(files)
+            # استخدم QTimer لضمان إخفاء الطبقة الذكية قبل إضافة الملفات
+            QTimer.singleShot(100, lambda: self.add_files_to_current_page(files))
             # تعيين حالة العمل غير المكتمل للصفحة الحالية
             current_page_index = self.stack.currentIndex()
-            self.set_page_has_work(current_page_index, True)
+            QTimer.singleShot(200, lambda: self.set_page_has_work(current_page_index, True))
             return
 
         # إذا كان الإجراء يتطلب التنفيذ الفوري
@@ -1022,7 +1061,6 @@ class ApexFlow(QMainWindow):
             if old_widget is None:
                 # إذا لم يكن هناك ويدجت، أضف الجديد مباشرة
                 self.stack.insertWidget(index, new_page)
-                debug(f"تم إدراج صفحة جديدة في الفهرس {index}")
                 return
 
             # استبدال الويدجت بطريقة مباشرة وآمنة
@@ -1033,7 +1071,6 @@ class ApexFlow(QMainWindow):
             old_widget.setParent(None)
             old_widget.deleteLater()
 
-            debug(f"تم استبدال الصفحة {index} بنجاح")
 
         except Exception as e:
             error(f"خطأ في استبدال الصفحة {index}: {e}")
@@ -1141,33 +1178,38 @@ class ApexFlow(QMainWindow):
             )
 
 def main():
-    """الدالة الرئيسية لتشغيل التطبيق"""
+    """Main function to run the application."""
     app = SingleApplication(sys.argv)
     
-    # تسجيل نظام الإشعارات قبل التحقق من المكتبات
+    # Register the notification system before checking for libraries
     try:
-        from ui.notification_system import global_notification_manager, NotificationBar
+        from ui.notification_system import global_notification_manager, NotificationBar, check_and_notify_missing_libraries
         
-        # إنشاء شريط الإشعارات المؤقت إذا لم يكن مسجلاً
+        # Create a temporary notification bar if not already registered
         if not global_notification_manager.notification_bar:
             from PySide6.QtWidgets import QMainWindow
             temp_window = QMainWindow()
             notification_bar = NotificationBar(temp_window)
             global_notification_manager.register_widgets(temp_window, notification_bar)
             
-        # الآن التحقق من المكتبات المطلوبة
-        from ui.notification_system import check_and_notify_missing_libraries
-        # سيتم عرض الإشعارات إذا كانت هناك مكتبات مفقودة
-        check_and_notify_missing_libraries()
+        # Check for missing libraries and notify the user
+        if not check_and_notify_missing_libraries():
+            # If essential libraries are missing, exit gracefully
+            sys.exit(1)
+            
+    except ImportError as e:
+        # Handle cases where even basic modules are missing
+        QMessageBox.critical(None, "Fatal Error", f"A critical module is missing: {e}\nPlease reinstall the application.")
+        sys.exit(1)
     except Exception as e:
-        print(f"تحذير: خطأ في التحقق من المكتبات: {e}")
+        warning(f"Error during library check: {e}")
 
-    # إعداد أول تشغيل للتطبيق
+    # Set up the first run of the application
     try:
         from modules.default_settings import setup_first_run
         setup_first_run()
     except Exception as e:
-        print(f"تحذير: خطأ في إعداد أول تشغيل: {e}")
+        warning(f"Error in first run setup: {e}")
 
     # التحقق من التشغيل الأول
     settings_data = load_settings()

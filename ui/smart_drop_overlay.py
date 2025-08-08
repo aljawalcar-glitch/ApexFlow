@@ -8,7 +8,7 @@ import mimetypes
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFrame,
                                QLabel, QPushButton, QGraphicsDropShadowEffect,
                                QScrollArea, QGraphicsBlurEffect, QGridLayout)
-from PySide6.QtCore import Qt, Signal, QTimer, QPropertyAnimation, QEasingCurve
+from PySide6.QtCore import Qt, Signal, QTimer, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QRect, QSize
 from PySide6.QtGui import QColor, QPixmap, QDragEnterEvent, QDropEvent
 
 from .svg_icon_button import load_svg_icon
@@ -16,6 +16,7 @@ from modules.translator import tr
 from .theme_manager import global_theme_manager
 from .pdf_worker import global_worker_manager
 from modules.page_settings import page_settings
+from modules import settings
 
 class FileThumbnailCard(QWidget):
     """بطاقة مصغرة لعرض ملف مع صورته واسمه وزر حذف."""
@@ -222,6 +223,12 @@ class SmartDropOverlay(QWidget):
         self.description_label.setWordWrap(True)
         card_layout.addWidget(self.description_label)
 
+        # أيقونة الإسقاط الكبيرة
+        self.drop_icon_label = QLabel()
+        self.drop_icon_label.setObjectName("smartDropLargeIcon")
+        self.drop_icon_label.setAlignment(Qt.AlignCenter)
+        card_layout.addWidget(self.drop_icon_label)
+
         # حاوية الخيارات
         self.options_layout = QVBoxLayout()
         self.options_layout.setSpacing(10)
@@ -243,7 +250,7 @@ class SmartDropOverlay(QWidget):
         card_layout.addStretch(1)
 
         # زر الإلغاء
-        self.cancel_button = QPushButton(tr("cancel"))
+        self.cancel_button = QPushButton(tr("cancel_button"))
         self.cancel_button.setObjectName("cancelButton")
         self.cancel_button.clicked.connect(self.cancel)
         card_layout.addWidget(self.cancel_button)
@@ -356,46 +363,75 @@ class SmartDropOverlay(QWidget):
 
     def update_context(self, context, title):
         """تحديث السياق والعنوان بناءً على الصفحة الحالية."""
-        print(f"===== تحديث السياق: {context}, العنوان: {title} =====")
+        # تحديث السياق
         self.current_context = context
         self.page_title = title
         self.update_ui_for_context()
         
     def update_page_settings(self, settings):
         """تحديث إعدادات الصفحة الحالية في واجهة الإسقاط"""
-        print(f"تحديث إعدادات الصفحة: {settings}")
+        # تحديث إعدادات الصفحة
         self.current_page_settings = settings
         # يمكن إضافة المزيد من المنطق هنا حسب الحاجة
         
     def animate_show(self):
-        """إظهار الطبقة مع تأثير انتقالي سلس."""
-        print("===== بدء إظهار واجهة الإسقاط =====")
-        # تعيين الشفافية الأولية
+        """Show the overlay with a smooth transition effect."""
         self.setWindowOpacity(0.0)
         self.show()
-        print(f"حالة الإظهار: {self.isVisible()}")
         self.raise_()
 
-        # إنشاء تأثير انتقالي للشفافية
-        self.fade_animation = QPropertyAnimation(self, b"windowOpacity")
-        self.fade_animation.setDuration(300)  # 300 مللي ثانية
-        self.fade_animation.setStartValue(0.0)
-        self.fade_animation.setEndValue(1.0)
-        self.fade_animation.setEasingCurve(QEasingCurve.OutCubic)
-        self.fade_animation.start()
+        # Fade in the overlay
+        fade_in = QPropertyAnimation(self, b"windowOpacity")
+        fade_in.setDuration(300)
+        fade_in.setStartValue(0.0)
+        fade_in.setEndValue(1.0)
+        fade_in.setEasingCurve(QEasingCurve.OutCubic)
+
+        # Scale up the card
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(30)
+        shadow.setColor(QColor(0, 0, 0, 120))
+        shadow.setOffset(0, 8)
+        self.main_card.setGraphicsEffect(shadow)
+        
+        end_size = self.main_card.size()
+        start_size = QSize(0, 0)
+        
+        scale_up = QPropertyAnimation(self.main_card, b"size")
+        scale_up.setDuration(300)
+        scale_up.setStartValue(start_size)
+        scale_up.setEndValue(end_size)
+        scale_up.setEasingCurve(QEasingCurve.OutQuad)
+
+        self.animation_group = QParallelAnimationGroup(self)
+        self.animation_group.addAnimation(fade_in)
+        self.animation_group.addAnimation(scale_up)
+        self.animation_group.start()
 
     def animate_hide(self):
-        """إخفاء الطبقة مع تأثير انتقالي سلس."""
-        if self.fade_animation:
-            self.fade_animation.stop()
+        """Hide the overlay with a smooth transition effect."""
+        # Fade out the overlay
+        fade_out = QPropertyAnimation(self, b"windowOpacity")
+        fade_out.setDuration(200)
+        fade_out.setStartValue(self.windowOpacity())
+        fade_out.setEndValue(0.0)
+        fade_out.setEasingCurve(QEasingCurve.InCubic)
 
-        self.fade_animation = QPropertyAnimation(self, b"windowOpacity")
-        self.fade_animation.setDuration(200)  # 200 مللي ثانية
-        self.fade_animation.setStartValue(self.windowOpacity())
-        self.fade_animation.setEndValue(0.0)
-        self.fade_animation.setEasingCurve(QEasingCurve.InCubic)
-        self.fade_animation.finished.connect(self.hide)
-        self.fade_animation.start()
+        # Scale down the card
+        start_size = self.main_card.size()
+        end_size = QSize(0, 0)
+        
+        scale_down = QPropertyAnimation(self.main_card, b"size")
+        scale_down.setDuration(200)
+        scale_down.setStartValue(start_size)
+        scale_down.setEndValue(end_size)
+        scale_down.setEasingCurve(QEasingCurve.InQuad)
+
+        self.animation_group = QParallelAnimationGroup(self)
+        self.animation_group.addAnimation(fade_out)
+        self.animation_group.addAnimation(scale_down)
+        self.animation_group.finished.connect(self.hide)
+        self.animation_group.start()
 
     def hide_overlay(self):
         """إخفاء الطبقة وتنظيف تأثير البلور."""
@@ -411,7 +447,7 @@ class SmartDropOverlay(QWidget):
         self.animate_hide()
 
     def cancel(self):
-        print("===== إلغاء واجهة الإسقاط =====")
+        # إلغاء واجهة الإسقاط
         self.cancelled.emit()
 
         # إشعار النافذة الرئيسية بتحديث حالة العمل
@@ -427,6 +463,11 @@ class SmartDropOverlay(QWidget):
         self.description_label.setText(tr("drop_files_prompt"))
         self.update_icon_color()
         
+        # إظهار أيقونة الإسقاط الكبيرة
+        self.drop_icon_label.show()
+        icon = load_svg_icon("assets/icons/default/plus.svg", 128, "#555")
+        self.drop_icon_label.setPixmap(icon)
+
         # إخفاء المصغرات والأزرار عند بدء السحب
         self.thumbnails_scroll_area.hide()
         self.cancel_button.hide()
@@ -480,10 +521,18 @@ class SmartDropOverlay(QWidget):
             self.thumbnail_widgets[file_path].set_thumbnail(pixmap)
 
     def emit_action(self, action_type):
+        # التحقق من صحة الإجراء قبل الإرسال
+        if not action_type or action_type == "False":
+            action_type = "add_to_list"
+            
         self.action_selected.emit(action_type, self.files)
         self.hide_overlay()
         
-        # عدم إعادة تفعيل النافذة الرئيسية هنا - سيتم تفعيلها عند الانتهاء من معالجة الملفات
+        # إعادة تفعيل النافذة الرئيسية لضمان ظهور الملفات المضافة
+        if self.main_window:
+            self.main_window.setEnabled(True)
+            self.main_window.activateWindow()
+            self.main_window.raise_()
 
     def _setup_options_for_context(self):
         """إعداد الخيارات بعد إفلات الملفات بنجاح."""
@@ -647,8 +696,8 @@ class SmartDropOverlay(QWidget):
 
     def handle_drag_enter(self, event: QDragEnterEvent):
         """معالجة دخول السحب إلى النافذة الرئيسية."""
-        print("===== بدء معالجة دخول السحب في واجهة الإسقاط =====")
-        print(f"السياق الحالي: {self.current_context}")
+        # بدء معالجة دخول السحب في واجهة الإسقاط
+        # السياق الحالي
         if not event.mimeData().hasUrls():
             event.ignore()
             return
@@ -657,7 +706,6 @@ class SmartDropOverlay(QWidget):
         self.files = [url.toLocalFile() for url in urls if url.isLocalFile()]
 
         self.is_valid_drop = self._validate_files_for_context(self.files)
-        print(f"قيمة is_valid_drop بعد التحقق: {self.is_valid_drop}")
 
         if self.parent():
             self.setFixedSize(self.parent().size())
@@ -675,65 +723,99 @@ class SmartDropOverlay(QWidget):
         # إظهار الطبقة عند دخول السحب
         self.animate_show()
         # قبول الحدث للسماح بمعالجة الإفلات لاحقًا
-        print("قبول حدث السحب في واجهة الإسقاط (مع الإظهار)")
+        # قبول حدث السحب في واجهة الإسقاط (مع الإظهار)
         event.acceptProposedAction()
 
     def handle_drag_leave(self, event):
         """معالجة مغادرة السحب للنافذة."""
-        print("===== معالجة مغادرة السحب في واجهة الإسقاط =====")
+        # معالجة مغادرة السحب في واجهة الإسقاط
         self.cancel()
         event.accept()
 
     def handle_drop(self, event: QDropEvent):
-        """معالجة إفلات الملفات."""
-        print("===== معالجة إفلات الملفات في واجهة الإسقاط =====")
-        
-        # نتحقق دائمًا من الملفات من حدث الإفلات لضمان الدقة
-        if event.mimeData().hasUrls():
-            urls = event.mimeData().urls()
-            self.files = [url.toLocalFile() for url in urls if url.isLocalFile()]
-            self.is_valid_drop = self._validate_files_for_context(self.files)
-        else:
-            self.files = []
-            self.is_valid_drop = False
-
-        print(f"قيمة is_valid_drop في handle_drop: {self.is_valid_drop}")
-        if not self.is_valid_drop:
-            print("is_valid_drop هي False، سيتم إلغاء العملية")
+        """معالجة إفلات الملفات مع دعم توسيع المجلدات."""
+        if not event.mimeData().hasUrls():
             self.cancel()
             event.ignore()
             return
+
+        urls = event.mimeData().urls()
+        raw_paths = [url.toLocalFile() for url in urls if url.isLocalFile()]
+
+        if not self._validate_files_for_context(raw_paths):
+            self.cancel()
+            event.ignore()
+            return
+
+        settings = self.current_page_settings
+        accepted_types = settings.get("accepted_file_types", [])
+        allow_folders = settings.get("allow_folders", False)
         
-        # الآن بعد أن تأكدنا من صحة الإفلات، نعرض الخيارات
+        expanded_files = []
+        for path in raw_paths:
+            if os.path.isdir(path) and allow_folders:
+                for root, _, files_in_dir in os.walk(path):
+                    for name in files_in_dir:
+                        file_ext = os.path.splitext(name)[1].lower()
+                        if file_ext in accepted_types:
+                            expanded_files.append(os.path.join(root, name))
+            elif os.path.isfile(path):
+                file_ext = os.path.splitext(path)[1].lower()
+                if accepted_types and file_ext in accepted_types:
+                    expanded_files.append(path)
+
+        if not expanded_files:
+            self.cancel()
+            event.ignore()
+            return
+
+        allow_sequential = settings.get("allow_sequential_drops", True)
+        
+        if allow_sequential:
+            # إضافة الملفات الجديدة فقط إذا لم تكن موجودة بالفعل
+            for f in expanded_files:
+                if f not in self.files:
+                    self.files.append(f)
+        else:
+            self.files = expanded_files
+
+        self.is_valid_drop = True
+        self.drop_icon_label.hide()
         self.enhanced_populate_thumbnails()
         self._setup_options_for_context()
         self.thumbnails_scroll_area.show()
         self.cancel_button.show()
-
-        print("قبول حدث الإفلات في واجهة الإسقاط")
         event.acceptProposedAction()
 
     def _validate_files_for_context(self, file_paths):
         """التحقق من صحة الملفات بناءً على السياق الحالي وإعدادات الصفحة."""
-        print(f"===== التحقق من صحة الملفات: {file_paths} =====")
+        # التحقق من صحة الملفات
         if not file_paths:
             return False
 
         # الصفحات التي لا تقبل ملفات
         if self.current_context in ['help', 'settings']:
             return False
-        
-        # في الصفحة الرئيسية، نسمح بأي ملفات لأن الإجراء سيكون الانتقال
+            
+        # صفحة الترحيب لا تقبل الملفات ولا تعرض نافذة الإسقاط
         if self.current_context == 'welcome':
-            return True
+            return False
 
         # استخدام الإعدادات المحلية للصفحة الحالية
-        print(f"التحقق من current_page_settings: hasattr={hasattr(self, 'current_page_settings')}, value={getattr(self, 'current_page_settings', None)}")
         if not hasattr(self, 'current_page_settings') or not self.current_page_settings:
-            print("current_page_settings غير موجودة أو فارغة، سيتم رفض الملفات")
-            return False
+            # إذا لم يتم توفير إعدادات، استخدم الإعدادات الافتراضية من page_settings
+            from modules.page_settings import page_settings
+            page_key_map = {
+                'merge': 'merge_print', 'split': 'split', 'compress': 'compress',
+                'rotate': 'stamp_rotate', 'convert': 'convert', 'security': 'protect_properties'
+            }
+            page_key = page_key_map.get(self.current_context)
+            if not page_key or page_key not in page_settings:
+                return False  # لا توجد إعدادات لهذه الصفحة
+            settings = page_settings[page_key]
+        else:
+            settings = self.current_page_settings
             
-        settings = self.current_page_settings
         accepted_types = settings.get("accepted_file_types", [])
         max_files = settings.get("max_files")
         allow_folders = settings.get("allow_folders", False)

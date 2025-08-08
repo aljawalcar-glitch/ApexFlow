@@ -4,9 +4,16 @@
 Coordinate Calibrator - Accurate conversion between view and PDF coordinates
 """
 
+import logging
 import fitz
 from PySide6.QtCore import QRectF, QPointF
 from PySide6.QtGui import QTransform
+
+# إعداد اللوجر
+logger = logging.getLogger(__name__)
+info = logger.info
+error = logger.error
+warning = logger.warning
 
 
 class CoordinateCalibrator:
@@ -30,10 +37,10 @@ class CoordinateCalibrator:
             if self.page_number < len(doc):
                 page = doc[self.page_number]
                 self.pdf_page_rect = page.rect
-                print(f"تم تحميل معلومات الصفحة {self.page_number + 1}: {self.pdf_page_rect.width:.1f} x {self.pdf_page_rect.height:.1f}")
+                info(f"تم تحميل معلومات الصفحة {self.page_number + 1}: {self.pdf_page_rect.width:.1f} x {self.pdf_page_rect.height:.1f}")
             doc.close()
         except Exception as e:
-            print(f"خطأ في تحميل معلومات PDF: {e}")
+            error(f"خطأ في تحميل معلومات PDF: {e}")
     
     def set_view_page_rect(self, view_rect):
         """تعيين مستطيل الصفحة في العرض"""
@@ -46,9 +53,9 @@ class CoordinateCalibrator:
             self.scale_factor_x = self.pdf_page_rect.width / self.view_page_rect.width()
             self.scale_factor_y = self.pdf_page_rect.height / self.view_page_rect.height()
             
-            print(f"عوامل التحجيم المحسوبة:")
-            print(f"  - X: {self.scale_factor_x:.4f}")
-            print(f"  - Y: {self.scale_factor_y:.4f}")
+            info(f"عوامل التحجيم المحسوبة:")
+            info(f"  - X: {self.scale_factor_x:.4f}")
+            info(f"  - Y: {self.scale_factor_y:.4f}")
     
     def view_to_pdf_coordinates(self, view_x, view_y):
         """تحويل إحداثيات العرض إلى إحداثيات PDF"""
@@ -135,16 +142,16 @@ def create_calibrator_for_stamp_data(stamp_data, pdf_path, page_number, view_tra
             'calibration_info': calibrator.get_calibration_info()
         })
         
-        print(f"معايرة الختم:")
-        print(f"  - الموضع الأصلي: ({position[0]:.1f}, {position[1]:.1f})")
-        print(f"  - الموضع المعاير: ({pdf_x:.1f}, {pdf_y:.1f})")
-        print(f"  - الأبعاد الأصلية: ({current_width} x {current_height})")
-        print(f"  - الأبعاد المعايرة: ({pdf_width:.1f} x {pdf_height:.1f})")
+        info(f"معايرة الختم:")
+        info(f"  - الموضع الأصلي: ({position[0]:.1f}, {position[1]:.1f})")
+        info(f"  - الموضع المعاير: ({pdf_x:.1f}, {pdf_y:.1f})")
+        info(f"  - الأبعاد الأصلية: ({current_width} x {current_height})")
+        info(f"  - الأبعاد المعايرة: ({pdf_width:.1f} x {pdf_height:.1f})")
         
         return calibrated_data
         
     except Exception as e:
-        print(f"خطأ في معايرة بيانات الختم: {e}")
+        error(f"خطأ في معايرة بيانات الختم: {e}")
         return stamp_data
 
 
@@ -166,18 +173,18 @@ def auto_calibrate_view_scale(graphics_view):
             scale_y = transform.m22()
             average_scale = (scale_x + scale_y) / 2.0
             
-            print(f"معايرة تلقائية للعرض:")
-            print(f"  - تحجيم X: {scale_x:.4f}")
-            print(f"  - تحجيم Y: {scale_y:.4f}")
-            print(f"  - المتوسط: {average_scale:.4f}")
+            info(f"معايرة تلقائية للعرض:")
+            info(f"  - تحجيم X: {scale_x:.4f}")
+            info(f"  - تحجيم Y: {scale_y:.4f}")
+            info(f"  - المتوسط: {average_scale:.4f}")
             
             return average_scale
         else:
-            print("تعذر الحصول على تحويل العرض، استخدام القيمة الافتراضية")
+            warning("تعذر الحصول على تحويل العرض، استخدام القيمة الافتراضية")
             return 1.0
             
     except Exception as e:
-        print(f"خطأ في المعايرة التلقائية: {e}")
+        error(f"خطأ في المعايرة التلقائية: {e}")
         return 1.0
 
 
@@ -205,8 +212,8 @@ def validate_coordinates(pdf_rect, x, y, width, height):
     
     if (corrected_x != x or corrected_y != y or 
         corrected_width != width or corrected_height != height):
-        print(f"تم تصحيح الإحداثيات:")
-        print(f"  - الموضع: ({x:.1f}, {y:.1f}) → ({corrected_x:.1f}, {corrected_y:.1f})")
-        print(f"  - الأبعاد: ({width:.1f} x {height:.1f}) → ({corrected_width:.1f} x {corrected_height:.1f})")
+        info(f"تم تصحيح الإحداثيات:")
+        info(f"  - الموضع: ({x:.1f}, {y:.1f}) → ({corrected_x:.1f}, {corrected_y:.1f})")
+        info(f"  - الأبعاد: ({width:.1f} x {height:.1f}) → ({corrected_width:.1f} x {corrected_height:.1f})")
     
     return corrected_x, corrected_y, corrected_width, corrected_height

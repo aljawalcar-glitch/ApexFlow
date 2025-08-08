@@ -1197,11 +1197,9 @@ class HelpPage(QWidget):
             log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs")
 
             # إضافة رسالة تصحيح الأخطاء
-            debug(f"البحث عن مجلد السجلات في: {log_dir}")
 
             # إنشاء مجلد السجلات إذا لم يكن موجودًا
             if not os.path.exists(log_dir):
-                debug(f"مجلد السجلات غير موجود، جاري إنشاؤه: {log_dir}")
                 os.makedirs(log_dir)
                 info(f"تم إنشاء مجلد السجلات: {log_dir}")
                 self.logs_text.setText(tr("log_directory_created"))
@@ -1210,13 +1208,11 @@ class HelpPage(QWidget):
 
             # البحث عن ملفات السجل
             log_files = [f for f in os.listdir(log_dir) if f.endswith('.log')]
-            debug(f"تم العثور على {len(log_files)} ملف سجل")
 
             if log_files:
                 # فرز الملفات حسب تاريخ التعديل (الأحدث أولاً)
                 log_files.sort(key=lambda x: os.path.getmtime(os.path.join(log_dir, x)), reverse=True)
                 latest_log = os.path.join(log_dir, log_files[0])
-                debug(f"تحميل ملف السجل الأحدث: {latest_log}")
 
                 with open(latest_log, 'r', encoding='utf-8') as f:
                     self.logs_text.setText(f.read())
@@ -1225,7 +1221,6 @@ class HelpPage(QWidget):
                 # إظهار إشعار النجاح
                 show_success(tr("logs_refreshed_successfully"))
             else:
-                debug("لم يتم العثور على ملفات سجل")
                 self.logs_text.setText(tr("no_log_files_found"))
                 # إظهار إشعار معلومات (ليس خطأ)
                 show_info(tr("no_log_files_found"))
@@ -1284,11 +1279,9 @@ class HelpPage(QWidget):
             try:
                 # الحصول على مسار مجلد السجلات
                 log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs")
-                debug(f"محاولة حذف السجلات من: {log_dir}")
 
                 # التحقق من وجود المجلد
                 if not os.path.exists(log_dir):
-                    debug("مجلد السجلات غير موجود")
                     from .notification_system import show_info
                     show_info(tr("no_log_files_found"))
                     self.refresh_logs_info()
@@ -1301,7 +1294,6 @@ class HelpPage(QWidget):
                         file_path = os.path.join(log_dir, filename)
                         try:
                             os.remove(file_path)
-                            debug(f"تم حذف ملف السجل: {file_path}")
                             deleted_count += 1
                         except Exception as e:
                             error(f"فشل في حذف ملف السجل {file_path}: {str(e)}")
@@ -1311,7 +1303,6 @@ class HelpPage(QWidget):
                     from .notification_system import show_success
                     show_success(tr("logs_cleared_successfully"))
                 else:
-                    debug("لم يتم العثور على ملفات سجل لحذفها")
                     from .notification_system import show_info
                     show_info(tr("no_log_files_found"))
             except Exception as e:

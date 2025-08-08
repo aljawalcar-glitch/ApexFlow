@@ -116,7 +116,6 @@ class GlobalThemeManager(QObject):
                     apply_theme_style(w, widget_type, auto_register=False)
 
             self.theme_changed.connect(on_theme_change)
-            debug(f"تم تسجيل عنصر: {widget_type} للاستجابة لتغييرات السمة.")
 
     def save_theme_to_settings(self, theme_name: str = None, accent_color: str = None):
         """حفظ السمة الحالية في ملف الإعدادات."""
@@ -127,7 +126,6 @@ class GlobalThemeManager(QObject):
 
             set_setting("theme", theme_to_save)
             set_setting("accent_color", accent_to_save)
-            debug(f"تم حفظ السمة في الإعدادات: {theme_to_save}, {accent_to_save}")
         except Exception as e:
             error(f"خطأ في حفظ السمة: {e}")
 
