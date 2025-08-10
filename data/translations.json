@@ -1,5 +1,8 @@
 {
   "ar": {
+    "checkpoint": "نقطة تحقق",
+    "compare": "مقارنة",
+    "restore": "استعادة",
     "milliseconds": "ميلي ثانية",
     "preview_text_animation": "معاينة حركة النص",
     "text_animation_settings_saved": "تم حفظ إعدادات حركة النص",
@@ -619,9 +622,14 @@
     "animation_speed_slow": "بطيئة",
     "animation_speed_normal": "عادية",
     "animation_speed_fast": "سريعة",
-    "text_animation_settings": "إعدادات حركة النص"
+    "text_animation_settings": "إعدادات حركة النص",
+    "confirm_exit": "تأكيد الخروج",
+    "exit_with_work_warning": "لديك عمل غير محفوظ. هل أنت متأكد من أنك تريد الخروج؟"
   },
   "en": {
+    "checkpoint": "Checkpoint",
+    "compare": "Compare",
+    "restore": "Restore",
     "text_animation_settings": "Text Animation Settings",
     "enable_text_animation": "Enable Text Animation",
     "text_animation_speed": "Text Animation Speed",

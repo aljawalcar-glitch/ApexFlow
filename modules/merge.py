@@ -6,6 +6,8 @@ This module provides functionality to merge multiple PDF files into a single PDF
 import os
 from typing import List, Optional
 
+from modules.logger import error, info, warning
+
 # تحميل كسول للمكتبات الثقيلة
 _pdf_reader = None
 _pdf_writer = None
@@ -18,14 +20,14 @@ def _get_pdf_classes():
             from pypdf import PdfReader, PdfWriter
             _pdf_reader = PdfReader
             _pdf_writer = PdfWriter
-            print("تم تحميل مكتبة pypdf بنجاح")
+            info("تم تحميل مكتبة pypdf بنجاح")
         except ImportError as e:
             error_msg = f"مكتبة pypdf غير مثبتة. يرجى تثبيتها باستخدام الأمر: pip install pypdf==5.0.0"
-            print(error_msg)
+            error(error_msg)
             raise ImportError(error_msg) from e
         except Exception as e:
             error_msg = f"حدث خطأ أثناء تحميل مكتبة pypdf: {str(e)}"
-            print(error_msg)
+            error(error_msg)
             raise ImportError(error_msg) from e
     return _pdf_reader, _pdf_writer
 
@@ -48,9 +50,9 @@ def merge_pdfs(input_files: List[str], output_path: str) -> bool:
         # Validate input files
         for file_path in input_files:
             if not os.path.exists(file_path):
-                raise FileNotFoundError(f"File not found: {file_path}")
+                raise FileNotFoundError(f"لم يتم العثور على الملف: {file_path}")
             if not file_path.lower().endswith('.pdf'):
-                raise ValueError(f"File is not a PDF: {file_path}")
+                raise ValueError(f"الملف ليس من نوع PDF: {file_path}")
         
         # تحميل كسول للمكتبات
         PdfReader, PdfWriter = _get_pdf_classes()
@@ -69,7 +71,7 @@ def merge_pdfs(input_files: List[str], output_path: str) -> bool:
                     pdf_writer.add_page(page)
                     
             except Exception as e:
-                print(f"Error processing file {file_path}: {str(e)}")
+                warning(f"خطأ في معالجة الملف {file_path}: {str(e)}")
                 continue
         
         # Ensure output directory exists
@@ -79,18 +81,18 @@ def merge_pdfs(input_files: List[str], output_path: str) -> bool:
         
         # Check if any pages were added before writing
         if len(pdf_writer.pages) == 0:
-            print("Error: No pages were added to the merged file. All input files might be invalid.")
+            error("خطأ: لم تتم إضافة أي صفحات إلى الملف المدمج. قد تكون جميع ملفات الإدخال غير صالحة.")
             return False
 
         # Write merged PDF to output file
         with open(output_path, 'wb') as output_file:
             pdf_writer.write(output_file)
         
-        print(f"Successfully merged {len(input_files)} files into {output_path}")
+        info(f"تم دمج {len(input_files)} ملف بنجاح في {output_path}")
         return True
         
     except Exception as e:
-        print(f"Error merging PDFs: {str(e)}")
+        error(f"خطأ في دمج ملفات PDF: {str(e)}")
         return False
 
 def merge_pdfs_with_bookmarks(input_files: List[str], output_path: str, 
@@ -111,7 +113,7 @@ def merge_pdfs_with_bookmarks(input_files: List[str], output_path: str,
         # Validate input files
         for file_path in input_files:
             if not os.path.exists(file_path):
-                raise FileNotFoundError(f"File not found: {file_path}")
+                raise FileNotFoundError(f"لم يتم العثور على الملف: {file_path}")
         
         PdfReader, PdfWriter = _get_pdf_classes()
         
@@ -140,7 +142,7 @@ def merge_pdfs_with_bookmarks(input_files: List[str], output_path: str,
                     current_page += 1
                     
             except Exception as e:
-                print(f"Error processing file {file_path}: {str(e)}")
+                warning(f"خطأ في معالجة الملف {file_path}: {str(e)}")
                 continue
         
         # Ensure output directory exists
@@ -152,11 +154,11 @@ def merge_pdfs_with_bookmarks(input_files: List[str], output_path: str,
         with open(output_path, 'wb') as output_file:
             pdf_writer.write(output_file)
         
-        print(f"Successfully merged {len(input_files)} files with bookmarks into {output_path}")
+        info(f"تم دمج {len(input_files)} ملفات مع الإشارات المرجعية بنجاح في {output_path}")
         return True
         
     except Exception as e:
-        print(f"Error merging PDFs with bookmarks: {str(e)}")
+        error(f"خطأ في دمج ملفات PDF مع الإشارات المرجعية: {str(e)}")
         return False
 
 def merge_specific_pages(file_page_ranges: List[tuple], output_path: str) -> bool:
@@ -178,7 +180,7 @@ def merge_specific_pages(file_page_ranges: List[tuple], output_path: str) -> boo
         
         for file_path, start_page, end_page in file_page_ranges:
             if not os.path.exists(file_path):
-                print(f"Warning: File not found: {file_path}")
+                warning(f"تحذير: لم يتم العثور على الملف: {file_path}")
                 continue
                 
             try:
@@ -196,7 +198,7 @@ def merge_specific_pages(file_page_ranges: List[tuple], output_path: str) -> boo
                         pdf_writer.add_page(page)
                         
             except Exception as e:
-                print(f"Error processing file {file_path}: {str(e)}")
+                warning(f"خطأ في معالجة الملف {file_path}: {str(e)}")
                 continue
         
         # Ensure output directory exists
@@ -208,11 +210,11 @@ def merge_specific_pages(file_page_ranges: List[tuple], output_path: str) -> boo
         with open(output_path, 'wb') as output_file:
             pdf_writer.write(output_file)
         
-        print(f"Successfully merged specific pages into {output_path}")
+        info(f"تم دمج صفحات محددة بنجاح في {output_path}")
         return True
         
     except Exception as e:
-        print(f"Error merging specific pages: {str(e)}")
+        error(f"خطأ في دمج صفحات محددة: {str(e)}")
         return False
 
 def get_pdf_info(file_path: str) -> dict:
@@ -227,7 +229,7 @@ def get_pdf_info(file_path: str) -> dict:
     """
     try:
         if not os.path.exists(file_path):
-            return {"error": "File not found"}
+            return {"error": "لم يتم العثور على الملف"}
         
         PdfReader, _ = _get_pdf_classes()
         pdf_reader = PdfReader(file_path)
@@ -250,7 +252,7 @@ def get_pdf_info(file_path: str) -> dict:
         return info
         
     except Exception as e:
-        return {"error": f"Error reading PDF: {str(e)}"}
+        return {"error": f"خطأ في قراءة ملف PDF: {str(e)}"}
 
 # Example usage and testing functions
 if __name__ == "__main__":
@@ -269,4 +271,4 @@ if __name__ == "__main__":
     # page_ranges = [("file1.pdf", 0, 2), ("file2.pdf", 1, 3), ("file3.pdf", 0, 1)]
     # result = merge_specific_pages(page_ranges, output_file)
     
-    print("Merge module loaded successfully")
+    info("تم تحميل وحدة الدمج بنجاح")

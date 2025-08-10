@@ -455,7 +455,6 @@ class ConvertPage(BasePageWidget):
             if button != sender:
                 button.setChecked(False)
 
-        # تغيير نص زر الإضافة حسب نوع العملية
         button_texts = {
             "pdf_to_images": tr("add_pdf_files"),
             "images_to_pdf": tr("add_images"),
@@ -469,40 +468,22 @@ class ConvertPage(BasePageWidget):
         self.add_files_btn.show()
         self.cancel_btn.show()
 
-        # عند تغيير العملية: مسح الملفات وإخفاء جميع الفريمات
-        if hasattr(self, 'file_list_frame') and self.file_list_frame.get_files():
-            self.file_list_frame.clear_all_files()
-
-        # إخفاء الفريمات الثلاثة دائماً عند تغيير العملية
-        self.file_list_frame.hide()
-        if hasattr(self, 'save_path_frame'):
-            self.save_path_frame.hide()
-        if hasattr(self, 'execute_frame'):
-            self.execute_frame.hide()
-
+        self.reset_ui(reset_tabs=False)
         self.update_slider_position()
 
-        # Update drop settings for the current tab
         main_window = self._get_main_window()
         if main_window and hasattr(main_window, 'smart_drop_overlay'):
             from modules.page_settings import page_settings
             convert_settings = page_settings.get('convert', {})
-
-            # Define accepted file types for each tab
             file_type_map = {
                 "pdf_to_images": [".pdf"],
                 "images_to_pdf": [".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".webp"],
                 "pdf_to_text": [".pdf"],
                 "text_to_pdf": [".txt", ".md", ".csv"]
             }
-            
-            # Set the accepted types based on the active operation
             accepted_types = file_type_map.get(self.active_operation, [])
             convert_settings['accepted_file_types'] = accepted_types
-            
-            # Folders are not allowed in the convert page
             convert_settings['allow_folders'] = False
-
             main_window.smart_drop_overlay.update_page_settings(convert_settings)
 
     def select_files(self):
@@ -644,36 +625,28 @@ class ConvertPage(BasePageWidget):
 
 
 
-    def reset_ui(self):
-        # إخفاء جميع العناصر عند التنقل بين التبويبات
+    def reset_ui(self, reset_tabs=True):
         self.workspace_widget.hide()
         self.add_files_btn.hide()
         self.cancel_btn.hide()
 
-        # إخفاء فريمات المسار والتنفيذ
         if hasattr(self, 'save_path_frame'):
             self.save_path_frame.hide()
         if hasattr(self, 'execute_frame'):
             self.execute_frame.hide()
 
-        # مسح العملية النشطة أولاً
-        self.active_operation = None
         self.has_unsaved_changes = False
 
-        # مسح الملفات
         if self.file_list_frame.get_files():
             self.file_list_frame.clear_all_files()
+        self.file_list_frame.hide()
 
-        # إلغاء تحديد جميع الأزرار
-        for button in self.top_buttons.values():
-            button.setChecked(False)
+        if reset_tabs:
+            self.active_operation = None
+            for button in self.top_buttons.values():
+                button.setChecked(False)
+            self.add_files_btn.setText(tr("add_files_convert"))
 
-        # إعادة تعيين نص زر الإضافة
-        self.add_files_btn.setText(tr("add_files_convert"))
-
-        # لا نستدعي update_controls_visibility هنا لأننا نريد إخفاء كل شيء
-
-        # تحديث حالة العمل في النافذة الرئيسية
         main_window = self._get_main_window()
         if main_window:
             main_window.set_page_has_work(main_window.get_page_index(self), False)

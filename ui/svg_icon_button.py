@@ -93,8 +93,8 @@ class SVGIconButton(QPushButton):
             renderer = QSvgRenderer()
             renderer.load(svg_content.encode('utf-8'))
 
-            # إنشاء QPixmap بحجم مضاعف ثم تصغيره لتحسين الدقة
-            high_dpi_size = self.icon_size * 2
+            # إنشاء QPixmap بحجم مضاعف (8x) ثم تصغيره للحصول على أقصى جودة ممكنة
+            high_dpi_size = self.icon_size * 8
             pixmap = QPixmap(high_dpi_size, high_dpi_size)
             pixmap.fill(Qt.transparent)
 
@@ -240,8 +240,8 @@ def load_svg_icon(icon_name, size=24, color="#ffffff", theme="default"):
         renderer = QSvgRenderer()
         renderer.load(svg_content.encode('utf-8'))
         
-        # إنشاء QPixmap بحجم مضاعف ثم تصغيره لتحسين الدقة
-        high_dpi_size = size * 2
+        # إنشاء QPixmap بحجم مضاعف (8x) ثم تصغيره للحصول على أقصى جودة ممكنة
+        high_dpi_size = size * 8
         pixmap = QPixmap(high_dpi_size, high_dpi_size)
         pixmap.fill(Qt.transparent)
         

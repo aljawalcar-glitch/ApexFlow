@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFrame,
                                QLabel, QPushButton, QGraphicsDropShadowEffect,
                                QScrollArea, QGraphicsBlurEffect, QGridLayout)
 from PySide6.QtCore import Qt, Signal, QTimer, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QRect, QSize
-from PySide6.QtGui import QColor, QPixmap, QDragEnterEvent, QDropEvent
+from PySide6.QtGui import QColor, QPixmap, QDragEnterEvent, QDropEvent, QIcon
 
 from .svg_icon_button import load_svg_icon
 from modules.translator import tr
@@ -19,54 +19,128 @@ from modules.page_settings import page_settings
 from modules import settings
 
 class FileThumbnailCard(QWidget):
-    """بطاقة مصغرة لعرض ملف مع صورته واسمه وزر حذف."""
+    """بطاقة مصغرة لعرض ملف مع صورته واسمه وزر حذف، مع تأثيرات حركية."""
     file_deleted = Signal(str)
 
     def __init__(self, file_path, parent=None):
         super().__init__(parent)
         self.file_path = file_path
         self.setFixedSize(90, 120)
+        self.setContentsMargins(0, 0, 0, 0)
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(5)
+        # الرسوم المتحركة
+        self.scale_animation = QPropertyAnimation(self, b"geometry")
+        self.scale_animation.setDuration(150)
+        self.scale_animation.setEasingCurve(QEasingCurve.OutCubic)
 
-        # حاوية للصورة وزر الحذف
-        thumbnail_container = QWidget()
-        thumbnail_layout = QVBoxLayout(thumbnail_container)
-        thumbnail_layout.setContentsMargins(0,0,0,0)
+        # الهيكل الرئيسي
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(5, 5, 5, 5)
+        main_layout.setSpacing(5)
+
+        # حاوية الصورة المصغرة (للسماح بتراكب زر الحذف)
+        self.thumbnail_container = QFrame()
+        self.thumbnail_container.setObjectName("thumbnailContainer")
+        self.thumbnail_container.setFixedSize(80, 80)
+        container_layout = QVBoxLayout(self.thumbnail_container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
         
         self.thumbnail_label = QLabel()
-        thumbnail_layout.addWidget(self.thumbnail_label)
+        self.thumbnail_label.setObjectName("thumbnailLabel")
+        self.thumbnail_label.setAlignment(Qt.AlignCenter)
+        container_layout.addWidget(self.thumbnail_label)
 
-        # زر الحذف
-        self.delete_button = QPushButton("X")
+        # زر الحذف مع أيقونة
+        self.delete_button = QPushButton()
         self.delete_button.setObjectName("deleteButton")
-        self.delete_button.setFixedSize(20, 20)
+        self.delete_button.setFixedSize(22, 22)
         self.delete_button.setCursor(Qt.PointingHandCursor)
         self.delete_button.clicked.connect(self.delete_file)
-        
-        # وضع زر الحذف في الزاوية العلوية
-        delete_layout = QHBoxLayout()
-        delete_layout.addStretch()
-        delete_layout.addWidget(self.delete_button)
-        thumbnail_layout.addLayout(delete_layout)
-        thumbnail_layout.addStretch()
+        self.delete_button.setParent(self.thumbnail_container)
+        self.delete_button.hide()  # إخفاء مبدئي
 
-
-        layout.addWidget(thumbnail_container)
-        self.thumbnail_label.setObjectName("thumbnailLabel")
-        self.thumbnail_label.setFixedSize(80, 80) # تصغير حجم الصورة لإفساح المجال للزر
-        self.thumbnail_label.setAlignment(Qt.AlignCenter)
-        
+        # العنوان
         self.name_label = QLabel(os.path.basename(file_path))
         self.name_label.setObjectName("thumbnailNameLabel")
         self.name_label.setAlignment(Qt.AlignCenter)
         self.name_label.setWordWrap(True)
 
-        layout.addWidget(self.name_label)
+        # إضافة المكونات إلى الهيكل
+        h_layout = QHBoxLayout()
+        h_layout.addStretch()
+        h_layout.addWidget(self.thumbnail_container)
+        h_layout.addStretch()
+        main_layout.addLayout(h_layout)
+        main_layout.addWidget(self.name_label)
+        
+        self.animate_in()
+
+    def update_delete_button_icon(self, color):
+        """تحديث أيقونة زر الحذف."""
+        icon = load_svg_icon("assets/icons/default/trash-2.svg", 16, color)
+        if icon:
+            self.delete_button.setIcon(icon)
+            self.delete_button.setIconSize(QSize(16, 16))
+
+    def enterEvent(self, event):
+        """حدث عند دخول الفأرة."""
+        self.delete_button.show()
+        
+        # لا نستخدم الحركة حاليا لتجنب التعارض مع ال layout
+        # start_rect = self.geometry()
+        # end_rect = QRect(start_rect.x() - 2, start_rect.y() - 2, start_rect.width() + 4, start_rect.height() + 4)
+        
+        # self.scale_animation.setStartValue(start_rect)
+        # self.scale_animation.setEndValue(end_rect)
+        # self.scale_animation.start()
+        
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        """حدث عند خروج الفأرة."""
+        self.delete_button.hide()
+        
+        # لا نستخدم الحركة حاليا لتجنب التعارض مع ال layout
+        # start_rect = self.geometry()
+        # end_rect = QRect(start_rect.x() + 2, start_rect.y() + 2, start_rect.width() - 4, start_rect.height() - 4)
+        
+        # self.scale_animation.setStartValue(start_rect)
+        # self.scale_animation.setEndValue(end_rect)
+        # self.scale_animation.start()
+        
+        super().leaveEvent(event)
+
+    def resizeEvent(self, event):
+        """تحديث موقع زر الحذف عند تغيير الحجم."""
+        super().resizeEvent(event)
+        # وضع الزر في الزاوية العلوية اليمنى
+        self.delete_button.move(self.thumbnail_container.width() - self.delete_button.width() - 2, 2)
+
+    def animate_in(self):
+        """تأثير الدخول للبطاقة."""
+        self.setWindowOpacity(0.0)
+        self.anim_in = QPropertyAnimation(self, b"windowOpacity")
+        self.anim_in.setDuration(250)
+        self.anim_in.setStartValue(0.0)
+        self.anim_in.setEndValue(1.0)
+        self.anim_in.setEasingCurve(QEasingCurve.OutCubic)
+        self.anim_in.start()
 
     def delete_file(self):
+        """بدء تأثير الخروج ثم إرسال إشارة الحذف عند الانتهاء."""
+        if not hasattr(self, 'anim_out'):
+            self.anim_out = QPropertyAnimation(self, b"windowOpacity")
+            self.anim_out.setDuration(250)
+            self.anim_out.setEasingCurve(QEasingCurve.InCubic)
+            self.anim_out.finished.connect(self._on_animation_finished)
+        
+        self.delete_button.setEnabled(False)
+        self.anim_out.setStartValue(self.windowOpacity())
+        self.anim_out.setEndValue(0.0)
+        self.anim_out.start()
+
+    def _on_animation_finished(self):
+        """عندما تنتهي حركة الاختفاء، يتم إرسال الإشارة."""
         self.file_deleted.emit(self.file_path)
 
     def set_thumbnail(self, pixmap):
@@ -75,24 +149,29 @@ class FileThumbnailCard(QWidget):
     def set_placeholder_style(self, colors):
         delete_button_style = f"""
             QPushButton#deleteButton {{
-                background-color: rgba(255, 0, 0, 0.7);
-                color: white;
-                border: 1px solid rgba(255, 255, 255, 0.5);
-                border-radius: 10px;
-                font-weight: bold;
+                background-color: rgba(239, 68, 68, 0.85);
+                border-radius: 11px;
+                border: 1px solid rgba(255, 255, 255, 0.3);
             }}
             QPushButton#deleteButton:hover {{
-                background-color: rgba(255, 0, 0, 1);
+                background-color: rgba(239, 68, 68, 1);
             }}
         """
         self.delete_button.setStyleSheet(delete_button_style)
+        self.update_delete_button_icon("white")
 
-        self.thumbnail_label.setStyleSheet(f"""
-            QLabel#thumbnailLabel {{
+        self.thumbnail_container.setStyleSheet(f"""
+            #thumbnailContainer {{
                 background-color: {colors.get("bg", "#1a202c")};
                 border: 1px dashed {colors.get("border", "#4a5568")};
-                border-radius: 4px;
+                border-radius: 8px;
+            }}
+        """)
+        self.thumbnail_label.setStyleSheet(f"""
+            QLabel#thumbnailLabel {{
                 color: {colors.get("text_muted", "#718096")};
+                border: none;
+                background: transparent;
             }}
         """)
         self.name_label.setStyleSheet(f"""
@@ -576,12 +655,25 @@ class SmartDropOverlay(QWidget):
         self.is_valid_drop = False
         
     def remove_file(self, file_path):
-        """إزالة ملف من القائمة وإعادة رسم المصغرات."""
+        """إزالة ملف من القائمة مع تأثير حركي."""
+        if file_path in self.thumbnail_widgets:
+            widget = self.thumbnail_widgets[file_path]
+            # بدء حركة الحذف في البطاقة نفسها
+            widget.delete_file()
+        else:
+            # إذا لم يكن الويدجت موجودًا لسبب ما، قم بإزالته مباشرة
+            self._handle_file_removal(file_path)
+
+    def _handle_file_removal(self, file_path):
+        """يتم استدعاؤها بعد انتهاء حركة حذف البطاقة."""
         if file_path in self.files:
             self.files.remove(file_path)
         
         if file_path in self.thumbnail_widgets:
             widget = self.thumbnail_widgets.pop(file_path)
+            # إزالة الويدجت من الـ layout قبل حذفه
+            self.thumbnails_layout.removeWidget(widget)
+            widget.setParent(None)
             widget.deleteLater()
 
         # إذا لم يتبق ملفات، أغلق النافذة
@@ -624,14 +716,14 @@ class SmartDropOverlay(QWidget):
         # إنشاء بطاقات لكل نوع من الملفات
         for file_path in pdf_files:
             card = FileThumbnailCard(file_path)
-            card.file_deleted.connect(self.remove_file)
+            card.file_deleted.connect(self._handle_file_removal)
             card.set_placeholder_style(colors)
             self.thumbnails_layout.addWidget(card)
             self.thumbnail_widgets[file_path] = card
             
         for file_path in image_files:
             card = FileThumbnailCard(file_path)
-            card.file_deleted.connect(self.remove_file)
+            card.file_deleted.connect(self._handle_file_removal)
             card.set_placeholder_style(colors)
             self.thumbnails_layout.addWidget(card)
             self.thumbnail_widgets[file_path] = card
@@ -643,7 +735,7 @@ class SmartDropOverlay(QWidget):
                 
         for file_path in text_files:
             card = FileThumbnailCard(file_path)
-            card.file_deleted.connect(self.remove_file)
+            card.file_deleted.connect(self._handle_file_removal)
             card.set_placeholder_style(colors)
             self.thumbnails_layout.addWidget(card)
             self.thumbnail_widgets[file_path] = card
@@ -654,7 +746,7 @@ class SmartDropOverlay(QWidget):
                 
         for file_path in folder_files:
             card = FileThumbnailCard(file_path)
-            card.file_deleted.connect(self.remove_file)
+            card.file_deleted.connect(self._handle_file_removal)
             card.set_placeholder_style(colors)
             self.thumbnails_layout.addWidget(card)
             self.thumbnail_widgets[file_path] = card
@@ -665,7 +757,7 @@ class SmartDropOverlay(QWidget):
                 
         for file_path in other_files:
             card = FileThumbnailCard(file_path)
-            card.file_deleted.connect(self.remove_file)
+            card.file_deleted.connect(self._handle_file_removal)
             card.set_placeholder_style(colors)
             self.thumbnails_layout.addWidget(card)
             self.thumbnail_widgets[file_path] = card
@@ -696,34 +788,22 @@ class SmartDropOverlay(QWidget):
 
     def handle_drag_enter(self, event: QDragEnterEvent):
         """معالجة دخول السحب إلى النافذة الرئيسية."""
-        # بدء معالجة دخول السحب في واجهة الإسقاط
-        # السياق الحالي
         if not event.mimeData().hasUrls():
             event.ignore()
             return
 
         urls = event.mimeData().urls()
         self.files = [url.toLocalFile() for url in urls if url.isLocalFile()]
-
         self.is_valid_drop = self._validate_files_for_context(self.files)
 
         if self.parent():
             self.setFixedSize(self.parent().size())
             self.move(0, 0)
 
-            # The main window is no longer disabled here to prevent flickering.
-            # The overlay is modal by nature.
-
-        # التقاط وتطبيق تأثير البلور على الخلفية
         self.capture_background_blur()
-
         self.update_styles()
         self.update_ui_for_context()
-
-        # إظهار الطبقة عند دخول السحب
         self.animate_show()
-        # قبول الحدث للسماح بمعالجة الإفلات لاحقًا
-        # قبول حدث السحب في واجهة الإسقاط (مع الإظهار)
         event.acceptProposedAction()
 
     def handle_drag_leave(self, event):
@@ -734,52 +814,13 @@ class SmartDropOverlay(QWidget):
 
     def handle_drop(self, event: QDropEvent):
         """معالجة إفلات الملفات مع دعم توسيع المجلدات."""
-        if not event.mimeData().hasUrls():
+        # الملفات تم التحقق منها مسبقًا في handle_drag_enter
+        # التحقق من صحة الملفات قبل المتابعة
+        if not self.is_valid_drop:
             self.cancel()
             event.ignore()
             return
 
-        urls = event.mimeData().urls()
-        raw_paths = [url.toLocalFile() for url in urls if url.isLocalFile()]
-
-        if not self._validate_files_for_context(raw_paths):
-            self.cancel()
-            event.ignore()
-            return
-
-        settings = self.current_page_settings
-        accepted_types = settings.get("accepted_file_types", [])
-        allow_folders = settings.get("allow_folders", False)
-        
-        expanded_files = []
-        for path in raw_paths:
-            if os.path.isdir(path) and allow_folders:
-                for root, _, files_in_dir in os.walk(path):
-                    for name in files_in_dir:
-                        file_ext = os.path.splitext(name)[1].lower()
-                        if file_ext in accepted_types:
-                            expanded_files.append(os.path.join(root, name))
-            elif os.path.isfile(path):
-                file_ext = os.path.splitext(path)[1].lower()
-                if accepted_types and file_ext in accepted_types:
-                    expanded_files.append(path)
-
-        if not expanded_files:
-            self.cancel()
-            event.ignore()
-            return
-
-        allow_sequential = settings.get("allow_sequential_drops", True)
-        
-        if allow_sequential:
-            # إضافة الملفات الجديدة فقط إذا لم تكن موجودة بالفعل
-            for f in expanded_files:
-                if f not in self.files:
-                    self.files.append(f)
-        else:
-            self.files = expanded_files
-
-        self.is_valid_drop = True
         self.drop_icon_label.hide()
         self.enhanced_populate_thumbnails()
         self._setup_options_for_context()
@@ -789,21 +830,14 @@ class SmartDropOverlay(QWidget):
 
     def _validate_files_for_context(self, file_paths):
         """التحقق من صحة الملفات بناءً على السياق الحالي وإعدادات الصفحة."""
-        # التحقق من صحة الملفات
         if not file_paths:
             return False
 
-        # الصفحات التي لا تقبل ملفات
-        if self.current_context in ['help', 'settings']:
-            return False
-            
-        # صفحة الترحيب لا تقبل الملفات ولا تعرض نافذة الإسقاط
-        if self.current_context == 'welcome':
+        if self.current_context in ['help', 'settings', 'welcome']:
             return False
 
-        # استخدام الإعدادات المحلية للصفحة الحالية
-        if not hasattr(self, 'current_page_settings') or not self.current_page_settings:
-            # إذا لم يتم توفير إعدادات، استخدم الإعدادات الافتراضية من page_settings
+        settings = getattr(self, 'current_page_settings', None)
+        if not settings:
             from modules.page_settings import page_settings
             page_key_map = {
                 'merge': 'merge_print', 'split': 'split', 'compress': 'compress',
@@ -811,34 +845,15 @@ class SmartDropOverlay(QWidget):
             }
             page_key = page_key_map.get(self.current_context)
             if not page_key or page_key not in page_settings:
-                return False  # لا توجد إعدادات لهذه الصفحة
+                return False
             settings = page_settings[page_key]
-        else:
-            settings = self.current_page_settings
-            
+
         accepted_types = settings.get("accepted_file_types", [])
-        max_files = settings.get("max_files")
-        allow_folders = settings.get("allow_folders", False)
-        
-        # التحقق من عدد الملفات
-        if max_files is not None and len(file_paths) > max_files:
+        if not accepted_types:
             return False
-            
-        # التحقق من أنواع الملفات
+
         for path in file_paths:
-            # التحقق إذا كان مجلدًا
-            is_folder = os.path.isdir(path)
-            
-            if is_folder:
-                # التحقق من السماح بالمجلدات
-                if allow_folders is False:
-                    return False
-                elif allow_folders == "dynamic":
-                    # في حالة dynamic، نتحقق من وجود checkbox في الصفحة الحالية
-                    # هنا نسمح بالمجلدات بشكل مؤقت، وسيتحقق من الصفحة نفسها لاحقًا
-                    continue
-            else:
-                # التحقق من امتداد الملف
+            if not os.path.isdir(path):
                 file_ext = os.path.splitext(path)[1].lower()
                 if file_ext not in accepted_types:
                     return False

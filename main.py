@@ -138,25 +138,19 @@ class ApexFlow(QMainWindow):
 
     def dragEnterEvent(self, event):
         """Handle drag enter events for the main window."""
-        # بدء حدث السحب في النافذة الرئيسية
         current_index = self.stack.currentIndex()
-        # الصفحة الحالية
-        # تعطيل السحب في الصفحات غير المخصصة للملفات
-        if current_index in [0, 7, 8]: # الترحيب، الإعدادات، المساعدة
+        if current_index in [0, 7, 8]:  # Welcome, Settings, Help
             event.ignore()
             return
 
         if self.smart_drop_overlay and event.mimeData().hasUrls():
-            # تحديث السياق أولاً
             self._update_smart_drop_mode_for_page(current_index)
-            # الآن استدعاء handle_drag_enter بعد تحديث الإعدادات
             self.smart_drop_overlay.handle_drag_enter(event)
-            # تسجيل التراكب في مدير التراكبات
-            if hasattr(self, 'overlay_manager'):
-                self.overlay_manager.active_overlay = self.smart_drop_overlay
-            # قبول الحدث
-            # قبول حدث السحب في النافذة الرئيسية
-            event.accept()
+            if event.isAccepted():
+                if hasattr(self, 'overlay_manager'):
+                    self.overlay_manager.active_overlay = self.smart_drop_overlay
+            else:
+                event.ignore()
         else:
             event.ignore()
 
@@ -877,51 +871,28 @@ class ApexFlow(QMainWindow):
         
     def handle_smart_drop_action(self, action_type, files):
         """معالجة الإجراء المحدد من الطبقة الذكية"""
-        # إعادة تمكين النافذة الرئيسية وتنشيطها
         self.setEnabled(True)
         self.activateWindow()
         self.raise_()
 
-        # إذا كان الإجراء هو "إضافة إلى القائمة"، قم بإضافة الملفات مباشرة
-        if action_type == "add_to_list":
-            # استخدم QTimer لضمان إخفاء الطبقة الذكية قبل إضافة الملفات
-            QTimer.singleShot(100, lambda: self.add_files_to_current_page(files))
-            # تعيين حالة العمل غير المكتمل للصفحة الحالية
-            current_page_index = self.stack.currentIndex()
-            QTimer.singleShot(200, lambda: self.set_page_has_work(current_page_index, True))
-            return
-
-        # إذا كان الإجراء يتطلب التنفيذ الفوري
-        if action_type.endswith("_now"):
-            action = action_type[:-4]
-            self.execute_action_now(action, files)
-            return
-
-        # إذا كان الإجراء يتطلب الانتقال إلى صفحة أخرى
         page_mapping = {
             "merge": 1, "split": 2, "compress": 3,
             "rotate": 4, "convert": 5, "security": 6
         }
         target_page_index = page_mapping.get(action_type)
-        
-        if target_page_index is not None:
-            # انتقل إلى الصفحة ثم أضف الملفات
+
+        if action_type == "add_to_list":
+            self.add_files_to_current_page(files)
+        elif target_page_index is not None:
             self.navigate_to_page(target_page_index)
-            # استخدم QTimer لضمان تحميل الصفحة قبل إضافة الملفات
             QTimer.singleShot(150, lambda: self.add_files_to_current_page(files))
-            # تعيين حالة العمل غير المكتمل للصفحة المستهدفة
-            QTimer.singleShot(300, lambda: self.set_page_has_work(target_page_index, True))
         else:
-            # معالجة الإجراءات المخصصة للصفحات التي قد لا تكون في الخريطة
             current_page = self.stack.currentWidget()
-            if hasattr(current_page, 'widget'): # Handle QScrollArea
+            if hasattr(current_page, 'widget'):
                 current_page = current_page.widget()
             
             if hasattr(current_page, 'handle_smart_drop_action'):
                 current_page.handle_smart_drop_action(action_type, files)
-                # تعيين حالة العمل غير المكتمل للصفحة الحالية
-                current_page_index = self.stack.currentIndex()
-                self.set_page_has_work(current_page_index, True)
             
     def handle_smart_drop_cancel(self):
         """معالجة إلغاء السحب والإفلات"""

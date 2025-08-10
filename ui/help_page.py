@@ -760,8 +760,8 @@ class HelpPage(QWidget):
             # إضافة الحاوية إلى التخطيط الرئيسي للتبويب
             layout.addWidget(tabs_container)
 
-            # متغير لتتبع التبويبات التي تم تحميلها
-            self.tabs_loaded = [False, False, False, False]
+            # قاموس لتخزين ويدجات التبويبات التي تم إنشاؤها
+            self.diag_tab_widgets = {}
 
 
 
@@ -796,7 +796,7 @@ class HelpPage(QWidget):
 
 
         layout.addWidget(self.system_tree)
-        self.diag_content.addWidget(tab)  # استخدام addWidget بدلاً من addTab
+        return tab
 
     def create_performance_tab(self):
         from PySide6.QtWidgets import QTreeWidget, QProgressBar
@@ -841,10 +841,7 @@ class HelpPage(QWidget):
         progress_layout.addLayout(disk_layout)
         
         layout.addLayout(progress_layout)
-
-
-
-        self.diag_content.addWidget(tab)  # استخدام addWidget بدلاً من addTab
+        return tab
 
     def create_modules_tab(self):
         from PySide6.QtWidgets import QTreeWidget
@@ -861,10 +858,7 @@ class HelpPage(QWidget):
         self.install_button.clicked.connect(self.install_requirements)
         self.install_button.setEnabled(False)
         layout.addWidget(self.install_button)
-
-
-
-        self.diag_content.addWidget(tab)  # استخدام addWidget بدلاً من addTab
+        return tab
 
     def create_logs_tab(self):
         tab = QWidget()
@@ -899,8 +893,8 @@ class HelpPage(QWidget):
         apply_theme(self.logs_text.horizontalScrollBar(), "scrollbar")
 
         layout.addWidget(self.logs_text)
-        self.diag_content.addWidget(tab)  # استخدام addWidget بدلاً من addTab
         self.load_log_retention_setting()
+        return tab
 
     def refresh_all_info(self):
         # إيقاف أي عامل تشخيص قائم بالفعل
@@ -975,22 +969,25 @@ class HelpPage(QWidget):
             self._style_diag_tab_button(btn, is_active=is_active)
             btn.setChecked(is_active)
 
-        # إنشاء التبويب إذا لم يتم تحميله بعد
-        if not self.tabs_loaded[index]:
+        # إنشاء التبويب إذا لم يتم إنشاؤه بعد
+        if index not in self.diag_tab_widgets:
+            tab_widget = None
             if index == 0:
-                self.create_system_info_tab()
+                tab_widget = self.create_system_info_tab()
             elif index == 1:
-                self.create_performance_tab()
+                tab_widget = self.create_performance_tab()
             elif index == 2:
-                self.create_modules_tab()
+                tab_widget = self.create_modules_tab()
             elif index == 3:
-                self.create_logs_tab()
+                tab_widget = self.create_logs_tab()
+            
+            if tab_widget:
+                self.diag_tab_widgets[index] = tab_widget
+                self.diag_content.addWidget(tab_widget)
 
-            # تحديث حالة التحميل
-            self.tabs_loaded[index] = True
-
-        # تحديث المحتوى بعد التأكد من تحميل التبويب
-        self.diag_content.setCurrentIndex(index)
+        # التبديل إلى الويدجت الصحيح
+        if index in self.diag_tab_widgets:
+            self.diag_content.setCurrentWidget(self.diag_tab_widgets[index])
 
         # تحديث معلومات التبويب عند النقر عليه
         if index == 0:

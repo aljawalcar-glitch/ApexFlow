@@ -7,6 +7,7 @@ This module provides functionality to split PDF files into separate pages or ran
 import os
 from PyPDF2 import PdfReader, PdfWriter
 from typing import List, Optional, Tuple
+from modules.logger import info, warning, error
 
 def split_pdf(input_file: str, output_folder: str, prefix: str = "page") -> bool:
     """
@@ -37,7 +38,7 @@ def split_pdf(input_file: str, output_folder: str, prefix: str = "page") -> bool
         pdf_reader = PdfReader(input_file)
         total_pages = len(pdf_reader.pages)
         
-        print(f"تقسيم {total_pages} صفحة من الملف: {os.path.basename(input_file)}")
+        info(f"تقسيم {total_pages} صفحة من الملف: {os.path.basename(input_file)}")
         
         # تقسيم كل صفحة إلى ملف منفصل
         for page_num in range(total_pages):
@@ -52,11 +53,11 @@ def split_pdf(input_file: str, output_folder: str, prefix: str = "page") -> bool
             with open(output_path, 'wb') as output_file:
                 pdf_writer.write(output_file)
         
-        print(f"تم تقسيم الملف بنجاح إلى {total_pages} صفحة في المجلد: {output_folder}")
+        info(f"تم تقسيم الملف بنجاح إلى {total_pages} صفحة في المجلد: {output_folder}")
         return True
         
     except Exception as e:
-        print(f"خطأ في تقسيم PDF: {str(e)}")
+        error(f"خطأ في تقسيم PDF: {str(e)}")
         return False
 
 def split_pdf_by_ranges(input_file: str, output_folder: str, 
@@ -95,7 +96,7 @@ def split_pdf_by_ranges(input_file: str, output_folder: str,
             end_idx = min(total_pages - 1, end_page - 1)
             
             if start_idx > end_idx or start_idx >= total_pages:
-                print(f"تحذير: نطاق صفحات غير صحيح: {start_page}-{end_page}")
+                warning(f"تحذير: نطاق صفحات غير صحيح: {start_page}-{end_page}")
                 continue
             
             pdf_writer = PdfWriter()
@@ -116,13 +117,13 @@ def split_pdf_by_ranges(input_file: str, output_folder: str,
             with open(output_path, 'wb') as output_file:
                 pdf_writer.write(output_file)
             
-            print(f"تم إنشاء: {output_filename} (صفحات {start_page}-{end_page})")
+            info(f"تم إنشاء: {output_filename} (صفحات {start_page}-{end_page})")
         
-        print(f"تم تقسيم الملف بنجاح إلى {len(page_ranges)} جزء")
+        info(f"تم تقسيم الملف بنجاح إلى {len(page_ranges)} جزء")
         return True
         
     except Exception as e:
-        print(f"خطأ في تقسيم PDF بالنطاقات: {str(e)}")
+        error(f"خطأ في تقسيم PDF بالنطاقات: {str(e)}")
         return False
 
 def split_pdf_by_size(input_file: str, output_folder: str, 
@@ -174,13 +175,13 @@ def split_pdf_by_size(input_file: str, output_folder: str,
             with open(output_path, 'wb') as output_file:
                 pdf_writer.write(output_file)
             
-            print(f"تم إنشاء: {output_filename} ({pages_added} صفحة)")
+            info(f"تم إنشاء: {output_filename} ({pages_added} صفحة)")
         
-        print(f"تم تقسيم الملف بنجاح إلى {file_count} ملف")
+        info(f"تم تقسيم الملف بنجاح إلى {file_count} ملف")
         return True
         
     except Exception as e:
-        print(f"خطأ في تقسيم PDF بالحجم: {str(e)}")
+        error(f"خطأ في تقسيم PDF بالحجم: {str(e)}")
         return False
 
 def extract_pages(input_file: str, output_file: str, page_numbers: List[int]) -> bool:
@@ -211,10 +212,10 @@ def extract_pages(input_file: str, output_file: str, page_numbers: List[int]) ->
                 pdf_writer.add_page(pdf_reader.pages[page_num - 1])  # تحويل إلى فهرسة تبدأ من 0
                 extracted_count += 1
             else:
-                print(f"تحذير: رقم صفحة غير صحيح: {page_num}")
+                warning(f"تحذير: رقم صفحة غير صحيح: {page_num}")
         
         if extracted_count == 0:
-            print("لم يتم استخراج أي صفحة")
+            warning("لم يتم استخراج أي صفحة")
             return False
         
         # إنشاء مجلد الحفظ إذا لم يكن موجوداً
@@ -226,11 +227,11 @@ def extract_pages(input_file: str, output_file: str, page_numbers: List[int]) ->
         with open(output_file, 'wb') as output:
             pdf_writer.write(output)
         
-        print(f"تم استخراج {extracted_count} صفحة إلى: {output_file}")
+        info(f"تم استخراج {extracted_count} صفحة إلى: {output_file}")
         return True
         
     except Exception as e:
-        print(f"خطأ في استخراج الصفحات: {str(e)}")
+        error(f"خطأ في استخراج الصفحات: {str(e)}")
         return False
 
 def get_pdf_page_count(input_file: str) -> int:
@@ -252,7 +253,7 @@ def get_pdf_page_count(input_file: str) -> int:
         return len(pdf_reader.pages)
         
     except Exception as e:
-        print(f"خطأ في قراءة عدد الصفحات: {str(e)}")
+        error(f"خطأ في قراءة عدد الصفحات: {str(e)}")
         return -1
 
 # مثال على الاستخدام
@@ -274,7 +275,7 @@ if __name__ == "__main__":
     # استخراج صفحات محددة
     # extract_pages(input_pdf, "extracted.pdf", [1, 3, 5, 7])
     
-    print("وحدة التقسيم تم تحميلها بنجاح")
+    info("وحدة التقسيم تم تحميلها بنجاح")
 
 def split_pdf_advanced(input_file: str, output_folder: str, prefix: str = "page",
                       pages_per_file: int = 1, create_subfolders: bool = False) -> bool:
@@ -299,7 +300,7 @@ def split_pdf_advanced(input_file: str, output_folder: str, prefix: str = "page"
         total_pages = len(pdf_reader.pages)
 
         if total_pages == 0:
-            print("الملف لا يحتوي على صفحات")
+            warning("الملف لا يحتوي على صفحات")
             return False
 
         # إنشاء مجلد الحفظ
@@ -339,11 +340,11 @@ def split_pdf_advanced(input_file: str, output_folder: str, prefix: str = "page"
                 pdf_writer.write(output_file)
 
             file_count += 1
-            print(f"تم إنشاء: {filename}")
+            info(f"تم إنشاء: {filename}")
 
-        print(f"تم تقسيم الملف بنجاح إلى {file_count} ملف في: {final_output_folder}")
+        info(f"تم تقسيم الملف بنجاح إلى {file_count} ملف في: {final_output_folder}")
         return True
 
     except Exception as e:
-        print(f"خطأ في تقسيم الملف: {str(e)}")
+        error(f"خطأ في تقسيم الملف: {str(e)}")
         return False

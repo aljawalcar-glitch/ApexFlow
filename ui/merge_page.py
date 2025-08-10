@@ -165,15 +165,10 @@ class MergePage(BasePageWidget):
     def add_files(self, files):
         """إضافة ملفات مباشرة إلى القائمة (للسحب والإفلات)"""
         if files:
-            # التأكد من أن إطار الملفات مرئي قبل إضافة الملفات
-            if not self.file_list_frame.isVisible():
-                self.file_list_frame.setVisible(True)
-            
             self.file_list_frame.add_files(files)
             self.on_files_changed(self.file_list_frame.get_valid_files())
             self.has_unsaved_changes = True
-            
-            # فرض تحديث فوري للواجهة
+            self.action_widget.setVisible(True)
             QApplication.processEvents()
 
     def add_folder(self):
@@ -364,7 +359,6 @@ class MergePage(BasePageWidget):
     def on_files_changed(self, files):
         """إظهار أو إخفاء العناصر بناءً على وجود الملفات."""
         has_files = len(files) > 0
-        # self.file_list_frame.setVisible(has_files) # تم التعطيل للسماح للإطار بإدارة حالته
         self.action_widget.setVisible(has_files)
         self.has_unsaved_changes = has_files
 
@@ -372,17 +366,9 @@ class MergePage(BasePageWidget):
         if main_window:
             main_window.set_page_has_work(main_window.get_page_index(self), has_files)
 
-        # تحميل الطابعات عند إظهار عناصر التحكم لأول مرة
         if has_files and not self._printers_loaded:
             self.load_printers()
 
-        self.merge_button.setEnabled(True)
-        # تمكين أو تعطيل خيارات الطباعة بناءً على حالة خانة الاختيار
-        is_print_enabled = has_files and self.print_after_merge.isChecked()
-        self.printer_label.setEnabled(is_print_enabled)
-        self.printer_combo.setEnabled(is_print_enabled)
-        
-        # تحديث نص الزر عند تغيير عدد الملفات
         self.update_merge_button_text()
 
     def reset_ui(self):
@@ -390,6 +376,8 @@ class MergePage(BasePageWidget):
         self.file_list_frame.clear_all_files()
         self.has_unsaved_changes = False
         self.on_files_changed([])
+        # التأكد من إخفاء الإطار عند إعادة التعيين
+        self.file_list_frame.hide()
         main_window = self._get_main_window()
         if main_window:
             main_window.set_page_has_work(main_window.get_page_index(self), False)
@@ -410,8 +398,15 @@ class MergePage(BasePageWidget):
             if files:
                 main_window = self._get_main_window()
                 if main_window and hasattr(main_window, 'smart_drop_overlay'):
-                    # تمرير الملفات إلى الطبقة الذكية في النافذة الرئيسية
-                    main_window.smart_drop_overlay.dropEvent(event)
+                    main_window._update_smart_drop_mode_for_page(main_window.stack.currentIndex())
+                    main_window.smart_drop_overlay.files = files
+                    main_window.smart_drop_overlay.is_valid_drop = main_window.smart_drop_overlay._validate_files_for_context(files)
+                    main_window.setEnabled(False)
+                    main_window.smart_drop_overlay.capture_background_blur()
+                    main_window.smart_drop_overlay.update_styles()
+                    main_window.smart_drop_overlay.update_ui_for_context()
+                    main_window.smart_drop_overlay.animate_show()
+                    main_window.smart_drop_overlay.handle_drop(event)
                     event.acceptProposedAction()
                 else:
                     event.ignore()
