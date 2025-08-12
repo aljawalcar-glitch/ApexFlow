@@ -12,7 +12,7 @@ from .settings import get_setting, set_setting
 
 def get_log_dir():
     """Returns the path to the log directory."""
-    return os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs")
+    return os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
 
 class ApexFlowFileLogger:
     """فئة لتسجيل السجلات في الملفات"""
@@ -38,7 +38,7 @@ class ApexFlowFileLogger:
         )
 
         # إنشاء مجلد السجلات
-        log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs")
+        log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
 
@@ -56,7 +56,7 @@ class ApexFlowFileLogger:
 
     def get_log_dir(self):
         """Returns the path to the log directory."""
-        return os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs")
+        return os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
 
     def info(self, message):
         """تسجيل رسالة معلومات"""

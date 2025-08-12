@@ -174,7 +174,7 @@ class DiagnosticsWorker(QThread):
         # الحصول على مسار ملف السجل
         try:
             # محاولة العثور على ملف السجل
-            log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs")
+            log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
 
             # إنشاء مجلد السجلات إذا لم يكن موجودًا
             if not os.path.exists(log_dir):
@@ -1191,7 +1191,7 @@ class HelpPage(QWidget):
         # الحصول على مسار ملف السجل
         try:
             # محاولة العثور على ملف السجل
-            log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs")
+            log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
 
             # إضافة رسالة تصحيح الأخطاء
 
@@ -1275,7 +1275,7 @@ class HelpPage(QWidget):
             info("User confirmed clearing all logs.")
             try:
                 # الحصول على مسار مجلد السجلات
-                log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs")
+                log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
 
                 # التحقق من وجود المجلد
                 if not os.path.exists(log_dir):

@@ -66,6 +66,7 @@ class ApexFlow(QMainWindow):
     def __init__(self):
         super().__init__()
         self._settings_ui_module = None
+        self.is_page_transitioning = False
         
         # Track unfinished work in pages
         self._has_unfinished_work = {}  # Dictionary to track unfinished work per page
@@ -437,6 +438,7 @@ class ApexFlow(QMainWindow):
 
         # Connect menu selection directly
         self.menu_list.itemClicked.connect(self.handle_menu_selection)
+        self.stack.animationFinished.connect(self.on_page_transition_finished)
 
         # Add widgets to the main layout
         self.main_layout.addWidget(self.sidebar_widget)
@@ -514,6 +516,9 @@ class ApexFlow(QMainWindow):
         # Get the row immediately after click
         desired_row = self.menu_list.row(item)
         current_index = self.stack.currentIndex()
+        
+        if self.is_page_transitioning:
+            return
         
         # Return if same page is selected
         if current_index == desired_row:
@@ -613,6 +618,7 @@ class ApexFlow(QMainWindow):
 
         # إذا كانت الصفحة محملة بالفعل، انتقل إليها مباشرة
         if self.pages_loaded[index]:
+            self.is_page_transitioning = True
             self.stack.fade_to_index(index)
             return
 
@@ -631,7 +637,12 @@ class ApexFlow(QMainWindow):
             self._handle_page_load_error(index, e)
 
         # الانتقال إلى الصفحة
+        self.is_page_transitioning = True
         self.stack.fade_to_index(index)
+
+    def on_page_transition_finished(self):
+        """Slot to be called when the page transition animation is finished."""
+        self.is_page_transitioning = False
 
     def _reset_all_loaded_pages(self):
         """Resets all loaded pages."""

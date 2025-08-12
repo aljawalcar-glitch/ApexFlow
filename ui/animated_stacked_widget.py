@@ -1,7 +1,9 @@
 from PySide6.QtWidgets import QStackedWidget, QGraphicsOpacityEffect
-from PySide6.QtCore import QEasingCurve, QPropertyAnimation, QSequentialAnimationGroup, Qt, QTimer
+from PySide6.QtCore import QEasingCurve, QPropertyAnimation, QSequentialAnimationGroup, Qt, QTimer, Signal
 
 class AnimatedStackedWidget(QStackedWidget):
+    animationFinished = Signal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.m_speed = 300  # Animation speed in milliseconds
@@ -71,6 +73,7 @@ class AnimatedStackedWidget(QStackedWidget):
         # Clean up graphics effects after a short delay
         QTimer.singleShot(50, self.cleanup_effects)
         self.m_active = False
+        self.animationFinished.emit()
 
     def cleanup_effects(self):
         for i in range(self.count()):

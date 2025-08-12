@@ -447,7 +447,7 @@ class NotificationCenter(QDialog):
                 notifications_data[category] = data["notifications"]
             
             # تحديد مسار الملف
-            data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
+            data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
             if not os.path.exists(data_dir):
                 os.makedirs(data_dir)
                 
@@ -487,7 +487,7 @@ class NotificationCenter(QDialog):
         """تحميل الإشعارات من ملف JSON"""
         try:
             # تحديد مسار الملف
-            data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
+            data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
             file_path = os.path.join(data_dir, "notifications.json")
             
             # التحقق من وجود الملف

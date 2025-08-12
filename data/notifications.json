@@ -279,6 +279,76 @@
       "category": "system",
       "time": "2025-08-05 05:26:33",
       "read": false
+    },
+    "system_29": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-12 20:16:36",
+      "read": false
+    },
+    "system_30": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-12 20:19:12",
+      "read": false
+    },
+    "system_31": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-12 20:24:08",
+      "read": false
+    },
+    "system_32": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ لم يتم العثور على ملفات سجل",
+      "message": "لم يتم العثور على ملفات سجل",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-12 20:24:17",
+      "read": false
+    },
+    "system_33": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ لم يتم العثور على ملفات سجل",
+      "message": "لم يتم العثور على ملفات سجل",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-12 20:24:18",
+      "read": false
+    },
+    "system_34": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-12 20:30:20",
+      "read": false
+    },
+    "system_35": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-12 20:31:30",
+      "read": false
     }
   },
   "tasks": {
