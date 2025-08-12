@@ -5,7 +5,7 @@ This module provides functionality to split PDF files into separate pages or ran
 """
 
 import os
-from PyPDF2 import PdfReader, PdfWriter
+from pypdf import PdfReader, PdfWriter
 from typing import List, Optional, Tuple
 from modules.logger import info, warning, error
 

@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple
-from .logger import debug, info, warning, error
+from .logger import info, warning, error
 
 def get_settings_directory():
     """
@@ -34,8 +34,8 @@ def get_settings_directory():
         os.makedirs(settings_dir, exist_ok=True)
         return settings_dir
     except Exception as e:
-        print(f"تعذر إنشاء مجلد الإعدادات: {e}")
-        # fallback إلى المجلد الحالي
+        error(f"Could not create settings directory: {e}")
+        # fallback to the current directory
         return os.getcwd()
 
 def get_settings_file_path():
@@ -65,8 +65,8 @@ def check_write_permissions(file_path):
         return True
 
     except Exception as e:
-        print(f"لا توجد صلاحيات كتابة في: {directory}")
-        print(f"الخطأ: {e}")
+        error(f"No write permissions in: {directory}")
+        error(f"Error: {e}")
         return False
 
 # الإعدادات الافتراضية
@@ -159,9 +159,9 @@ def migrate_old_settings():
     # إذا كان الملف القديم موجود والجديد غير موجود
     if os.path.exists(old_settings_file) and not os.path.exists(new_settings_file):
         try:
-            print(f"نقل الإعدادات من {old_settings_file} إلى {new_settings_file}")
+            info(f"Migrating settings from {old_settings_file} to {new_settings_file}")
 
-            # قراءة الإعدادات القديمة
+            # Read old settings
             with open(old_settings_file, 'r', encoding='utf-8') as old_file:
                 old_settings = json.load(old_file)
 
@@ -173,11 +173,11 @@ def migrate_old_settings():
             with open(new_settings_file, 'w', encoding='utf-8') as new_file:
                 json.dump(old_settings, new_file, indent=4, ensure_ascii=False)
 
-            print("تم نقل الإعدادات بنجاح")
+            info("Settings migrated successfully")
             return True
 
         except Exception as e:
-            print(f"خطأ في نقل الإعدادات: {e}")
+            error(f"Error migrating settings: {e}")
             return False
 
     return False
@@ -195,7 +195,6 @@ def load_settings() -> Dict[str, Any]:
         migrate_old_settings()
 
         settings_file = get_settings_file_path()
-        debug(f"محاولة تحميل الإعدادات من: {settings_file}")
 
         if os.path.exists(settings_file):
             with open(settings_file, 'r', encoding='utf-8') as file:
@@ -208,11 +207,8 @@ def load_settings() -> Dict[str, Any]:
                 # التحقق من صحة الإعدادات
                 settings = validate_settings(settings)
 
-                debug("تم تحميل الإعدادات بنجاح")
                 return settings
         else:
-            debug(f"لم يتم العثور على ملف الإعدادات في: {settings_file}")
-            debug("سيتم استخدام الإعدادات الافتراضية وحفظها")
             # حفظ الإعدادات الافتراضية في المسار الجديد
             default_settings = DEFAULT_SETTINGS.copy()
             save_settings(default_settings)
@@ -261,14 +257,12 @@ def save_settings(settings: Dict[str, Any], original_settings: Optional[Dict[str
         if original_settings:
             backup_success, backup_info = create_backup(original_settings)
             if not backup_success:
-                # يمكن إضافة منطق هنا لسؤال المستخدم إذا كان يريد المتابعة بدون نسخ احتياطي
-                print(f"تحذير: فشل في إنشاء نسخة احتياطية: {backup_info}")
+                warning(f"Failed to create backup: {backup_info}")
 
         # التحقق من صحة الإعدادات قبل الحفظ
         validated_settings = validate_settings(settings)
 
         settings_file = get_settings_file_path()
-        debug(f"محاولة حفظ الإعدادات في: {settings_file}")
 
         # التحقق من صلاحيات الكتابة
         if not check_write_permissions(settings_file):
@@ -282,7 +276,6 @@ def save_settings(settings: Dict[str, Any], original_settings: Optional[Dict[str
         with open(settings_file, 'w', encoding='utf-8') as file:
             json.dump(validated_settings, file, indent=4, ensure_ascii=False)
 
-        debug("تم حفظ الإعدادات بنجاح")
         return True
 
     except Exception as e:
@@ -312,14 +305,14 @@ def print_settings_info():
     Print settings information for debugging.
     طباعة معلومات الإعدادات للتشخيص
     """
-    info = get_settings_info()
-    print("\n=== معلومات الإعدادات ===")
-    print(f"مجلد الإعدادات: {info['settings_directory']}")
-    print(f"ملف الإعدادات: {info['settings_file']}")
-    print(f"المجلد موجود: {info['directory_exists']}")
-    print(f"الملف موجود: {info['file_exists']}")
-    print(f"صلاحيات الكتابة: {info['write_permissions']}")
-    print("========================\n")
+    settings_info = get_settings_info()
+    info("\n=== Settings Information ===")
+    info(f"Settings directory: {settings_info['settings_directory']}")
+    info(f"Settings file: {settings_info['settings_file']}")
+    info(f"Directory exists: {settings_info['directory_exists']}")
+    info(f"File exists: {settings_info['file_exists']}")
+    info(f"Write permissions: {settings_info['write_permissions']}")
+    info("========================\n")
 
 def validate_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -449,7 +442,7 @@ def validate_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
         return validated
         
     except Exception as e:
-        print(f"خطأ في التحقق من الإعدادات: {str(e)}")
+        error(f"Error validating settings: {str(e)}")
         return DEFAULT_SETTINGS.copy()
 
 def reset_settings() -> bool:
@@ -463,7 +456,7 @@ def reset_settings() -> bool:
     try:
         return save_settings(DEFAULT_SETTINGS.copy())
     except Exception as e:
-        print(f"خطأ في إعادة تعيين الإعدادات: {str(e)}")
+        error(f"Error resetting settings: {str(e)}")
         return False
 
 def get_setting(key: str, default_value: Any = None) -> Any:
@@ -495,7 +488,7 @@ def get_setting(key: str, default_value: Any = None) -> Any:
             return settings.get(key, default_value)
             
     except Exception as e:
-        print(f"خطأ في الحصول على الإعداد {key}: {str(e)}")
+        error(f"Error getting setting {key}: {str(e)}")
         return default_value
 
 def set_setting(key: str, value: Any) -> bool:
@@ -528,7 +521,7 @@ def set_setting(key: str, value: Any) -> bool:
         return save_settings(settings)
         
     except Exception as e:
-        print(f"خطأ في تعيين الإعداد {key}: {str(e)}")
+        error(f"Error setting setting {key}: {str(e)}")
         return False
 
 def add_recent_file(file_path: str) -> bool:
@@ -560,7 +553,7 @@ def add_recent_file(file_path: str) -> bool:
         return save_settings(settings)
         
     except Exception as e:
-        print(f"خطأ في إضافة الملف الأخير: {str(e)}")
+        error(f"Error adding recent file: {str(e)}")
         return False
 
 def get_recent_files() -> list:
@@ -589,7 +582,7 @@ def get_recent_files() -> list:
         return existing_files
         
     except Exception as e:
-        print(f"خطأ في الحصول على الملفات الأخيرة: {str(e)}")
+        error(f"Error getting recent files: {str(e)}")
         return []
 
 def export_settings(export_path: str) -> bool:
@@ -609,11 +602,11 @@ def export_settings(export_path: str) -> bool:
         with open(export_path, 'w', encoding='utf-8') as file:
             json.dump(settings, file, indent=4, ensure_ascii=False)
         
-        print(f"تم تصدير الإعدادات إلى: {export_path}")
+        info(f"Settings exported to: {export_path}")
         return True
         
     except Exception as e:
-        print(f"خطأ في تصدير الإعدادات: {str(e)}")
+        error(f"Error exporting settings: {str(e)}")
         return False
 
 def import_settings(import_path: str) -> bool:
@@ -639,13 +632,13 @@ def import_settings(import_path: str) -> bool:
 
         # حفظ الإعدادات المستوردة
         if save_settings(validated_settings):
-            print(f"تم استيراد الإعدادات من: {import_path}")
+            info(f"Settings imported from: {import_path}")
             return True
         else:
             return False
 
     except Exception as e:
-        print(f"خطأ في استيراد الإعدادات: {str(e)}")
+        error(f"Error importing settings: {str(e)}")
         return False
 
 def clear_recent_files() -> bool:
@@ -661,7 +654,7 @@ def clear_recent_files() -> bool:
         settings_data["recent_files"] = []
         return save_settings(settings_data)
     except Exception as e:
-        print(f"خطأ في مسح الملفات الأخيرة: {str(e)}")
+        error(f"Error clearing recent files: {str(e)}")
         return False
 
 def remove_recent_file(file_path: str) -> bool:
@@ -687,28 +680,28 @@ def remove_recent_file(file_path: str) -> bool:
         return True  # File wasn't in the list, so "removal" is successful
 
     except Exception as e:
-        print(f"خطأ في إزالة الملف من القائمة الأخيرة: {str(e)}")
+        error(f"Error removing file from recent list: {str(e)}")
         return False
 
-# مثال على الاستخدام
+# Example usage
 if __name__ == "__main__":
-    # تحميل الإعدادات
+    # Load settings
     settings = load_settings()
-    print("الإعدادات الحالية:")
-    print(json.dumps(settings, indent=2, ensure_ascii=False))
+    info("Current settings:")
+    info(json.dumps(settings, indent=2, ensure_ascii=False))
     
-    # تعيين إعداد محدد
+    # Set a specific setting
     # set_setting("compression_level", 4)
     # set_setting("ui_settings.font_size", 18)
     
-    # الحصول على إعداد محدد
+    # Get a specific setting
     # compression_level = get_setting("compression_level", 3)
     # font_size = get_setting("ui_settings.font_size", 14)
     
-    # إضافة ملف أخير
+    # Add a recent file
     # add_recent_file("example.pdf")
     
-    print("وحدة الإعدادات تم تحميلها بنجاح")
+    info("Settings module loaded successfully")
 
 def should_show_tooltips():
     """التحقق مما إذا كان يجب عرض التلميحات بناءً على إعدادات المستخدم"""

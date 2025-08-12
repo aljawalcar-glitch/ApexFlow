@@ -5,7 +5,7 @@ This module provides functionality to rotate PDF pages.
 """
 
 import os
-from PyPDF2 import PdfReader, PdfWriter
+from pypdf import PdfReader, PdfWriter
 from typing import List, Optional, Union
 from modules.logger import info, warning, error
 

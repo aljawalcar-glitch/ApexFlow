@@ -96,14 +96,8 @@ def format_changelog():
         changelog_text.append("\n")
     return "".join(changelog_text)
 
-def get_about_text():
+def get_about_text(language="ar"):
     """إرجاع نص حول التطبيق"""
-    try:
-        from modules.settings import load_settings
-        settings = load_settings()
-        language = settings.get("language", "ar")
-    except:
-        language = "ar"
 
     build_info_ar = f"""
 **معلومات البناء:**
@@ -169,8 +163,9 @@ def get_about_text():
 class AboutDialog(ThemeAwareDialog):
     """نافذة حول البرنامج"""
     
-    def __init__(self, parent=None):
+    def __init__(self, settings, parent=None):
         super().__init__(parent, widget_type="dialog_about")
+        self.settings = settings
         self.setWindowTitle(tr("about_dialog_title", app_name=APP_NAME))
         self.setFixedSize(600, 550)
         self.setModal(True)
@@ -239,13 +234,8 @@ class AboutDialog(ThemeAwareDialog):
         
         # المطور
         # تحديد نسخة اسم المؤلف بناءً على اللغة
-        try:
-            from modules.settings import load_settings
-            settings = load_settings()
-            language = settings.get("language", "ar")
-            author = APP_AUTHOR_AR if language == "ar" else APP_AUTHOR_EN
-        except:
-            author = APP_AUTHOR_AR
+        language = self.settings.get("language", "ar")
+        author = APP_AUTHOR_AR if language == "ar" else APP_AUTHOR_EN
         
         author_label = QLabel(tr("author_label", author=author))
         author_label.setObjectName("about_author")
@@ -266,7 +256,7 @@ class AboutDialog(ThemeAwareDialog):
         # منطقة النص التفصيلي
         about_text = QTextEdit()
         about_text.setReadOnly(True)
-        about_text.setMarkdown(get_about_text())
+        about_text.setMarkdown(get_about_text(self.settings.get("language", "ar")))
         layout.addWidget(about_text)
         
         # زر الإغلاق
@@ -283,8 +273,9 @@ class AboutDialog(ThemeAwareDialog):
 class AppInfoWidget(QWidget):
     """مكون معلومات البرنامج أسفل الشريط الجانبي"""
     
-    def __init__(self, parent=None):
+    def __init__(self, settings, parent=None):
         super().__init__(parent)
+        self.settings = settings
         self.setup_ui()
     
     def setup_ui(self):
@@ -405,13 +396,8 @@ class AppInfoWidget(QWidget):
         author_layout.setContentsMargins(28, 0, 0, 0)  # محاذاة مع النص
         
         # تحديد نسخة حقوق النشر بناءً على اللغة
-        try:
-            from modules.settings import load_settings
-            settings = load_settings()
-            language = settings.get("language", "ar")
-            author = APP_AUTHOR_AR if language == "ar" else APP_AUTHOR_EN
-        except:
-            author = APP_AUTHOR_AR
+        language = self.settings.get("language", "ar")
+        author = APP_AUTHOR_AR if language == "ar" else APP_AUTHOR_EN
         
         author_label = QLabel(tr("copyright_label", author=author))
         author_label.setStyleSheet("""
@@ -440,5 +426,5 @@ class AppInfoWidget(QWidget):
     
     def show_about_dialog(self):
         """عرض نافذة حول البرنامج"""
-        dialog = AboutDialog(self)
+        dialog = AboutDialog(self.settings, self)
         dialog.exec()

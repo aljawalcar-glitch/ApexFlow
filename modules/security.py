@@ -4,7 +4,7 @@
 وحدة حماية وخصائص ملفات PDF
 """
 
-import PyPDF2
+from pypdf import PdfReader, PdfWriter
 from .logger import info, error
 
 def get_pdf_metadata(file_path, password=None):
@@ -14,7 +14,7 @@ def get_pdf_metadata(file_path, password=None):
     """
     try:
         with open(file_path, 'rb') as f:
-            reader = PyPDF2.PdfReader(f)
+            reader = PdfReader(f)
             
             # إذا كان الملف مشفرًا، حاول فك تشفيره
             if reader.is_encrypted:
@@ -28,7 +28,7 @@ def get_pdf_metadata(file_path, password=None):
             if metadata is None:
                 return {}
 
-            # استخراج البيانات الوصفية مع التعامل مع الاختلافات بين إصدارات PyPDF2
+            # استخراج البيانات الوصفية مع التعامل مع الاختلافات بين إصدارات pypdf
             result = {}
             try:
                 # محاولة الوصول إلى البيانات باستخدام الخصائص المباشرة (الإصدار الحديث)
@@ -37,7 +37,7 @@ def get_pdf_metadata(file_path, password=None):
                 result['/Subject'] = metadata.subject or ""
                 result['/Keywords'] = metadata.get('/Keywords', "") or ""
             except (AttributeError, TypeError):
-                # الطريقة البديلة للإصدارات القديمة من PyPDF2
+                # الطريقة البديلة للإصدارات القديمة من pypdf
                 for key in ['/Title', '/Author', '/Subject', '/Keywords']:
                     if key in metadata:
                         result[key] = metadata[key]
@@ -57,8 +57,8 @@ def update_pdf_metadata(input_path, output_path, metadata):
     """
     try:
         with open(input_path, 'rb') as f:
-            reader = PyPDF2.PdfReader(f)
-            writer = PyPDF2.PdfWriter()
+            reader = PdfReader(f)
+            writer = PdfWriter()
 
             for page in reader.pages:
                 writer.add_page(page)
@@ -79,8 +79,8 @@ def encrypt_pdf(input_path, output_path, user_password, owner_password=None, per
     """
     try:
         with open(input_path, 'rb') as f:
-            reader = PyPDF2.PdfReader(f)
-            writer = PyPDF2.PdfWriter()
+            reader = PdfReader(f)
+            writer = PdfWriter()
 
             for page in reader.pages:
                 writer.add_page(page)
@@ -90,7 +90,7 @@ def encrypt_pdf(input_path, output_path, user_password, owner_password=None, per
             
             # تعيين الأذونات (إذا تم توفيرها)
             if permissions:
-                # PyPDF2 لا يدعم تعيين الأذونات بشكل مباشر بعد الإنشاء
+                # pypdf لا يدعم تعيين الأذونات بشكل مباشر بعد الإنشاء
                 # هذه الميزة قد تحتاج إلى مكتبة أخرى أو إصدار أحدث
                 pass
 
@@ -108,11 +108,11 @@ def decrypt_pdf(input_path, output_path, password):
     """
     try:
         with open(input_path, 'rb') as f:
-            reader = PyPDF2.PdfReader(f)
+            reader = PdfReader(f)
             
             if reader.is_encrypted:
                 if reader.decrypt(password):
-                    writer = PyPDF2.PdfWriter()
+                    writer = PdfWriter()
                     for page in reader.pages:
                         writer.add_page(page)
                     

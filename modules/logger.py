@@ -8,7 +8,6 @@ import os
 from pathlib import Path
 
 # إعدادات التسجيل
-DEBUG_MODE = True  # تغيير إلى True للتطوير
 LOG_TO_FILE = False  # تغيير إلى True لحفظ السجلات في ملف
 
 class ApexFlowLogger:
@@ -21,10 +20,7 @@ class ApexFlowLogger:
     def setup_logger(self):
         """إعداد نظام التسجيل"""
         # تحديد مستوى التسجيل
-        if DEBUG_MODE:
-            level = logging.DEBUG
-        else:
-            level = logging.WARNING  # فقط التحذيرات والأخطاء في الإنتاج
+        level = logging.DEBUG  # تفعيل جميع مستويات التسجيل بما فيها التصحيح
         
         self.logger.setLevel(level)
         
@@ -66,10 +62,6 @@ class ApexFlowLogger:
         except Exception as e:
             self.logger.warning(f"فشل في إعداد ملف السجل: {e}")
     
-    def debug(self, message):
-        """رسالة تشخيص (تظهر فقط في وضع التطوير)"""
-        self.logger.debug(message)
-    
     def info(self, message):
         """رسالة معلوماتية"""
         self.logger.info(message)
@@ -90,10 +82,6 @@ class ApexFlowLogger:
 apex_logger = ApexFlowLogger()
 
 # دوال مختصرة للاستخدام السهل
-def debug(message):
-    """رسالة تشخيص (وضع التطوير فقط)"""
-    apex_logger.debug(message)
-
 def info(message):
     """رسالة معلوماتية"""
     apex_logger.info(message)
@@ -110,12 +98,6 @@ def critical(message):
     """رسالة خطأ حرج"""
     apex_logger.critical(message)
 
-def set_debug_mode(enabled=True):
-    """تفعيل/إلغاء وضع التشخيص"""
-    global DEBUG_MODE
-    DEBUG_MODE = enabled
-    apex_logger.setup_logger()
-
 def set_file_logging(enabled=True):
     """تفعيل/إلغاء حفظ السجلات في ملف"""
     global LOG_TO_FILE
@@ -125,7 +107,9 @@ def set_file_logging(enabled=True):
 # دالة للتوافق مع الكود القديم
 def print_debug(message):
     """دالة للتوافق مع print() القديمة"""
-    if DEBUG_MODE:
-        print(message)
-    else:
-        debug(message)
+    print(message)
+
+# دالة debug للاستخدام في رسائل التصحيح
+def debug(message):
+    """دالة لطباعة رسائل التصحيح"""
+    apex_logger.debug(message)

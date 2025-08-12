@@ -22,7 +22,7 @@ from PySide6.QtCore import Qt, QSharedMemory, QSystemSemaphore, QTimer
 # Local module imports
 from modules.settings import load_settings, set_setting  # Direct import to avoid loading PDF modules
 from modules.app_utils import get_icon_path
-from modules.logger import debug, info, warning, error
+from modules.logger import info, warning, error
 from ui import WelcomePage, apply_theme_style
 from ui.notification_system import NotificationBar
 from ui.first_run_dialog import FirstRunDialog
@@ -117,7 +117,8 @@ class ApexFlow(QMainWindow):
                 from ui.theme_manager import apply_theme
                 apply_theme(confirm_dialog, "dialog")
             except Exception as e:
-                pass
+                error(f"Error applying theme to dialog: {e}")
+
             # If the user chooses not to exit, ignore the close event
             if confirm_dialog.exec() == QMessageBox.No:
                 event.ignore()
@@ -347,7 +348,7 @@ class ApexFlow(QMainWindow):
 
         # App info widget
         from ui.app_info_widget import AppInfoWidget
-        self.app_info = AppInfoWidget()
+        self.app_info = AppInfoWidget(self.settings_data)
         sidebar_layout.addWidget(self.app_info)
 
         return sidebar_widget
@@ -643,7 +644,7 @@ class ApexFlow(QMainWindow):
                     if hasattr(inner_widget, 'reset_ui'):
                         inner_widget.reset_ui()
         except Exception as e:
-            pass
+            error(f"Error resetting loaded pages: {e}")
 
     def _create_page(self, index):
         """إنشاء الصفحة المطلوبة"""

@@ -1,5 +1,6 @@
 {
   "ar": {
+    "no_compatible_files_for_operation": "لا توجد ملفات متوافقة للعملية",
     "checkpoint": "نقطة تحقق",
     "compare": "مقارنة",
     "restore": "استعادة",
@@ -624,7 +625,8 @@
     "animation_speed_fast": "سريعة",
     "text_animation_settings": "إعدادات حركة النص",
     "confirm_exit": "تأكيد الخروج",
-    "exit_with_work_warning": "لديك عمل غير محفوظ. هل أنت متأكد من أنك تريد الخروج؟"
+    "exit_with_work_warning": "لديك عمل غير محفوظ. هل أنت متأكد من أنك تريد الخروج؟",
+    "some_files_not_compatible": "بعض الملفات لم تكن متوافقة وتم تجاهلها"
   },
   "en": {
     "checkpoint": "Checkpoint",
@@ -1196,6 +1198,7 @@
     "install_requirements": "Install Requirements",
     "installing": "Installing...",
     "requirements_installed_successfully": "Requirements installed successfully",
-    "failed_to_install_requirements": "Failed to install requirements"
+    "failed_to_install_requirements": "Failed to install requirements",
+    "some_files_not_compatible": "Some files were not compatible and were ignored"
   }
 }

@@ -58,10 +58,6 @@ class ApexFlowFileLogger:
         """Returns the path to the log directory."""
         return os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs")
 
-    def debug(self, message):
-        """تسجيل رسالة تصحيح"""
-        self.logger.debug(message)
-
     def info(self, message):
         """تسجيل رسالة معلومات"""
         self.logger.info(message)
@@ -82,10 +78,6 @@ class ApexFlowFileLogger:
 file_logger = ApexFlowFileLogger()
 
 # دوال مختصرة للاستخدام السهل
-def log_debug(message):
-    """رسالة تشخيص"""
-    file_logger.debug(message)
-
 def log_info(message):
     """رسالة معلوماتية"""
     file_logger.info(message)

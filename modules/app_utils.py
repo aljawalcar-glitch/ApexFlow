@@ -794,7 +794,6 @@ class OperationsManager:
         except ImportError:
             # تسجيل الخطأ بهدوء بدون إظهار رسائل للمستخدم
             from modules.logger import debug
-            debug("pywin32 غير متوفر - استخدام طابعة افتراضية")
             return ["Microsoft Print to PDF"]  # طابعة افتراضية
 
         except Exception as e:

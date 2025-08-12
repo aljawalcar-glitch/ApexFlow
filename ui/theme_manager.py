@@ -2,7 +2,7 @@ import weakref
 from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import QObject, Signal
 from modules.settings import load_settings, set_setting  # استيراد مباشر لتجنب تحميل وحدات PDF
-from modules.logger import debug, info, warning, error
+from modules.logger import info, warning, error
 from .global_styles import get_widget_style, darken_color
 
 class GlobalThemeManager(QObject):

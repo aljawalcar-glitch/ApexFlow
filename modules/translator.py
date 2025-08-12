@@ -6,7 +6,7 @@ Module for handling application translations.
 import json
 import os
 from .settings import load_settings
-from .logger import debug, error
+from .logger import error
 
 # إشارة عالمية لتغيير اللغة
 language_changed_callbacks = []
@@ -36,7 +36,6 @@ class Translator:
                     all_translations = json.load(f)
                 
                 self.translations = all_translations.get(self.language, {})
-                debug(f"Loaded translations for language: {self.language}")
             else:
                 error(f"Translation file not found at: {translations_file_path}")
                 self.translations = {}

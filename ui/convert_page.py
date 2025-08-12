@@ -27,7 +27,7 @@ class ConvertPage(BasePageWidget):
         
         self.file_manager = file_manager
         self.operations_manager = operations_manager
-        self.active_operation = None
+        self.active_operation = ""  # قيمة فارغة تعني عدم اختيار أي تبويب
         self.has_unsaved_changes = False
 
         # إزالة التخطيطات الافتراضية من BasePageWidget
@@ -49,38 +49,26 @@ class ConvertPage(BasePageWidget):
         # تسجيل callback لتغيير اللغة
         register_language_change_callback(self.update_button_order_for_language)
 
-        # Set a default tab on initialization to set initial drop settings
-        if self.top_buttons:
-            # Click the first button to set the default state
-            first_button_key = list(self.top_buttons.keys())[0]
-            self.top_buttons[first_button_key].click()
-
     def dragEnterEvent(self, event):
         """عند دخول ملفات مسحوبة إلى منطقة الصفحة"""
-        if event.mimeData().hasUrls():
+        # نقبل السحب فقط إذا كان هناك تبويب نشط
+        if event.mimeData().hasUrls() and self.active_operation:
             event.acceptProposedAction()
         else:
             event.ignore()
 
     def dropEvent(self, event):
         """عند إفلات الملفات في منطقة الصفحة"""
+        if not self.active_operation:
+            self.notification_manager.show_notification(tr("select_conversion_operation_first"), "warning", 3000)
+            event.ignore()
+            return
+
         if event.mimeData().hasUrls():
             urls = event.mimeData().urls()
             files = [url.toLocalFile() for url in urls if url.isLocalFile()]
             
             if files:
-                # التحقق من أنواع الملفات وتحديد التبويب الأنسب
-                best_tab = self._determine_best_conversion_type(files)
-                
-                # إذا لم يكن هناك تبويب محدد مسبقًا، حدد التبويب الأنسب
-                if not self.active_operation or best_tab != self.active_operation:
-                    self.active_operation = best_tab
-                    # تحديث واجهة المستخدم لتبديل التبويب
-                    if best_tab in self.top_buttons:
-                        self.top_buttons[best_tab].setChecked(True)
-                        self.on_tab_selected()
-                
-                # أضف الملفات إلى التبويب المناسب
                 self.add_files(files)
                 event.acceptProposedAction()
             else:
@@ -91,29 +79,39 @@ class ConvertPage(BasePageWidget):
     def add_files(self, files):
         """إضافة ملفات مباشرة إلى القائمة (للسحب والإفلات)"""
         if not self.active_operation:
-            # إذا لم يكن هناك تبويب محدد، حدد التبويب الأنسب للملفات
-            best_tab = self._determine_best_conversion_type(files)
-            if best_tab:
-                self.active_operation = best_tab
-                # تحديث واجهة المستخدم لتبديل التبويب
-                if best_tab in self.top_buttons:
-                    self.top_buttons[best_tab].setChecked(True)
-                    self.on_tab_selected()
-            else:
-                self.notification_manager.show_notification(tr("select_conversion_operation_first"), "warning", 3000)
-                return
+            self.notification_manager.show_notification(tr("select_conversion_operation_first"), "warning", 3000)
+            return
         
         # تصفية الملفات لقبول الأنواع المناسبة فقط
         filtered_files = self._filter_files_for_active_operation(files)
         if not filtered_files:
-            self.notification_manager.show_notification(tr("no_compatible_files_for_operation"), "warning", 3000)
-            return
+            # إظهار رسالة أكثر تحديدًا
+            all_files_incompatible = all(not self._filter_files_for_active_operation([f]) for f in files)
+            if all_files_incompatible:
+                self.notification_manager.show_notification(tr("no_compatible_files_for_operation"), "warning", 3000)
+            else:
+                # في حالة وجود ملفات متوافقة وغير متوافقة
+                self.notification_manager.show_notification(tr("some_files_not_compatible"), "info", 3000)
+
+            if not any(self._filter_files_for_active_operation([f]) for f in files):
+                 return
             
         self.on_files_added(filtered_files)
 
     def handle_smart_drop_action(self, action_type, files):
         """معالجة الإجراء المحدد من الطبقة الذكية"""
         if action_type == "add_to_list":
+            # التحقق من وجود تبويب نشط قبل إضافة الملفات
+            if not self.active_operation:
+                self.notification_manager.show_notification(tr("select_conversion_operation_first"), "warning", 3000)
+                return
+
+            # التأكد من أن منطقة العمل مرئية
+            if not self.workspace_widget.isVisible():
+                self.workspace_widget.show()
+                self.add_files_btn.show()
+                self.cancel_btn.show()
+
             self.add_files(files)
 
     def _get_main_window(self):
@@ -128,56 +126,6 @@ class ConvertPage(BasePageWidget):
                 return widget
         return None
         
-    def _determine_best_conversion_type(self, files):
-        """تحديد نوع التحويل الأمثل بناءً على أنواع الملفات المسحوبة"""
-        import os
-        
-        if not files:
-            return None
-            
-        # تحليل أنواع الملفات
-        pdf_count = 0
-        image_count = 0
-        text_count = 0
-        other_count = 0
-        
-        for file_path in files:
-            _, ext = os.path.splitext(file_path.lower())
-            
-            if ext == '.pdf':
-                pdf_count += 1
-            elif ext in ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff', '.webp']:
-                image_count += 1
-            elif ext in ['.txt', '.md', '.csv']:
-                text_count += 1
-            else:
-                other_count += 1
-        
-        # تحديد نوع التحويل بناءً على تحليل الملفات
-        if pdf_count > 0 and image_count == 0 and text_count == 0 and other_count == 0:
-            # ملفات PDF فقط
-            return "pdf_to_images"  # الخيار الافتراضي لملفات PDF
-        elif image_count > 0 and pdf_count == 0 and text_count == 0 and other_count == 0:
-            # صور فقط
-            return "images_to_pdf"
-        elif text_count > 0 and pdf_count == 0 and image_count == 0 and other_count == 0:
-            # ملفات نصية فقط
-            return "text_to_pdf"
-        elif pdf_count > 0 and text_count == 0 and image_count == 0 and other_count == 0:
-            # ملفات PDF فقط (يمكن تحويلها إلى نصوص أيضًا)
-            return "pdf_to_text"
-        else:
-            # خليط من الملفات، اختر التبويب الحالي إذا كان محددًا
-            if self.active_operation:
-                return self.active_operation
-            # أو اختر التبويب حسب النوع الأكثر شيوعًا
-            if pdf_count >= image_count and pdf_count >= text_count:
-                return "pdf_to_images"
-            elif image_count >= text_count:
-                return "images_to_pdf"
-            else:
-                return "text_to_pdf"
-                
     def _filter_files_for_active_operation(self, files):
         """تصفية الملفات لقبول الأنواع المناسبة للعملية الحالية فقط"""
         import os
@@ -464,11 +412,19 @@ class ConvertPage(BasePageWidget):
         new_text = button_texts.get(self.active_operation, "إضافة ملفات")
         self.add_files_btn.setText(new_text)
 
-        self.workspace_widget.show()
-        self.add_files_btn.show()
-        self.cancel_btn.show()
+        if not hasattr(self, 'is_initializing') or not self.is_initializing:
+            self.workspace_widget.show()
+            self.add_files_btn.show()
+            self.cancel_btn.show()
 
-        self.reset_ui(reset_tabs=False)
+        # إعادة تعيين حالة مساحة العمل عند تبديل التبويب
+        # مسح الملفات سيؤدي إلى إخفاء عناصر التحكم المعتمدة على الملفات
+        if self.file_list_frame.get_files():
+            self.file_list_frame.clear_all_files()
+        else:
+            # إذا لم تكن هناك ملفات، قم بتحديث الرؤية يدويًا
+            self.update_controls_visibility([])
+
         self.update_slider_position()
 
         main_window = self._get_main_window()
@@ -642,10 +598,11 @@ class ConvertPage(BasePageWidget):
         self.file_list_frame.hide()
 
         if reset_tabs:
-            self.active_operation = None
+            self.active_operation = "" # إعادة التعيين إلى قيمة فارغة
             for button in self.top_buttons.values():
                 button.setChecked(False)
             self.add_files_btn.setText(tr("add_files_convert"))
+            self.update_slider_position() # إخفاء المؤشر
 
         main_window = self._get_main_window()
         if main_window:
@@ -676,11 +633,19 @@ class ConvertPage(BasePageWidget):
     def update_slider_position(self):
         """تحديث موضع مؤشر الانزلاق المحسن"""
         from PySide6.QtCore import QTimer
-        if hasattr(self, 'slider_indicator') and self.top_buttons and self.active_operation:
-            if self.active_operation in self.top_buttons:
-                btn = self.top_buttons[self.active_operation]
-                # تأخير التحديث للتأكد من أن الأزرار تم رسمها
-                QTimer.singleShot(50, lambda: self.slider_indicator.setGeometry(
-                    btn.x(), btn.y() + btn.height() - 3,
-                    btn.width(), 3
-                ))
+        
+        if not hasattr(self, 'slider_indicator') or not self.top_buttons:
+            return
+
+        if self.active_operation and self.active_operation in self.top_buttons:
+            self.slider_indicator.show()
+            btn = self.top_buttons[self.active_operation]
+            
+            # استخدام QTimer لضمان تحديث الواجهة الرسومية قبل حساب الموضع
+            QTimer.singleShot(0, lambda: self.slider_indicator.setGeometry(
+                btn.x(), btn.y() + btn.height() - 3,
+                btn.width(), 3
+            ))
+        else:
+            # إخفاء المؤشر إذا لم يكن هناك تبويب نشط
+            self.slider_indicator.hide()

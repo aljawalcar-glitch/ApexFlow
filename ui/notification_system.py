@@ -231,7 +231,14 @@ class NotificationBar(QFrame):
     def on_hide_finished(self):
         # فصل الإشارة فقط إذا كانت هناك حركات
         if self.animation:
-            self.animation.finished.disconnect(self.on_hide_finished)
+            try:
+                self.animation.finished.disconnect(self.on_hide_finished)
+                # إيقاف الرسوم المتحركة وتنظيفها
+                self.animation.stop()
+                self.animation.deleteLater()
+                self.animation = None
+            except:
+                pass  # تجاهل أي أخطاء في فصل الإشارة
         self.closed.emit()
 
 # --- 2. Notification Detail Dialog ---
