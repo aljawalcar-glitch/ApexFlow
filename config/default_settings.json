@@ -1,0 +1,36 @@
+{
+  "save_mode": "dynamic",
+  "save_path": "",
+  "compression_level": 4,
+  "rotation_angle": 90,
+  "language": "ar",
+  "theme": "blue",
+  "accent_color": "#056a51",
+  "auto_backup": true,
+  "backup_path": "",
+  "max_file_size": 500,
+  "recent_files": [],
+  "window_geometry": {
+    "width": 1200,
+    "height": 700,
+    "x": 100,
+    "y": 50
+  },
+  "split_settings": {
+    "prefix": "page",
+    "pages_per_file": 1,
+    "create_subfolders": true
+  },
+  "merge_settings": {
+    "add_bookmarks": true,
+    "preserve_metadata": true,
+    "optimize_size": true
+  },
+  "ui_settings": {
+    "font_size": 12,
+    "font_family": "Arial",
+    "show_tooltips": true,
+    "animation_speed": 300,
+    "main_panel_state": "expanded"
+  }
+}

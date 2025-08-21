@@ -1,57 +1,27 @@
-# ===============================
-# متطلبات ApexFlow - PDF Processing Tool
-# ApexFlow Requirements - PDF Processing Tool
-# ===============================
+# GUI Framework
+PySide6>=6.6.0
 
-# واجهة المستخدم الرسومية - GUI Framework
-# PySide6 for modern Qt-based GUI
-PySide6==6.9.1
+# PDF Processing
+pypdf>=5.0.0
 
-# معالجة ملفات PDF - PDF Processing Libraries
-# pypdf for PDF operations (successor to PyPDF2)
-pypdf==5.0.0
+# Image Processing
+Pillow>=10.0.0
 
-# PyMuPDF (fitz) for advanced PDF processing and rendering
-PyMuPDF==1.26.3
+# System Information
+psutil>=5.9.0
 
-# PyCryptodome for encryption and decryption
-pycryptodome==3.20.0
+# Arabic Text Support
+arabic-reshaper>=3.0.0
+python-bidi>=0.4.2
 
-# معالجة الصور - Image Processing
-# Pillow for image manipulation and conversion
-Pillow==11.3.0
+# Windows System Integration
+pywin32>=306; sys_platform == "win32"
 
-# Libraries for Arabic text rendering in PDFs
-arabic_reshaper==3.0.0
-python-bidi==0.6.6
-
-# مراقبة النظام - System Monitoring
-# psutil for system resource monitoring
-psutil==6.0.0
-
-# pywin32 for Windows-specific functions (e.g., printing)
-pywin32==311
-
-# ===============================
-# مكتبات إضافية للتطوير والبناء
-# Additional Development and Build Libraries
-# ===============================
-
-# PyInstaller for creating executable files (required for building)
+# Build Tools (for development)
 PyInstaller>=6.0.0
 
-# ===============================
-# ملاحظات التثبيت - Installation Notes
-# ===============================
+# Optional: Enhanced PDF features
+PyMuPDF>=1.23.0
 
-# لتثبيت جميع المتطلبات:
-# To install all requirements:
-# pip install -r requirements.txt
-
-# لتثبيت مع PyInstaller للبناء:
-# To install with PyInstaller for building:
-# pip install -r requirements.txt PyInstaller>=5.13.0
-
-# للتحقق من الإصدارات المثبتة:
-# To check installed versions:
-# python check_versions.py
+# Utilities
+requests>=2.31.0

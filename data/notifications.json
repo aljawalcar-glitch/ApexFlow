@@ -349,6 +349,256 @@
       "category": "system",
       "time": "2025-08-12 20:31:30",
       "read": false
+    },
+    "system_36": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-12 22:29:32",
+      "read": false
+    },
+    "system_37": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-12 23:18:41",
+      "read": false
+    },
+    "system_38": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-12 23:33:19",
+      "read": false
+    },
+    "system_39": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ تم تغيير السمة. يمكنك رؤية المعاينة أدناه",
+      "message": "تم تغيير السمة. يمكنك رؤية المعاينة أدناه",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-12 23:34:43",
+      "read": false
+    },
+    "system_40": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ جاري حفظ الإعدادات...",
+      "message": "جاري حفظ الإعدادات...",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-12 23:34:46",
+      "read": false
+    },
+    "system_41": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ تم تطبيق الإعدادات الجديدة",
+      "message": "تم تطبيق الإعدادات الجديدة",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-12 23:34:52",
+      "read": false
+    },
+    "system_42": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-12 23:35:05",
+      "read": false
+    },
+    "system_43": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-12 23:49:02",
+      "read": false
+    },
+    "system_44": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-12 23:52:33",
+      "read": false
+    },
+    "system_45": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-12 23:56:22",
+      "read": false
+    },
+    "system_46": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ تم تحديد الملف للتقسيم: vehicle_list_without_qr-code_pdf_2025-08-13.pdf",
+      "message": "تم تحديد الملف للتقسيم: vehicle_list_without_qr-code_pdf_2025-08-13.pdf",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-14 18:49:28",
+      "read": false
+    },
+    "system_47": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-14 19:47:29",
+      "read": false
+    },
+    "system_48": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ تم تحميل خصائص PDF بنجاح",
+      "message": "تم تحميل خصائص PDF بنجاح",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-14 19:47:35",
+      "read": false
+    },
+    "system_49": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ تم تحديد الملف: vehicle_list_without_qr-code_pdf_2025-08-13.pdf",
+      "message": "تم تحديد الملف: vehicle_list_without_qr-code_pdf_2025-08-13.pdf",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-14 19:47:35",
+      "read": false
+    },
+    "system_50": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ تم تحديد الملف للضغط: vehicle_list_without_qr-code_pdf_2025-08-14.pdf",
+      "message": "تم تحديد الملف للضغط: vehicle_list_without_qr-code_pdf_2025-08-14.pdf",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-14 19:48:00",
+      "read": false
+    },
+    "system_51": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ تم تحديد الملف للتقسيم: vehicle_list_without_qr-code_pdf_2025-08-14.pdf",
+      "message": "تم تحديد الملف للتقسيم: vehicle_list_without_qr-code_pdf_2025-08-14.pdf",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-14 19:48:05",
+      "read": false
+    },
+    "system_52": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-14 19:52:51",
+      "read": false
+    },
+    "system_53": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-14 19:58:30",
+      "read": false
+    },
+    "system_54": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "message": "مرحباً بك في إعدادات ApexFlow! يمكنك تخصيص المظهر والخطوط والمزيد",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-14 20:32:08",
+      "read": false
+    },
+    "system_55": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ تم تحديد الملف للضغط: vehicle_list_without_qr-code_pdf_2025-08-14.pdf",
+      "message": "تم تحديد الملف للضغط: vehicle_list_without_qr-code_pdf_2025-08-14.pdf",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-14 20:35:16",
+      "read": false
+    },
+    "system_56": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ تم تحديد الملف للضغط: vehicle_list_without_qr-code_pdf_2025-08-14.pdf",
+      "message": "تم تحديد الملف للضغط: vehicle_list_without_qr-code_pdf_2025-08-14.pdf",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-14 20:35:19",
+      "read": false
+    },
+    "system_57": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ تم تحديد الملف للضغط: vehicle_list_without_qr-code_pdf_2025-08-14.pdf",
+      "message": "تم تحديد الملف للضغط: vehicle_list_without_qr-code_pdf_2025-08-14.pdf",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-14 20:35:21",
+      "read": false
+    },
+    "system_58": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ تم تحديد الملف للضغط: IMG_0002_محول.pdf",
+      "message": "تم تحديد الملف للضغط: IMG_0002_محول.pdf",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-14 20:35:25",
+      "read": false
+    },
+    "system_59": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ تم تحديد الملف للضغط: IMG_0002_محول.pdf",
+      "message": "تم تحديد الملف للضغط: IMG_0002_محول.pdf",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-14 20:35:28",
+      "read": false
+    },
+    "system_60": {
+      "icon": "ℹ",
+      "color": "#60a5fa",
+      "title": "ℹ جاري إعادة تحميل الصفحة...",
+      "message": "جاري إعادة تحميل الصفحة...",
+      "type": "info",
+      "category": "system",
+      "time": "2025-08-14 21:00:32",
+      "read": false
     }
   },
   "tasks": {
@@ -471,6 +721,46 @@
       "category": "tasks",
       "time": "2025-08-05 05:26:32",
       "read": false
+    },
+    "tasks_13": {
+      "icon": "✓",
+      "color": "#4ade80",
+      "title": "✓ تم تطبيق الإعدادات بنجاح",
+      "message": "تم تطبيق الإعدادات بنجاح",
+      "type": "success",
+      "category": "tasks",
+      "time": "2025-08-12 23:34:51",
+      "read": false
+    },
+    "tasks_14": {
+      "icon": "✓",
+      "color": "#4ade80",
+      "title": "✓ تم حفظ جميع الإعدادات بنجاح! ستظهر التغييرات فوراً",
+      "message": "تم حفظ جميع الإعدادات بنجاح! ستظهر التغييرات فوراً",
+      "type": "success",
+      "category": "tasks",
+      "time": "2025-08-12 23:34:51",
+      "read": false
+    },
+    "tasks_15": {
+      "icon": "✓",
+      "color": "#4ade80",
+      "title": "✓ تم تحميل 1 صفحة بدقة عالية مع انتقالات سلسة!",
+      "message": "تم تحميل 1 صفحة بدقة عالية مع انتقالات سلسة!",
+      "type": "success",
+      "category": "tasks",
+      "time": "2025-08-14 19:47:49",
+      "read": false
+    },
+    "tasks_16": {
+      "icon": "✓",
+      "color": "#4ade80",
+      "title": "✓ تم تحميل 1 صفحة بدقة عالية مع انتقالات سلسة!",
+      "message": "تم تحميل 1 صفحة بدقة عالية مع انتقالات سلسة!",
+      "type": "success",
+      "category": "tasks",
+      "time": "2025-08-14 20:32:25",
+      "read": false
     }
   },
   "alerts": {
@@ -502,6 +792,26 @@
       "type": "error",
       "category": "alerts",
       "time": "2025-08-05 01:48:04",
+      "read": false
+    },
+    "alerts_4": {
+      "icon": "✗",
+      "color": "#f87171",
+      "title": "✗ خطأ في تحميل صفحة دمج وطباعة: 'SVGIconButton' object has no attribute 'set_icon'",
+      "message": "خطأ في تحميل صفحة دمج وطباعة: 'SVGIconButton' object has no attribute 'set_icon'",
+      "type": "error",
+      "category": "alerts",
+      "time": "2025-08-14 21:00:30",
+      "read": false
+    },
+    "alerts_5": {
+      "icon": "✗",
+      "color": "#f87171",
+      "title": "✗ خطأ في تحميل صفحة دمج وطباعة: 'SVGIconButton' object has no attribute 'set_icon'",
+      "message": "خطأ في تحميل صفحة دمج وطباعة: 'SVGIconButton' object has no attribute 'set_icon'",
+      "type": "error",
+      "category": "alerts",
+      "time": "2025-08-14 21:00:32",
       "read": false
     }
   },
@@ -774,6 +1084,206 @@
       "type": "warning",
       "category": "warnings",
       "time": "2025-08-05 05:25:28",
+      "read": false
+    },
+    "warnings_28": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-12 23:10:28",
+      "read": false
+    },
+    "warnings_29": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-12 23:10:59",
+      "read": false
+    },
+    "warnings_30": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-12 23:12:01",
+      "read": false
+    },
+    "warnings_31": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-12 23:12:22",
+      "read": false
+    },
+    "warnings_32": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-12 23:13:29",
+      "read": false
+    },
+    "warnings_33": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-12 23:15:43",
+      "read": false
+    },
+    "warnings_34": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-12 23:15:58",
+      "read": false
+    },
+    "warnings_35": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-12 23:16:24",
+      "read": false
+    },
+    "warnings_36": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-12 23:18:16",
+      "read": false
+    },
+    "warnings_37": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-12 23:18:31",
+      "read": false
+    },
+    "warnings_38": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-12 23:31:59",
+      "read": false
+    },
+    "warnings_39": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-12 23:33:01",
+      "read": false
+    },
+    "warnings_40": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-12 23:44:24",
+      "read": false
+    },
+    "warnings_41": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-12 23:45:34",
+      "read": false
+    },
+    "warnings_42": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-12 23:48:55",
+      "read": false
+    },
+    "warnings_43": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-12 23:52:29",
+      "read": false
+    },
+    "warnings_44": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-12 23:56:18",
+      "read": false
+    },
+    "warnings_45": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "message": "بعض المكتبات المطلوبة غير متوفرة. عدد المكتبات المفقودة: 1\nالمكتبات المفقودة:\n- win32api: مكتبة وظائف ويندوز\n",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-12 23:57:29",
+      "read": false
+    },
+    "warnings_46": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ يرجى اختيار عملية تحويل أولاً",
+      "message": "يرجى اختيار عملية تحويل أولاً",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-14 19:47:41",
+      "read": false
+    },
+    "warnings_47": {
+      "icon": "⚠",
+      "color": "#fbbf24",
+      "title": "⚠ يرجى اختيار عملية تحويل أولاً",
+      "message": "يرجى اختيار عملية تحويل أولاً",
+      "type": "warning",
+      "category": "warnings",
+      "time": "2025-08-14 20:03:29",
       "read": false
     }
   }

@@ -11,6 +11,7 @@ This script automates the entire build process for ApexFlow, including:
 import os
 import sys
 import subprocess
+import glob
 from pathlib import Path
 
 # Ensure the script can find the 'config' module
@@ -45,10 +46,15 @@ NSIS_EXE_PATH = "C:\\Program Files (x86)\\NSIS\\makensis.exe"
 
 spec_data_files = [
     ('../assets', 'assets'),
+    ('../assets/icons', 'assets/icons'),
+    ('../assets/icons/default', 'assets/icons/default'),
+    ('../assets/menu_icons', 'assets/menu_icons'),
+    ('../assets/screenshots', 'assets/screenshots'),
+    ('../assets/sounds', 'assets/sounds'),
     ('../data', 'data'),
-    ('../modules/default_settings.json', 'modules'),
+    ('../src', 'src'),
     ('../docs', 'docs'),
-    ('../config/requirements.txt', 'config'),
+    ('../config', 'config'),
 ]
 
 spec_hidden_imports = [
@@ -72,8 +78,13 @@ spec_hidden_imports = [
     'json', 'pathlib', 'logging', 'threading', 'queue', 'tkinter',
     'io', 'tempfile', 'os', 'sys', 'importlib',
     
+    # Project modules
+    'src', 'src.core', 'src.managers', 'src.ui', 'src.utils',
+    'src.ui.pages', 'src.ui.widgets', 'src.ui.settings',
+    'managers', 'utils', 'ui', 'core',
+    
     # Additional modules that might be missed
-    'pkg_resources', 'setuptools', 'numpy',
+    'pkg_resources', 'setuptools',
 ]
 
 spec_excludes = [
@@ -109,8 +120,8 @@ RequestExecutionLevel admin
 ; Modern UI Configuration
 ; =================================================================
 
-!define MUI_ICON "..\\assets\\icons\\ApexFlow.ico"
-!define MUI_UNICON "..\\assets\\icons\\ApexFlow.ico"
+!define MUI_ICON "..\\assets\\icons\\{APP_NAME}.ico"
+!define MUI_UNICON "..\\assets\\icons\\{APP_NAME}.ico"
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
@@ -170,7 +181,7 @@ Section "Main Application (Required)" SecApp
   SetOutPath "$INSTDIR"
   DetailPrint "Installing main application files..."
   File /r "dist\\{APP_NAME}\\*.*"
-  DetailPrint "Installing translation and settings files..."
+  DetailPrint "Installing application resources and configuration files..."
   WriteRegStr HKLM "Software\\${{APP_NAME}}" "InstallDir" "$INSTDIR"
   WriteRegStr HKLM "Software\\${{APP_NAME}}" "Version" "${{VERSION}}"
   WriteUninstaller "$INSTDIR\\Uninstall.exe"
@@ -225,6 +236,28 @@ data_files = {spec_data_files!r}
 # Required hidden imports
 hidden_imports = {spec_hidden_imports!r}
 
+# Additional data files for icons and resources (using glob patterns correctly)
+import glob
+additional_data = []
+
+# Add individual icon files
+for pattern in ['../assets/icons/*.ico', '../assets/icons/*.png', '../assets/icons/*.svg']:
+    for file_path in glob.glob(pattern):
+        additional_data.append((file_path, 'assets/icons'))
+
+for file_path in glob.glob('../assets/icons/default/*.svg'):
+    additional_data.append((file_path, 'assets/icons/default'))
+
+for file_path in glob.glob('../assets/menu_icons/*.svg'):
+    additional_data.append((file_path, 'assets/menu_icons'))
+
+for pattern in ['../assets/*.png', '../assets/*.svg']:
+    for file_path in glob.glob(pattern):
+        additional_data.append((file_path, 'assets'))
+
+# Combine data files
+all_data_files = data_files + additional_data
+
 # Excluded modules
 excludes = {spec_excludes!r}
 
@@ -233,9 +266,9 @@ a = Analysis(
     ['../main.py'],
     pathex=[],
     binaries=[],
-    datas=data_files,
+    datas=all_data_files,
     hiddenimports=hidden_imports,
-    hookspath=[],
+    hookspath=['.'],  # Use current directory for hooks
     hooksconfig={{}},
     runtime_hooks=[],
     excludes=excludes,
@@ -266,13 +299,24 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='../assets/icons/ApexFlow.ico',
+    icon=f'../assets/icons/{APP_NAME}.ico',
+    # Ensure all icon files are included
+    add_data=[
+        ('../assets/icons/*.ico', 'assets/icons'),
+        ('../assets/icons/*.png', 'assets/icons'),
+        ('../assets/icons/*.svg', 'assets/icons'),
+        ('../assets/images/*.png', 'assets/images'),
+        ('../assets/images/*.jpg', 'assets/images'),
+        ('../assets/images/*.jpeg', 'assets/images'),
+    ],
     version_file=None,
     # Add runtime hooks for better library detection
-    runtime_hooks=['../config/rthooks/pyi_rth_pyside6.py', '../config/rthooks/pyi_rth_pkgutil.py', '../config/rthooks/pyi_rth_multiprocessing.py'],
+    runtime_hooks=['../config/rthooks/pyi_rth_pyside6.py'] if os.path.exists('../config/rthooks/pyi_rth_pyside6.py') else [],
     # Add additional options for better compatibility
     uac_admin=True,
     uac_uiaccess=False,
+    # Ensure all resources are included
+    collect_all=['PySide6'],
 )
 
 # Collect all files
@@ -349,7 +393,7 @@ def run_nsis():
         # We are in build_scripts, so chdir is not needed
         subprocess.run(command, check=True, shell=True)
         print("[SUCCESS] NSIS installer created successfully.")
-        print(f"Installer located at: {script_dir / f'ApexFlow_Setup_{VERSION}.exe'}")
+        print(f"Installer located at: {script_dir / f'{APP_NAME}_Setup_{VERSION}.exe'}")
     except subprocess.CalledProcessError as e:
         print(f"[ERROR] NSIS makensis.exe failed with exit code {e.returncode}")
         sys.exit(1)
@@ -357,13 +401,53 @@ def run_nsis():
         print(f"[ERROR] NSIS executable not found at the specified path.")
         sys.exit(1)
 
+def check_prerequisites():
+    """Check if all required files and directories exist."""
+    print("[INFO] Checking prerequisites...")
+    
+    required_files = [
+        project_root / "main.py",
+        project_root / "config" / "version.py",
+        project_root / "assets" / "icons" / f"{APP_NAME}.ico",
+        project_root / "docs" / "LICENSE.txt",
+    ]
+    
+    required_dirs = [
+        project_root / "src",
+        project_root / "assets",
+        project_root / "config",
+        project_root / "data",
+    ]
+    
+    missing_items = []
+    
+    for file_path in required_files:
+        if not file_path.exists():
+            missing_items.append(f"File: {file_path}")
+    
+    for dir_path in required_dirs:
+        if not dir_path.exists():
+            missing_items.append(f"Directory: {dir_path}")
+    
+    if missing_items:
+        print("[ERROR] Missing required files/directories:")
+        for item in missing_items:
+            print(f"  - {item}")
+        sys.exit(1)
+    
+    print("[SUCCESS] All prerequisites found.")
+
 def main():
     """Main function to run the entire build process."""
     print("="*50)
     print(f"  ApexFlow Master Build Script")
     print(f"  Version: {VERSION}")
+    print(f"  Project Root: {project_root}")
     print("="*50 + "\\n")
 
+    # Step 0: Check prerequisites
+    check_prerequisites()
+    
     # Step 1: Generate configuration files
     generate_spec_file()
     generate_nsi_script()
@@ -376,6 +460,7 @@ def main():
     
     print("\\n" + "="*50)
     print("  BUILD PROCESS COMPLETED SUCCESSFULLY!")
+    print(f"  Installer: {script_dir / f'{APP_NAME}_Setup_{VERSION}.exe'}")
     print("="*50)
 
 if __name__ == "__main__":
