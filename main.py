@@ -57,20 +57,45 @@ class SingleApplication(QApplication):
         self._key = "ApexFlow_SingleInstance_Key"
         self._memory = QSharedMemory(self._key)
         self._semaphore = QSystemSemaphore(self._key, 1)
+        self._is_running = False
+
+        # Check for restart flag
+        restart_flag_file = os.path.join(os.path.dirname(__file__), ".restart_flag")
+        is_restart = os.path.exists(restart_flag_file)
+        
+        if is_restart:
+            # Remove restart flag and force cleanup
+            try:
+                os.remove(restart_flag_file)
+                # Force detach any existing shared memory
+                if self._memory.isAttached():
+                    self._memory.detach()
+            except:
+                pass
 
         # Try to create shared memory
         if self._memory.attach():
-            # Application is already running
-            self._is_running = True
+            if not is_restart:
+                # Application is already running (not a restart)
+                self._is_running = True
+            else:
+                # This is a restart, detach and recreate
+                self._memory.detach()
+                if not self._memory.create(1):
+                    self._is_running = True
         else:
             # First time running the application
-            self._is_running = False
             if not self._memory.create(1):
                 self._is_running = True
 
     def is_running(self):
         """Check if the application is already running"""
         return self._is_running
+    
+    def cleanup(self):
+        """Clean up shared memory on exit"""
+        if hasattr(self, '_memory') and self._memory.isAttached():
+            self._memory.detach()
 
 
 class ApexFlow(QMainWindow):
@@ -168,7 +193,55 @@ class ApexFlow(QMainWindow):
         except Exception as e:
             warning(f"Error cleaning temp files: {e}")
 
+        # Clean up shared memory
+        app = QApplication.instance()
+        if hasattr(app, 'cleanup'):
+            app.cleanup()
+
         event.accept()
+    
+    def handle_settings_save_and_restart(self):
+        """Handle save and restart from settings"""
+        # Create restart flag file
+        restart_flag_file = os.path.join(os.path.dirname(__file__), ".restart_flag")
+        try:
+            with open(restart_flag_file, 'w') as f:
+                f.write("restart")
+        except:
+            pass
+        
+        # Close current instance and restart
+        QTimer.singleShot(100, self._restart_application)
+    
+    def _restart_application(self):
+        """Restart the application"""
+        import subprocess
+        subprocess.Popen([sys.executable] + sys.argv)
+        self.close()
+    
+    def handle_settings_save_only(self):
+        """Handle save only from settings"""
+        # Just close the settings window without restart
+        if hasattr(self, '_settings_ui_module') and self._settings_ui_module:
+            self._settings_ui_module.close()
+    
+    def set_page_has_work(self, page_index, has_work):
+        """Set whether a page has unfinished work"""
+        if 0 <= page_index < len(self.PAGE_NAMES):
+            self._has_unfinished_work[page_index] = has_work
+    
+    def has_any_unfinished_work(self):
+        """Check if any page has unfinished work"""
+        return any(self._has_unfinished_work.values())
+    
+    def get_pages_with_work(self):
+        """Get list of page names that have unfinished work"""
+        pages_with_work = []
+        for page_index, has_work in self._has_unfinished_work.items():
+            if has_work and page_index < len(self.PAGE_NAMES):
+                page_name = tr(self.PAGE_NAMES[page_index])
+                pages_with_work.append(page_name)
+        return pages_with_work
 
     def resizeEvent(self, event):
         """تحديث حجم الطبقة الذكية عند تغيير حجم النافذة"""
@@ -360,6 +433,9 @@ class ApexFlow(QMainWindow):
         self.toggle_btn = QPushButton("☰")
         self.toggle_btn.setFixedHeight(35)
         self.toggle_btn.clicked.connect(self.toggle_sidebar)
+        # تحسين مظهر الزر ليتناسب مع السمة والإطار
+        self.toggle_btn.setObjectName("sidebar_toggle_button")
+        make_theme_aware(self.toggle_btn, "sidebar_toggle_button")
         sidebar_layout.addWidget(self.toggle_btn)
 
         # القائمة

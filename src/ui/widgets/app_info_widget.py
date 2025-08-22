@@ -107,6 +107,7 @@ class AboutDialog(QDialog):
         logo_label = QLabel()
         logo_label.setFixedSize(64, 64)
         logo_label.setAlignment(Qt.AlignCenter)
+        logo_label.setObjectName("about_logo_label")
         try:
             logo_paths = [
                 os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "logo.png"),
@@ -133,16 +134,21 @@ class AboutDialog(QDialog):
                 logo_label.setText(tr("logo_fallback_text"))
                 logo_label.setStyleSheet("font-size: 32px; color: #ff6f00; font-weight: bold;")
         
+        make_theme_aware(logo_label, "about_logo_label")
+        
         info_layout = QVBoxLayout()
         app_name_label = QLabel(APP_NAME)
+        app_name_label.setObjectName("about_app_name")
         make_theme_aware(app_name_label, "about_app_name")
         info_layout.addWidget(app_name_label)
         version_label = QLabel(tr("version_label", version=VERSION))
+        version_label.setObjectName("about_version")
         make_theme_aware(version_label, "about_version")
         info_layout.addWidget(version_label)
         from src.managers.language_manager import language_manager
         author = APP_AUTHOR_AR if language_manager.get_language() == "ar" else APP_AUTHOR_EN
         author_label = QLabel(tr("author_label", author=author))
+        author_label.setObjectName("about_author")
         make_theme_aware(author_label, "about_author")
         info_layout.addWidget(author_label)
         header_layout.addWidget(logo_label)
@@ -150,21 +156,25 @@ class AboutDialog(QDialog):
         layout.addLayout(header_layout)
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
+        separator.setObjectName("about_separator")
         make_theme_aware(separator, "about_separator")
         layout.addWidget(separator)
         about_text = QTextEdit()
         about_text.setReadOnly(True)
         about_text.setMarkdown(get_about_text())
-        make_theme_aware(about_text, "text_edit")
+        about_text.setObjectName("about_text")
+        make_theme_aware(about_text, "about_text")
         layout.addWidget(about_text)
         button_layout = QHBoxLayout()
         self.update_button = QPushButton(tr("check_for_updates_button"))
-        make_theme_aware(self.update_button, "button")
+        self.update_button.setObjectName("about_update_button")
+        make_theme_aware(self.update_button, "about_update_button")
         self.update_button.clicked.connect(self.manual_check_for_updates)
         button_layout.addWidget(self.update_button)
         button_layout.addStretch()
         close_button = QPushButton(tr("close_button"))
-        make_theme_aware(close_button, "button")
+        close_button.setObjectName("about_close_button")
+        make_theme_aware(close_button, "about_close_button")
         close_button.clicked.connect(self.accept)
         close_button.setFixedWidth(100)
         button_layout.addWidget(close_button)
@@ -177,10 +187,45 @@ class AboutDialog(QDialog):
 
     def _perform_update_check(self):
         is_available, new_version = check_for_updates()
+        
+        # إنشاء QMessageBox مخصص
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle(tr("update_check"))
+        
+        # تطبيق ألوان السمة
+        colors = global_theme_manager.get_current_colors()
+        accent_color = global_theme_manager.current_accent
+        
+        msg_box.setStyleSheet(f"""
+            QMessageBox {{
+                background-color: {colors.get('surface', '#2d3748')};
+            }}
+            QLabel {{
+                color: {colors.get('text_body', '#ffffff')};
+                background-color: transparent;
+            }}
+            QPushButton {{
+                background-color: {accent_color};
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {global_theme_manager.get_color('accent_hover') if 'accent_hover' in colors else '#067a61'};
+            }}
+        """)
+
         if is_available:
-            QMessageBox.information(self, tr("update_available"), tr("new_version_available", latest_version=new_version))
+            msg_box.setIcon(QMessageBox.Information)
+            msg_box.setText(tr("new_version_available", latest_version=new_version))
         else:
-            QMessageBox.information(self, tr("no_update_available"), tr("app_is_up_to_date"))
+            msg_box.setIcon(QMessageBox.Information)
+            msg_box.setText(tr("app_is_up_to_date"))
+            
+        msg_box.exec()
+
         self.update_button.setText(tr("check_for_updates_button"))
         self.update_button.setEnabled(True)
 
@@ -259,7 +304,10 @@ class AppInfoWidget(QWidget):
 
         self.info_button = SVGIconButton("info", 16, tr("about_button_tooltip"))
         self.info_button.clicked.connect(self.show_about_dialog)
-        make_theme_aware(self.info_button, "icon_button")
+        self.info_button.setObjectName("about_info_button")
+        self.info_button.setProperty("icon_name", "info")
+        self.info_button.setProperty("icon_size", 16)
+        make_theme_aware(self.info_button, "about_info_button")
         header_layout.addWidget(logo_button, 0, Qt.AlignLeft)
         header_layout.addWidget(self.wordmark_widget, 1)
         header_layout.addWidget(self.info_button, 0, Qt.AlignRight)

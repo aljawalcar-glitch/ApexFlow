@@ -168,7 +168,7 @@ class GlobalThemeManager(QObject):
             style = f"background-color: {self.get_color('background')};"
         elif role_or_type == "surface":
             style = f"background-color: {self.get_color('surface')}; border: 1px solid {self.get_color('border')};"
-        elif role_or_type == "button":
+        elif role_or_type in ["button", "about_info_button"]:
             # تحديث الزر عند تغيير السمة
             try:
                 # الحصول على اسم الأيقونة من خاصية مخصصة (إذا كان زر أيقونة)
@@ -181,6 +181,12 @@ class GlobalThemeManager(QObject):
                     colored_icon = create_colored_icon(icon_name, icon_size)
                     if colored_icon:
                         widget.setIcon(colored_icon)
+                        
+                    # إذا كان زر أيقونة SVGIconButton، قم بتحديث لون الأيقونة
+                    if hasattr(widget, "set_icon_color"):
+                        # استخدام لون النص الثانوي للسمة للأيقونات
+                        icon_color = self.get_color("text_secondary")
+                        widget.set_icon_color(icon_color)
             except Exception as e:
                 error(f"خطأ في تحديث أيقونة الزر: {e}")
         

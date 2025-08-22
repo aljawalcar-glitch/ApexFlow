@@ -24,6 +24,18 @@ def lighten_color(color, factor=0.2):
     except:
         return color
 
+def hex_to_rgb(hex_color):
+    """تحويل لون HEX إلى سلسلة RGB"""
+    try:
+        hex_color = hex_color.lstrip('#')
+        if len(hex_color) == 6:
+            return f"{int(hex_color[0:2], 16)}, {int(hex_color[2:4], 16)}, {int(hex_color[4:6], 16)}"
+        elif len(hex_color) == 3:
+            return f"{int(hex_color[0]*2, 16)}, {int(hex_color[1]*2, 16)}, {int(hex_color[2]*2, 16)}"
+    except:
+        pass
+    return "0, 0, 0"
+
 def get_font_settings():
     """الحصول على إعدادات الخطوط من الملف مع دعم الأحجام المنفصلة"""
     try:
@@ -75,7 +87,7 @@ def get_widget_style(widget_type, colors, accent_color):
     if widget_type == "main_window":
         return f"""
             QMainWindow {{ background-color: {colors["bg"]}; }}
-            QLabel {{ background: transparent; border: none; outline: none; }}
+            QLabel {{ background-color: transparent; border: none; outline: none; }}
             QScrollBar:vertical {{
                 background: {colors["surface"]};
                 width: 10px;
@@ -134,37 +146,45 @@ def get_widget_style(widget_type, colors, accent_color):
                 border-radius: 10px;
             }}
             QLabel {{ background: transparent; }}
-            QLabel#about_app_name {{ font-size: {font_settings["title_size"]}px; font-weight: bold; color: {accent_color}; }}
-            QLabel#about_version {{ font-size: {font_settings["size"]}px; color: {colors["text_secondary"]}; }}
-            QLabel#about_author {{ font-size: {int(font_settings["size"] * 0.85)}px; color: {colors["text_muted"]}; }}
-            QFrame#about_separator {{ background-color: {colors["border"]}; border: none; height: 1px; }}
-            QTextEdit {{
-                background: {colors["surface"]}; border: none; border-radius: 6px;
-                padding: 10px; font-family: 'Consolas', 'Monaco', monospace
-                background: {colors["surface"]}; width: 8px; border-radius: 4px;
-                margin: 0; border: none;
+            QLabel#about_app_name {{ font-size: {font_settings["title_size"]}px; font-weight: bold; color: {accent_color}; background: transparent; }}
+            QLabel#about_version {{ font-size: {font_settings["size"]}px; color: {colors["text_secondary"]}; background: transparent; }}
+            QLabel#about_author {{ font-size: {int(font_settings["size"] * 0.85)}px; color: {colors["text_muted"]}; background: transparent; }}
+            QLabel#about_logo_label {{ 
+                background: transparent; 
+                border: 1px solid {colors["border"]}; 
+                border-radius: 8px; 
+                padding: 5px;
             }}
-            QTextEdit QScrollBar::handle:vertical {{ background: {accent_color}; border-radius: 4px; min-height: 20px; }}
-            QTextEdit QScrollBar::handle:vertical:hover {{ background: {lighten_color(accent_color)}; }}
-            QTextEdit QScrollBar::add-line:vertical, QTextEdit QScrollBar::sub-line:vertical {{ height: 0; background: none; }}
-            QTextEdit QScrollBar:horizontal {{
-                background: {colors["surface"]}; height: 8px; border-radius: 4px;
-                margin: 0; border: 1px solid {colors["border"]};
+            QFrame#about_separator {{ background-color: rgba({hex_to_rgb(colors["border"])}, 0.5); border: none; height: 1px; }}
+            QTextEdit#about_text {{
+                background: {colors["surface"]}; 
+                border: 1px solid {colors["border"]}; 
+                border-radius: 6px;
+                padding: 10px; 
+                font-family: 'Consolas', 'Monaco', monospace;
+                color: {colors["text_body"]};
             }}
-            QTextEdit QScrollBar::handle:horizontal {{ background: {accent_color}; border-radius: 4px; min-width: 20px; }}
-            QTextEdit QScrollBar::handle:horizontal:hover {{ background: {lighten_color(accent_color)}; }}
-            QTextEdit QScrollBar::add-line:horizontal, QTextEdit QScrollBar::sub-line:horizontal {{ width: 0; background: none; }}
+            QTextEdit#about_text QScrollBar::handle:vertical {{ background: rgba({hex_to_rgb(accent_color)}, 0.8); border-radius: 4px; min-height: 20px; }}
+            QTextEdit#about_text QScrollBar::handle:vertical:hover {{ background: rgba({hex_to_rgb(lighten_color(accent_color))}, 0.9); }}
+            QTextEdit#about_text QScrollBar::add-line:vertical, QTextEdit#about_text QScrollBar::sub-line:vertical {{ height: 0; background: none; }}
+            QTextEdit#about_text QScrollBar:horizontal {{
+                background: rgba({hex_to_rgb(colors["surface"])}, 0.5); height: 8px; border-radius: 4px;
+                margin: 0; border: 1px solid rgba({hex_to_rgb(colors["border"])}, 0.4);
+            }}
+            QTextEdit#about_text QScrollBar::handle:horizontal {{ background: rgba({hex_to_rgb(accent_color)}, 0.8); border-radius: 4px; min-width: 20px; }}
+            QTextEdit#about_text QScrollBar::handle:horizontal:hover {{ background: rgba({hex_to_rgb(lighten_color(accent_color))}, 0.9); }}
+            QTextEdit#about_text QScrollBar::add-line:horizontal, QTextEdit#about_text QScrollBar::sub-line:horizontal {{ width: 0; background: none; }}
             QPushButton#about_update_button {{
-                background: transparent; color: {accent_color}; border: 1px solid {accent_color}; border-radius: 6px;
+                background: transparent; color: rgba({hex_to_rgb(accent_color)}, 0.9); border: 1px solid rgba({hex_to_rgb(accent_color)}, 0.7); border-radius: 6px;
                 padding: 8px 16px; font-weight: bold;
             }}
-            QPushButton#about_update_button:hover {{ background: {hover_bg_color}; }}
-            QPushButton#about_update_button:disabled {{ background: {colors["surface"]}; color: {colors["text_muted"]}; border-color: {colors["border"]}; }}
+            QPushButton#about_update_button:hover {{ background: rgba({hex_to_rgb(hover_bg_color)}, 0.7); }}
+            QPushButton#about_update_button:disabled {{ background: rgba({hex_to_rgb(colors["surface"])}, 0.5); color: rgba({hex_to_rgb(colors["text_muted"])}, 0.7); border-color: rgba({hex_to_rgb(colors["border"])}, 0.5); }}
             QPushButton#about_close_button {{
-                background: {accent_color}; color: white; border: none; border-radius: 6px;
+                background: rgba({hex_to_rgb(accent_color)}, 0.9); color: rgba(255, 255, 255, 0.95); border: none; border-radius: 6px;
                 padding: 8px 16px; font-weight: bold;
             }}
-            QPushButton#about_close_button:hover {{ background: {lighten_color(accent_color, 0.1)}; }}
+            QPushButton#about_close_button:hover {{ background: rgba({hex_to_rgb(lighten_color(accent_color, 0.1))}, 0.95); }}
         """
     
     elif widget_type == "menu":
@@ -221,6 +241,26 @@ def get_widget_style(widget_type, colors, accent_color):
             }}
             QPushButton[update_available="true"]:hover {{
                 background: rgba(76, 175, 80, 0.2);
+            }}
+        """
+    
+    elif widget_type == "about_info_button":
+        return f"""
+            QPushButton {{ 
+                background: transparent; 
+                border: 1px solid {colors["border"]}; 
+                border-radius: 4px; 
+                padding: 4px;
+                color: {colors["text_secondary"]};
+            }}
+            QPushButton:hover {{ 
+                background-color: {hover_bg_color}; 
+                border-color: {accent_color};
+                color: {accent_color};
+            }}
+            QPushButton:pressed {{ 
+                background-color: {accent_color}33; 
+                border-color: {accent_color};
             }}
         """
 
